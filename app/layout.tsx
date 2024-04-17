@@ -1,29 +1,37 @@
-import "./globals.css"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import Footer from "@/components/footer"
-import Header from "@/components/header"
+import { Body1 } from "@/components/Body1"
+import AuthButton from "@/components/AuthButton"
+import { Avatar, Box, Container, Flex, Menu, MenuButton } from "@chakra-ui/react"
+import { fonts } from "./fonts"
+import { Providers } from "./providers"
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
-  title: "NextAuth.js Example",
-  description:
-    "This is an example site to demonstrate how to use NextAuth.js for authentication",
-}
+// export const metadata: Metadata = {
+//   title: "NBA Playoff Game",
+//   description:
+//     "Compete with your friends over the course of the playoffs. Pick a player each day and get points for their performance.",
+// }
 
 export default function RootLayout({ children }: React.PropsWithChildren) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <div className="flex flex-col justify-between w-full h-full min-h-screen">
-          <Header />
-          <main className="flex-auto w-full max-w-3xl px-4 py-4 mx-auto sm:px-6 md:py-6">
+      <Box as="body" className={fonts.rubik.variable} px={8}>
+        <Providers>
+          <Container>
+            <Flex maxW='500px' mx='auto' overflow='hidden'>
+              <Body1>NBA Playoff Game</Body1>
+              <AuthButton />
+            </Flex>
+          </Container>
+          <Box as='main' maxW='500px' mx='auto' overflow='hidden'>
             {children}
-          </main>
-          <Footer />
-        </div>
-      </body>
+          </Box>
+          <Container>
+            <Box maxW='500px' mx='auto' overflow='hidden'>
+              <Body1>NBA Playoff Game</Body1>
+            </Box>
+          </Container>
+        </Providers>
+      </Box>
     </html>
+
   )
 }
