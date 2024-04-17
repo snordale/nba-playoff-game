@@ -5,3 +5,10 @@ async function blobEx() {
     access: "public",
   });
 }
+
+
+async function createUser() {
+  const { url } = await put("users/user.txt", "Hello User!", {
+    access: "public",
+  });
+}
