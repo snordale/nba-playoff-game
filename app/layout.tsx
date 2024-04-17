@@ -13,22 +13,21 @@ import { Providers } from "./providers"
 export default function RootLayout({ children }: React.PropsWithChildren) {
   return (
     <html lang="en">
-      <Box as="body" className={fonts.rubik.variable} px={8}>
+      <Box as="body" className={fonts.rubik.variable}>
         <Providers>
-          <Container>
-            <Flex maxW='500px' mx='auto' overflow='hidden'>
+          <Box position='relative' overflow='hidden' w='500px' mx='auto'>
+
+            <Flex justifyContent='space-between' overflow='hidden' w='100%'>
               <Body1>NBA Playoff Game</Body1>
               <AuthButton />
             </Flex>
-          </Container>
-          <Box as='main' maxW='500px' mx='auto' overflow='hidden'>
-            {children}
-          </Box>
-          <Container>
-            <Box maxW='500px' mx='auto' overflow='hidden'>
+            <Box as='main' w='100%'>
+              {children}
+            </Box>
+            <Box>
               <Body1>NBA Playoff Game</Body1>
             </Box>
-          </Container>
+          </Box>
         </Providers>
       </Box>
     </html>

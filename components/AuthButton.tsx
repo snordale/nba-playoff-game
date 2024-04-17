@@ -13,9 +13,6 @@ const AuthButton = () => {
     }
   }, [session])
 
-  console.log('session')
-  console.log(session)
-
   if (session.data?.user) {
     return (
       <Menu>
