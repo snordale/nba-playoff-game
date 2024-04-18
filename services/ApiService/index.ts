@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiService = axios.create({
-  baseURL: process.env.BASE_URL,
+  baseURL: process.env.API_URL,
 });
 
 export const createLeague = async ({ leagueName }) => {
@@ -14,8 +14,8 @@ export const joinLeague = async ({ leagueCode }) => {
 
 export const getLeagues = async () => {
   return apiService.get("/league");
-}
+};
 
 export const getLeague = async ({ leagueId }) => {
   return apiService.get(`/league/${leagueId}`);
-}
+};

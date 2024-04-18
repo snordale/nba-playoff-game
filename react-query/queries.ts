@@ -8,18 +8,21 @@ import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 export const queryClient = new QueryClient();
 
-export const useCreateLeague = useMutation({
-  mutationFn: createLeague,
-});
+export const useCreateLeague = () =>
+  useMutation({
+    mutationFn: createLeague,
+  });
 
-export const useJoinLeague = useMutation({
-  mutationFn: joinLeague,
-});
+export const useJoinLeague = () =>
+  useMutation({
+    mutationFn: joinLeague,
+  });
 
-export const useGetLeagues = useQuery({
-  queryKey: ["getLeagues"],
-  queryFn: getLeagues,
-});
+export const useGetLeagues = () =>
+  useQuery({
+    queryKey: ["getLeagues"],
+    queryFn: getLeagues,
+  });
 
 export const useGetLeague = ({ leagueId }) => {
   return useQuery({

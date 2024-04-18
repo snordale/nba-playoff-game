@@ -1,3 +1,4 @@
+import { useCreateLeague, useJoinLeague } from "@/react-query/queries";
 import {
   Button,
   Input,
@@ -12,34 +13,50 @@ import {
 import React from "react";
 
 const CreateLeagueModal = ({ variant, onClose }) => {
+  const createLeague = useCreateLeague();
+  const joinLeague = useJoinLeague();
+
   const handleSubmit = (e) => {
     console.log("submit");
     console.log(e);
     e.preventDefault();
+    const formData = new FormData(e.target);
 
+    if (variant === "create") {
+      const leagueName = formData.get("leagueName");
+      const leagueCode = formData.get("leagueCode");
+
+      createLeague.mutate({
+        leagueName,
+      });
+    }
+    if (variant === "join") {
+      const leagueCode = formData.get("leagueCode");
+
+      joinLeague.mutate({
+        leagueCode,
+      });
+    }
   };
 
   const renderBody = () => {
     if (variant === "create") {
       return (
-        <form onSubmit={handleSubmit}>
-          <Stack>
-            <Input placeholder="League Name" />
-            <Input placeholder="League Description" />
-            <Button type='submit' colorScheme="purple">Create League</Button>
-          </Stack>
-        </form>
+        <Stack>
+          <Input name="leagueName" placeholder="League Name" />
+          <Button type="submit" colorScheme="purple">
+            Create League
+          </Button>
+        </Stack>
       );
     }
 
     if (variant === "join") {
       return (
-        <form onSubmit={handleSubmit}>
-          <Stack>
-            <Input placeholder="League Code" />
-            <Button value="Join League" />
-          </Stack>
-        </form>
+        <Stack>
+          <Input name="leagueCode" placeholder="League Code" />
+          <Button value="Join League" />
+        </Stack>
       );
     }
   };
@@ -50,7 +67,9 @@ const CreateLeagueModal = ({ variant, onClose }) => {
       <ModalContent>
         <ModalCloseButton />
         <ModalHeader>Create League</ModalHeader>
-        <ModalBody>{renderBody()}</ModalBody>
+        <ModalBody>
+          <form onSubmit={handleSubmit}>{renderBody()}</form>
+        </ModalBody>
       </ModalContent>
     </Modal>
   );
