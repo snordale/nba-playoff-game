@@ -1,8 +1,8 @@
-import { Body1 } from "@/components/Body1"
-import AuthButton from "@/components/AuthButton"
-import { Avatar, Box, Container, Flex, Menu, MenuButton } from "@chakra-ui/react"
-import { fonts } from "./fonts"
-import { Providers } from "./providers"
+import AuthButton from "@/components/AuthButton";
+import { Body1 } from "@/components/Body1";
+import { Box, Flex } from "@chakra-ui/react";
+import { fonts } from "./fonts";
+import { Providers } from "./providers";
 
 // export const metadata: Metadata = {
 //   title: "NBA Playoff Game",
@@ -15,22 +15,36 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
     <html lang="en">
       <Box as="body" className={fonts.rubik.variable}>
         <Providers>
-          <Box position='relative' overflow='hidden' w='500px' mx='auto'>
-
-            <Flex justifyContent='space-between' overflow='hidden' w='100%'>
-              <Body1>NBA Playoff Game</Body1>
+          <Flex
+            flexDir="column"
+            minHeight="100vh"
+            position="relative"
+            overflow="hidden"
+            w='100%'
+            maxW="500px"
+            mx="auto"
+            p={4}
+          >
+            <Flex
+              justifyContent="space-between"
+              overflow="hidden"
+              w="100%"
+              pb={4}
+            >
+              <Body1 fontWeight={600}>NBA Playoff Game</Body1>
               <AuthButton />
             </Flex>
-            <Box as='main' w='100%'>
+            <Box as="main" flex="1" w="100%">
               {children}
             </Box>
-            <Box>
-              <Body1>NBA Playoff Game</Body1>
+            <Box mt="auto">
+              <Body1 fontWeight={600}>
+                NBA Playoff Game {new Date().getFullYear()}
+              </Body1>
             </Box>
-          </Box>
+          </Flex>
         </Providers>
       </Box>
     </html>
-
-  )
+  );
 }

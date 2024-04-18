@@ -1,15 +1,19 @@
 // app/providers.tsx
-'use client'
+"use client";
 
-import { ChakraProvider } from '@chakra-ui/react'
-import { SessionProvider } from 'next-auth/react'
+import { queryClient } from "@/react-query/queries";
+import { ChakraProvider } from "@chakra-ui/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { SessionProvider } from "next-auth/react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ChakraProvider>
       <SessionProvider>
-        {children}
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
       </SessionProvider>
     </ChakraProvider>
-  )
+  );
 }

@@ -1,40 +1,35 @@
-'use client'
-import { signIn, signOut, useSession } from 'next-auth/react';
-import { Avatar, Button, Menu, MenuButton, MenuItem, MenuList } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+"use client";
+import { signIn, signOut, useSession } from "next-auth/react";
+import {
+  Avatar,
+  Button,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+} from "@chakra-ui/react";
 
 const AuthButton = () => {
-  const session = useSession();
-  const [imageSrc, setImageSrc] = useState('')
+  const { data: session, status } = useSession();
 
-  useEffect(() => {
-    if (session.data?.user) {
-      setImageSrc(session.data.user?.image)
-    }
-  }, [session])
+  if (typeof session === undefined) return null;
 
-  if (session.data?.user) {
+  if (status === "authenticated" && session?.user) {
     return (
       <Menu>
         <MenuButton>
-          <Avatar name={session.data.user?.name} src={imageSrc} />
+          <Avatar name={session.user.name} src={session.user.image} size="sm" />
         </MenuButton>
         <MenuList>
-          <MenuItem onClick={() => signOut()}>
-            <Button >
-              Logout
-            </Button>
+          <MenuItem fontWeight={600} onClick={() => signOut()}>
+            Logout
           </MenuItem>
         </MenuList>
       </Menu>
-    )
+    );
   }
 
-  return (
-    <Button onClick={() => signIn()}>
-      Login
-    </Button>
-  )
-}
+  return <Button onClick={() => signIn("google")}>Login</Button>;
+};
 
-export default AuthButton
+export default AuthButton;

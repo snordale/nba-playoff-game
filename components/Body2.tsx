@@ -1,7 +1,9 @@
-import { Text } from '@chakra-ui/react'
+import { Text, TextProps } from "@chakra-ui/react";
 
-export const Body2 = () => {
-  return (
-    <Text fontSize='sm'>Body1</Text>
-  )
-}
+type Props = TextProps & {
+  children: React.ReactNode;
+};
+
+export const Body2 = ({ children }: Props) => {
+  return <Text fontSize="sm">{children}</Text>;
+};
