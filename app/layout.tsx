@@ -4,6 +4,7 @@ import CustomLink from "@/components/CustomLink";
 import { Box, Flex } from "@chakra-ui/react";
 import Head from "next/head";
 import { Providers } from "./providers";
+import { fonts } from "./fonts";
 
 // export const metadata: Metadata = {
 //   title: "NBA Playoff Game",
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/public/favicon.ico" />
       </Head>
-      <Box as="body" fontFamily="Roboto">
+      <Box as="body" className={fonts.rubik.className}>
         <Providers>
           <Flex
             flexDir="column"

@@ -27,9 +27,6 @@ const HomeContent = () => {
           >
             Create League
           </Button>
-          <Button flex={1} onClick={() => setModalVariant("join")}>
-            Join League
-          </Button>
         </HStack>
         <Body1 fontWeight={600}>Leagues</Body1>
         {leagues?.length === 0 && (
