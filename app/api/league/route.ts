@@ -66,7 +66,11 @@ export async function GET(req: NextRequest) {
         createdAt: "desc",
       },
       include: {
-        player: true,
+        player: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
 

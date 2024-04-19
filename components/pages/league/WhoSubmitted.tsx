@@ -4,13 +4,11 @@ import { Box, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton
 import { ZapIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-const WhoSubmitted = () => {
+const WhoSubmitted = ({ leagueId }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const openPopover = () => setPopoverOpen(true);
   const closePopover = () => setPopoverOpen(false);
 
-  const searchParams = new URLSearchParams(window.location.search);
-  const leagueId = searchParams.get('leagueId');
   const { data: leagueData } = useGetLeague({ leagueId });
 
   const todaysSubmissions = useMemo(() => leagueData?.todaysSubmissions, [leagueData?.todaysSubmissions]);
@@ -46,11 +44,6 @@ const WhoSubmitted = () => {
           <PopoverBody>
             {todaysSubmissions?.length > 0 ? (
               <>
-                {todaysSubmissions.map((submission) => (
-                  <Text key={submission.id}>
-                    {submission.playerName} submitted at {new Date(submission.createdAt).toLocaleTimeString()}.
-                  </Text>
-                ))}
                 {playersWhoDidNotSubmit.length > 0 && (
                   <Box mt={4}>
                     <Body1>Players who haven't submitted:</Body1>

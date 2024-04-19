@@ -8,8 +8,10 @@ import { Leaderboard } from "./Leaderboard";
 import { ScoringKeyButton } from "./ScoringKeyButton";
 import SubmissionsTable from "./SubmissionsTable";
 import WhoSubmitted from "./WhoSubmitted";
+import { useSession } from "next-auth/react";
 
 export const LeagueRoot = ({ params }) => {
+  const { data } = useSession();
   const leagueId = params.leagueId;
   // State
   const [search, setSearch] = useState('');
@@ -30,24 +32,43 @@ export const LeagueRoot = ({ params }) => {
       playerImage,
       teamName,
     });
-  }
+  };
 
-  const filteredPlayers = useMemo(() => {
-    if (!teams) {
+  const currentPlayer = leagueData?.players.find(player => player.user.email === data?.user?.email);
+  const currentPlayerId = currentPlayer?.id;
+
+  const filteredPlayersByTeam = useMemo(() => {
+    if (!teams || !leagueData.players) {
       return [];
     }
 
-    return teams.map((team) => ({
+    // Map over teams and then players to construct a new structure
+    return teams.map(team => ({
       ...team,
-      players: team.players.filter((player) => player.name.toLowerCase().includes(search.toLowerCase()))
+      players: team.players.map(player => {
+        // Check if the player has already submitted today
+        const alreadySubmitted = leagueData.players.some(p =>
+          p.id === currentPlayerId &&
+          p.submissions.some(submission =>
+            submission.playerName === player.name &&
+            submission.teamName === team.team
+          )
+        ) || leagueData.todaysSubmissions.find(submission => submission.player?.user.email === data?.user?.email && submission.playerName === player.name && submission.teamName === team.team);
+        return {
+          ...player,
+          alreadySubmitted: !!alreadySubmitted,
+        };
+      }).filter(player => player.name.toLowerCase().includes(search.toLowerCase()))
     })).filter(team => team.players.length > 0);
-  }, [teams, search]);
+  }, [teams, search, currentPlayerId, leagueData?.players]);
 
   useEffect(() => {
     if (submitSuccess) {
       setModalOpen(false);
     }
   }, [submitSuccess]);
+
+  const userSubmission = leagueData?.todaysSubmissions.find(submission => submission.player?.user.email === data?.user?.email);
 
   if (!leagueData) {
     return <Body1>Loading...</Body1>;
@@ -59,10 +80,15 @@ export const LeagueRoot = ({ params }) => {
         <Body1>League: {leagueData.league.name}</Body1>
         <HStack>
           <ScoringKeyButton />
-          <WhoSubmitted />
+          <WhoSubmitted leagueId={leagueId} />
         </HStack>
       </HStack>
       <Body1>Today's Date: {new Date().toLocaleDateString()}</Body1>
+      {userSubmission && (
+        <Body1 key={userSubmission.id}>
+          {userSubmission.playerName} submitted at {new Date(userSubmission.createdAt).toLocaleTimeString()}.
+        </Body1>
+      )}
       <Button colorScheme="purple" onClick={() => setModalOpen(true)}>Create Submission</Button>
       <Leaderboard leagueId={leagueId} />
       <SubmissionsTable leagueId={leagueId} />
@@ -80,14 +106,15 @@ export const LeagueRoot = ({ params }) => {
                   onChange={(e) => setSearch(e.target.value)}
                 />
                 <Stack position='relative' overflow='scroll' height='300px'>
-                  {filteredPlayers?.map(({ players, team }) => (
+                  {filteredPlayersByTeam?.map(({ players, team, alreadySubmitted }) => (
                     <>
                       {players?.map((player) => (
                         <Button
                           size='md'
                           colorScheme='purple'
                           flexShrink={0}
-                          key={player}
+                          key={player.image}
+                          isDisabled={player.alreadySubmitted}
                           onClick={() => onSubmit({
                             teamName: team,
                             playerName: player.name,
