@@ -85,10 +85,10 @@ export const LeagueRoot = ({ params }) => {
     return <Body1>Loading...</Body1>;
   }
 
-  // if (!data?.user) {
-  //   router.replace('/api/auth/signin');
-  //   return <Body1>Unauthorized</Body1>;
-  // }
+  if (!data?.user) {
+    router.replace('/api/auth/signin');
+    return <Body1>Unauthorized</Body1>;
+  }
 
   if (!userInLeague) {
     return (

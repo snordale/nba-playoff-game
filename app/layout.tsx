@@ -35,7 +35,6 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
           >
             <Flex
               justifyContent="space-between"
-              overflow="hidden"
               w="100%"
               px={4}
               pt={4}
