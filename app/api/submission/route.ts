@@ -24,13 +24,14 @@ export async function POST(req: NextRequest) {
   if (!player) {
     return new Response("Player not found", { status: 401 });
   }
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
 
   const existingSubmission = await prisma.submission.findFirst({
     where: {
       playerId: player.id,
       createdAt: {
-        gte: new Date().setHours(0, 0, 0, 0).toString(),
-        lt: new Date().setHours(23, 59, 59, 999).toString(),
+        gte: startOfDay,
       },
     },
   });

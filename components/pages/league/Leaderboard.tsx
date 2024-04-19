@@ -2,9 +2,7 @@ import { Body1 } from '@/components/Body1'
 import { useGetLeague } from '@/react-query/queries'
 import { Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react'
 
-export const Leaderboard = () => {
-  const searchParams = new URLSearchParams(window.location.search);
-  const leagueId = searchParams.get('leagueId');
+export const Leaderboard = ({ leagueId }) => {
   const { data: leagueData } = useGetLeague({ leagueId });
 
   return (

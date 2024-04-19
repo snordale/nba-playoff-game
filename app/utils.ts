@@ -7,8 +7,10 @@ export const scoringKey = {
 };
 
 export const scoreSubmission = (submission) => {
-  return Object.entries(submission).reduce((totalScore, [key, value]) => {
+  let totalScore = 0;
+  for (const [key, value] of Object.entries(submission)) {
     const scoreValue = scoringKey[key] || 0;
-    return totalScore + scoreValue * value;
-  }, 0);
+    totalScore += scoreValue * value;
+  }
+  return totalScore;
 };

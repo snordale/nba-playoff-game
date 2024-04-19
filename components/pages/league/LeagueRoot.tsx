@@ -10,9 +10,12 @@ import SubmissionsTable from "./SubmissionsTable";
 import WhoSubmitted from "./WhoSubmitted";
 
 export const LeagueRoot = ({ params }) => {
+  const leagueId = params.leagueId;
+  // State
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const { data: leagueData } = useGetLeague({ leagueId: params.leagueId });
+  // Queries
+  const { data: leagueData } = useGetLeague({ leagueId });
   const { data: teams } = useGetTodaysPlayers();
   const { mutate: createSubmission, isSuccess: submitSuccess } = useCreateSubmission();
 
@@ -60,10 +63,9 @@ export const LeagueRoot = ({ params }) => {
         </HStack>
       </HStack>
       <Body1>Today's Date: {new Date().toLocaleDateString()}</Body1>
-
       <Button colorScheme="purple" onClick={() => setModalOpen(true)}>Create Submission</Button>
-      <Leaderboard />
-      <SubmissionsTable />
+      <Leaderboard leagueId={leagueId} />
+      <SubmissionsTable leagueId={leagueId} />
       <Modal isOpen={modalOpen} onClose={onModalClose}>
         <ModalOverlay />
         <ModalCloseButton onClick={onModalClose} />

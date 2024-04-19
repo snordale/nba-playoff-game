@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
+  // Single League
   if (leagueId) {
     const league = await prisma.league.findUnique({
       where: {
@@ -104,9 +105,13 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    console.log(scoredPlayers);
+    console.log(todaysSubmissions);
+
     return Response.json({ league, todaysSubmissions, players: scoredPlayers });
   }
 
+  // All leagues
   const leagues = await prisma.league.findMany({
     where: {
       players: {
