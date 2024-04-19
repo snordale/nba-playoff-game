@@ -21,7 +21,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/public/favicon.ico" />
       </Head>
-      <Box as="body" className={fonts.jaquard.className}>
+      <Box as="body" className={fonts.rubik.className}>
         <Providers>
           <Flex
             flexDir="column"

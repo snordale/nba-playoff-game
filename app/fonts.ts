@@ -1,17 +1,17 @@
 // app/fonts.ts
-import { Jacques_Francois, Rubik } from 'next/font/google'
+import { Jacques_Francois, Rubik, Open_Sans } from 'next/font/google'
 
 const rubik = Rubik({
   subsets: ['latin'],
   variable: '--font-rubik',
 })
 
-const jaquard = Jacques_Francois({
+const openSans = Open_Sans({
   subsets: ['latin'],
-  weight: ["400"],
+  weight: ["400", "500", "600", "700"],
 })
 
 export const fonts = {
   rubik,
-  jaquard
+  openSans
 }
