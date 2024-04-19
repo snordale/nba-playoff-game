@@ -5,9 +5,10 @@ import CustomLink from "@/components/CustomLink";
 import { Button, HStack, Stack } from "@chakra-ui/react";
 import { useState } from "react";
 import CreateLeagueModal from "./CreateLeagueModal";
+import { useGetLeagues } from "@/react-query/queries";
 
 const HomeContent = () => {
-  const leagues = [];
+  const { data: leagues } = useGetLeagues();
 
   const [modalVariant, setModalVariant] = useState("");
 
@@ -31,10 +32,10 @@ const HomeContent = () => {
           </Button>
         </HStack>
         <Body1 fontWeight={600}>Leagues</Body1>
-        {leagues.length === 0 && (
+        {leagues?.length === 0 && (
           <Body1>No leagues yet. Create a league to get started.</Body1>
         )}
-        {leagues.map((league) => (
+        {leagues?.map((league) => (
           <CustomLink key={league.id} href={`/league/${league.id}`}>
             {league.name}
           </CustomLink>

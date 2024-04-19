@@ -9,7 +9,7 @@ type Props = LinkProps & {
 
 const CustomLink = ({ href, children, ...rest }: Props) => {
   return (
-    <Link href={href} {...rest}>
+    <Link href={href} fontWeight={600} color='purple.600' {...rest}>
       {children}
     </Link>
   );

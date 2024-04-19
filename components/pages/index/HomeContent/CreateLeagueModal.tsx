@@ -10,7 +10,7 @@ import {
   ModalOverlay,
   Stack,
 } from "@chakra-ui/react";
-import React from "react";
+import React, { useEffect } from "react";
 
 const CreateLeagueModal = ({ variant, onClose }) => {
   const createLeague = useCreateLeague();
@@ -24,10 +24,11 @@ const CreateLeagueModal = ({ variant, onClose }) => {
 
     if (variant === "create") {
       const leagueName = formData.get("leagueName");
-      const leagueCode = formData.get("leagueCode");
+      const password = formData.get("password");
 
       createLeague.mutate({
         leagueName,
+        password
       });
     }
     if (variant === "join") {
@@ -39,11 +40,19 @@ const CreateLeagueModal = ({ variant, onClose }) => {
     }
   };
 
+
+  useEffect(() => {
+    if (createLeague.isSuccess) {
+      onClose();
+    }
+  }, [createLeague.isSuccess, onClose]);
+
   const renderBody = () => {
     if (variant === "create") {
       return (
         <Stack>
           <Input name="leagueName" placeholder="League Name" />
+          <Input name="password" placeholder="Password" />
           <Button type="submit" colorScheme="purple">
             Create League
           </Button>

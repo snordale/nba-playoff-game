@@ -3,6 +3,7 @@ import { Body1 } from "@/components/Body1";
 import { Box, Flex } from "@chakra-ui/react";
 import { fonts } from "./fonts";
 import { Providers } from "./providers";
+import CustomLink from "@/components/CustomLink";
 
 // export const metadata: Metadata = {
 //   title: "NBA Playoff Game",
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
               w="100%"
               pb={4}
             >
-              <Body1 fontWeight={600}>NBA Playoff Game</Body1>
+              <CustomLink href="/">
+                <Body1 fontWeight={600}>NBA Playoff Game</Body1>
+              </CustomLink>
               <AuthButton />
             </Flex>
             <Box as="main" flex="1" w="100%">

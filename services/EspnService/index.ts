@@ -1,3 +1,5 @@
+import { rosterLinks } from "./rosters";
+
 export const getGames = async () => {
   const url =
     "https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=basketball&league=nba&region=us&lang=en&contentorigin=espn&buyWindow=1m&showAirings=buy%2Clive%2Creplay&showZipLookup=true";
@@ -27,4 +29,69 @@ export const getTodaysBoxScores = async () => {
   );
 
   return boxScores;
+};
+
+const jsdom = require("jsdom");
+const { JSDOM } = jsdom;
+
+function parsePlayerNamesFromHTML(html) {
+  const dom = new JSDOM(html);
+  const document = dom.window.document;
+  const images = document.querySelectorAll("figure.Image img");
+  const playerNamesImages = Array.from(images).map((img) => {
+    return {
+      name: (img as any).title.trim(),
+      image: (img as any).alt,
+    };
+  });
+  return playerNamesImages;
+}
+
+export const getTodaysPlayers = async () => {
+  try {
+    const todaysBoxScores = await getTodaysBoxScores();
+
+    const teamNames = todaysBoxScores.flatMap((boxScore) =>
+      boxScore.teams.map((team) => team.team.displayName)
+    );
+
+    const filteredRosterLinks = rosterLinks.filter((rosterLink) =>
+      teamNames.includes(rosterLink.team)
+    );
+
+    const htmlTeamObjects = await Promise.all(
+      filteredRosterLinks.map(async (rosterLink) => {
+        try {
+          const response = await fetch(rosterLink.link);
+          if (!response.ok)
+            throw new Error(`Failed to fetch ${rosterLink.link}`);
+          // this is a html page, so we need to use response.text() instead of response.json()
+          const html = await response.text();
+          return {
+            html,
+            team: rosterLink.team,
+          };
+        } catch (error) {
+          console.error(`Error fetching team link: ${rosterLink.link}`, error);
+          return null;
+        }
+      })
+    ).then((responses) => responses.filter(Boolean));
+
+    const teamPlayersObjects = htmlTeamObjects.flatMap((htmlTeamObject) => {
+      const playerNamesImages = parsePlayerNamesFromHTML(htmlTeamObject.html);
+      const filteredPlayerNames = playerNamesImages.filter(
+        (player) => player.name !== ""
+      );
+      return {
+        players: filteredPlayerNames,
+        team: htmlTeamObject.team,
+      };
+    });
+
+    return teamPlayersObjects;
+  } catch (error) {
+    console.error("Error fetching today's players", error);
+    throw error; // Re-throw the error to be handled by the caller
+  }
 };

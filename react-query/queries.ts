@@ -1,7 +1,9 @@
 import {
   createLeague,
+  createSubmission,
   getLeague,
   getLeagues,
+  getTodaysPlayers,
   joinLeague,
 } from "@/services/ApiService";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
@@ -11,11 +13,22 @@ export const queryClient = new QueryClient();
 export const useCreateLeague = () =>
   useMutation({
     mutationFn: createLeague,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["getLeagues"] });
+    },
   });
 
 export const useJoinLeague = () =>
   useMutation({
     mutationFn: joinLeague,
+  });
+
+export const useCreateSubmission = () =>
+  useMutation({
+    mutationFn: createSubmission,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["getTodaysPlayers"] });
+    },
   });
 
 export const useGetLeagues = () =>
@@ -28,5 +41,12 @@ export const useGetLeague = ({ leagueId }) => {
   return useQuery({
     queryKey: ["getLeague", leagueId],
     queryFn: () => getLeague({ leagueId }),
+  });
+};
+
+export const useGetTodaysPlayers = () => {
+  return useQuery({
+    queryKey: ["getTodaysPlayers"],
+    queryFn: () => getTodaysPlayers(),
   });
 };

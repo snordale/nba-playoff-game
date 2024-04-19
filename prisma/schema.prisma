@@ -1,51 +1,57 @@
-generator client {
+generator_client {
   provider = "prisma-client-js"
 }
 
-datasource db {
+datasource_db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
+model_user {
   id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
   email     String   @unique
   username  String   @unique
+  players   Player[]
 
   @@map("users")
 }
 
-model Group {
+model_league {
   id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
   name      String   @unique
   password  String
+  players   Player[]
 
-  @@map("groups")
+  @@map("leagues")
 }
 
-model UserGroup {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  groupId   String
+model_player {
+  id          String       @id @default(cuid())
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
+  user_id      String
+  league_id    String
+  is_admin     DateTime?    @map("is_admin")
+  league      League       @relation(fields: [league_id], references: [id])
+  user        User         @relation(fields: [user_id], references: [id])
+  submissions Submission[]
 
-  @@map("user_groups")
+  @@map("players")
 }
 
-model Submission {
-  id             String   @id @default(cuid())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  userId         String
-  groupId        String
-  playerId       String
-  playerImageUrl String
-  playerName     String
+model_submission {
+  id          String   @id @default(cuid())
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  player_id    String
+  player_name  String
+  player_image String
+  team_name    String
+  player      Player   @relation(fields: [player_id], references: [id])
 
   @@map("submissions")
 }
