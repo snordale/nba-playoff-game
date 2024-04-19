@@ -1,7 +1,7 @@
 import { Body1 } from '@/components/Body1';
 import { useGetLeague } from '@/react-query/queries';
+import { TimeIcon } from '@chakra-ui/icons';
 import { Box, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent, PopoverHeader, Text } from '@chakra-ui/react';
-import { ZapIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 const WhoSubmitted = ({ leagueId }) => {
@@ -25,7 +25,7 @@ const WhoSubmitted = ({ leagueId }) => {
   return (
     <Box>
       <IconButton
-        icon={<ZapIcon />}
+        icon={<TimeIcon />}
         aria-label="Who Submitted"
         variant="outline"
         size="sm"

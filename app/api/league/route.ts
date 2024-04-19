@@ -92,11 +92,15 @@ export async function GET(req: NextRequest) {
 
     const scoredPlayers = playersWithOldSubmissions.map((player) => {
       const scoredSubmissions = player.submissions.map((submission) => {
+        console.log('submission');
+        console.log(submission);
         return {
           ...submission,
           score: scoreSubmission(submission),
         };
       });
+      console.log('scoredSubmissions');
+      console.log(scoredSubmissions);
 
       const playerTotalScore = scoredSubmissions.reduce((acc, submission) => {
         return acc + submission.score;
@@ -109,7 +113,9 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    console.log(scoredPlayers);
+    console.log('scoredPlayers');
+    console.log(scoredPlayers[0]);
+    console.log('todaysSubmissions');
     console.log(todaysSubmissions);
 
     return Response.json({ league, todaysSubmissions, players: scoredPlayers });

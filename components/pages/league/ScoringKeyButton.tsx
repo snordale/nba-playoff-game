@@ -1,7 +1,7 @@
 import { scoringKey } from '@/app/utils'
 import { Body1 } from '@/components/Body1'
+import { InfoIcon } from '@chakra-ui/icons'
 import { Box, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent, PopoverHeader } from '@chakra-ui/react'
-import { InfoIcon, PiIcon } from 'lucide-react'
 import { useState } from 'react'
 
 export const ScoringKeyButton = () => {
@@ -16,7 +16,7 @@ export const ScoringKeyButton = () => {
   return (
     <Box>
       <IconButton
-        icon={<PiIcon />}
+        icon={<InfoIcon />}
         aria-label="Scoring Key"
         variant="outline"
         size="sm"

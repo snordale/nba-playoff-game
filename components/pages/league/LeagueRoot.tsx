@@ -75,7 +75,7 @@ export const LeagueRoot = ({ params }) => {
   }
 
   return (
-    <Stack>
+    <Stack gap={3}>
       <HStack justifyContent='space-between'>
         <Body1>League: {leagueData.league.name}</Body1>
         <HStack>
