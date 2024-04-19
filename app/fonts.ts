@@ -1,5 +1,5 @@
 // app/fonts.ts
-import { Jacques_Francois, Rubik, Open_Sans } from 'next/font/google'
+import { Open_Sans, Rubik } from 'next/font/google'
 
 const rubik = Rubik({
   subsets: ['latin'],
