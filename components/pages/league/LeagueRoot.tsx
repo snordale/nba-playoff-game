@@ -1,7 +1,7 @@
 'use client';
 
 import { Body1 } from "@/components/Body1";
-import { useCreateSubmission, useGetLeague, useGetTodaysPlayers } from "@/react-query/queries";
+import { useCreateSubmission, useGetLeague, useGetTodaysPlayers, useJoinLeague } from "@/react-query/queries";
 import { Avatar, Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 import { Leaderboard } from "./Leaderboard";
@@ -9,17 +9,22 @@ import { ScoringKeyButton } from "./ScoringKeyButton";
 import SubmissionsTable from "./SubmissionsTable";
 import WhoSubmitted from "./WhoSubmitted";
 import { useSession } from "next-auth/react";
+import { Router } from "next/router";
+import { useRouter } from "next/navigation";
 
 export const LeagueRoot = ({ params }) => {
+  const router = useRouter();
   const { data } = useSession();
   const leagueId = params.leagueId;
   // State
+  const [password, setPassword] = useState('');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   // Queries
   const { data: leagueData } = useGetLeague({ leagueId });
   const { data: teams } = useGetTodaysPlayers();
   const { mutate: createSubmission, isSuccess: submitSuccess } = useCreateSubmission();
+  const { mutate: joinLeague } = useJoinLeague();
 
   const onModalClose = () => {
     setModalOpen(false);
@@ -68,10 +73,32 @@ export const LeagueRoot = ({ params }) => {
     }
   }, [submitSuccess]);
 
+  const onJoinLeague = () => {
+    // Join league
+    joinLeague({ leagueId, password });
+  }
+
   const userSubmission = leagueData?.todaysSubmissions.find(submission => submission.player?.user.email === data?.user?.email);
+  const userInLeague = leagueData?.players.some(player => player.user.email === data?.user?.email);
 
   if (!leagueData) {
     return <Body1>Loading...</Body1>;
+  }
+
+  if (!data?.user) {
+    router.replace('/api/auth/signin');
+    return <Body1>Unauthorized</Body1>;
+  }
+
+  if (!userInLeague) {
+    return (
+      <Stack>
+        <Body1 fontWeight={600}>{leagueData.league.name}</Body1>
+        <Body1>Enter the password to join this league.</Body1>
+        <Input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
+        <Button colorScheme='purple' onClick={onJoinLeague}>Join League</Button>
+      </Stack>
+    )
   }
 
   return (
@@ -89,7 +116,7 @@ export const LeagueRoot = ({ params }) => {
           {userSubmission.playerName} submitted at {new Date(userSubmission.createdAt).toLocaleTimeString()}.
         </Body1>
       )}
-      <Button colorScheme="purple" onClick={() => setModalOpen(true)}>Create Submission</Button>
+      <Button isDisabled={!userInLeague} colorScheme="purple" onClick={() => setModalOpen(true)}>Create Submission</Button>
       <Leaderboard leagueId={leagueId} />
       <SubmissionsTable leagueId={leagueId} />
       <Modal isOpen={modalOpen} onClose={onModalClose}>

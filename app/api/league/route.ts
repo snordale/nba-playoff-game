@@ -38,10 +38,6 @@ export async function GET(req: NextRequest) {
 
   const session = await auth();
 
-  if (!session.user) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
@@ -92,8 +88,6 @@ export async function GET(req: NextRequest) {
 
     const scoredPlayers = playersWithOldSubmissions.map((player) => {
       const scoredSubmissions = player.submissions.map((submission) => {
-        console.log('submission');
-        console.log(submission);
         return {
           ...submission,
           score: scoreSubmission(submission),

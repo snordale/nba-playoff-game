@@ -1,9 +1,9 @@
 import AuthButton from "@/components/AuthButton";
 import { Body1 } from "@/components/Body1";
-import { Box, Flex } from "@chakra-ui/react";
-import { fonts } from "./fonts";
-import { Providers } from "./providers";
 import CustomLink from "@/components/CustomLink";
+import { Box, Flex } from "@chakra-ui/react";
+import Head from "next/head";
+import { Providers } from "./providers";
 
 // export const metadata: Metadata = {
 //   title: "NBA Playoff Game",
@@ -14,7 +14,13 @@ import CustomLink from "@/components/CustomLink";
 export default function RootLayout({ children }: React.PropsWithChildren) {
   return (
     <html lang="en">
-      <Box as="body" className={fonts.rubik.variable}>
+      <Head>
+        <title>NBA Playoff Game</title>
+        <meta name="description" content="Compete with your friends over the course of the playoffs. Pick a player each day and get points for their performance." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/public/favicon.ico" />
+      </Head>
+      <Box as="body" fontFamily="Roboto">
         <Providers>
           <Flex
             flexDir="column"

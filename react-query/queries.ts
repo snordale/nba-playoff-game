@@ -21,6 +21,9 @@ export const useCreateLeague = () =>
 export const useJoinLeague = () =>
   useMutation({
     mutationFn: joinLeague,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["getLeagues"] });
+    },
   });
 
 export const useCreateSubmission = () =>

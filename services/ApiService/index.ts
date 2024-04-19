@@ -8,8 +8,8 @@ export const createLeague = async ({ leagueName, password }) => {
   return apiService.post("/league", { leagueName, password });
 };
 
-export const joinLeague = async ({ leagueCode }) => {
-  return apiService.post("/league/join", { leagueCode });
+export const joinLeague = async ({ leagueId, password }) => {
+  return apiService.post("/league/join", { leagueId, password });
 };
 
 export const createSubmission = async ({
