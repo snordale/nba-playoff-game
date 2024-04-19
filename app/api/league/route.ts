@@ -42,6 +42,9 @@ export async function GET(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
   if (leagueId) {
     const league = await prisma.league.findUnique({
       where: {
@@ -49,10 +52,13 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const submissions = await prisma.submission.findMany({
+    const todaysSubmissions = await prisma.submission.findMany({
       where: {
         player: {
           leagueId: leagueId,
+        },
+        createdAt: {
+          gte: startOfDay,
         },
       },
       orderBy: {
@@ -62,8 +68,6 @@ export async function GET(req: NextRequest) {
         player: true,
       },
     });
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
 
     const playersWithOldSubmissions = await prisma.player.findMany({
       where: {
@@ -100,7 +104,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return Response.json({ league, submissions, players: scoredPlayers });
+    return Response.json({ league, todaysSubmissions, players: scoredPlayers });
   }
 
   const leagues = await prisma.league.findMany({
