@@ -25,14 +25,37 @@ export async function POST(req: NextRequest) {
     return new Response("Player not found", { status: 401 });
   }
 
-  await prisma.submission.create({
-    data: {
-      playerName,
-      playerImage,
-      teamName,
+  const existingSubmission = await prisma.submission.findFirst({
+    where: {
       playerId: player.id,
+      createdAt: {
+        gte: new Date().setHours(0, 0, 0, 0).toString(),
+        lt: new Date().setHours(23, 59, 59, 999).toString(),
+      },
     },
   });
+
+  if (existingSubmission) {
+    await prisma.submission.update({
+      where: {
+        id: existingSubmission.id,
+      },
+      data: {
+        playerName,
+        playerImage,
+        teamName,
+      },
+    });
+  } else {
+    await prisma.submission.create({
+      data: {
+        playerName,
+        playerImage,
+        teamName,
+        playerId: player.id,
+      },
+    });
+  }
 
   return Response.json("Submission created");
 }

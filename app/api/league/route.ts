@@ -1,3 +1,4 @@
+import { scoreSubmission } from "@/app/utils";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma/client";
 import { NextRequest } from "next/server";
@@ -10,9 +11,6 @@ export async function POST(req: NextRequest) {
   }
 
   const requestBody = await req.json();
-
-  console.log("session");
-  console.log(session);
 
   const newLeague = await prisma.league.create({
     data: {
@@ -51,7 +49,58 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return Response.json(league);
+    const submissions = await prisma.submission.findMany({
+      where: {
+        player: {
+          leagueId: leagueId,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        player: true,
+      },
+    });
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const playersWithOldSubmissions = await prisma.player.findMany({
+      where: {
+        leagueId,
+      },
+      include: {
+        user: true,
+        submissions: {
+          where: {
+            createdAt: {
+              lt: startOfDay,
+            },
+          },
+        },
+      },
+    });
+
+    const scoredPlayers = playersWithOldSubmissions.map((player) => {
+      const scoredSubmissions = player.submissions.map((submission) => {
+        return {
+          ...submission,
+          score: scoreSubmission(submission),
+        };
+      });
+
+      const playerTotalScore = scoredSubmissions.reduce((acc, submission) => {
+        return acc + submission.score;
+      }, 0);
+
+      return {
+        ...player,
+        score: playerTotalScore,
+        submissions: scoredSubmissions,
+      };
+    });
+
+    return Response.json({ league, submissions, players: scoredPlayers });
   }
 
   const leagues = await prisma.league.findMany({
