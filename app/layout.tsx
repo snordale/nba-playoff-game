@@ -24,27 +24,37 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
             w='100%'
             maxW="500px"
             mx="auto"
-            p={4}
+            maxH="100vh"
           >
             <Flex
               justifyContent="space-between"
               overflow="hidden"
               w="100%"
-              pb={4}
+              px={4}
+              pt={4}
+              pb={2}
+              backgroundColor='transparent'
+              backdropFilter='blur(12px)'
+              position='absolute'
+              top={0}
+              zIndex={1}
             >
               <CustomLink href="/">
                 <Body1 fontWeight={600}>NBA Playoff Game</Body1>
               </CustomLink>
               <AuthButton />
             </Flex>
-            <Box as="main" flex="1" w="100%">
-              {children}
+            <Box as="main" flex={1} w="100%" overflowY='scroll' px={4}>
+              <Box minH='calc(100vh - 4rem)' pt={16}>
+                {children}
+              </Box>
+              <Box bottom={0} py={4}>
+                <Body1 fontWeight={600}>
+                  NBA Playoff Game {new Date().getFullYear()}
+                </Body1>
+              </Box>
             </Box>
-            <Box mt="auto">
-              <Body1 fontWeight={600}>
-                NBA Playoff Game {new Date().getFullYear()}
-              </Body1>
-            </Box>
+
           </Flex>
         </Providers>
       </Box>

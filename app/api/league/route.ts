@@ -99,8 +99,6 @@ export async function GET(req: NextRequest) {
           score: scoreSubmission(submission),
         };
       });
-      console.log('scoredSubmissions');
-      console.log(scoredSubmissions);
 
       const playerTotalScore = scoredSubmissions.reduce((acc, submission) => {
         return acc + submission.score;
@@ -112,11 +110,6 @@ export async function GET(req: NextRequest) {
         submissions: scoredSubmissions,
       };
     });
-
-    console.log('scoredPlayers');
-    console.log(scoredPlayers[0]);
-    console.log('todaysSubmissions');
-    console.log(todaysSubmissions);
 
     return Response.json({ league, todaysSubmissions, players: scoredPlayers });
   }
