@@ -4,7 +4,7 @@ import { TimeIcon } from '@chakra-ui/icons';
 import { Box, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent, PopoverHeader, Text } from '@chakra-ui/react';
 import { useMemo, useState } from 'react';
 
-const WhoSubmitted = ({ leagueId }) => {
+export const WhoSubmitted = ({ leagueId }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const openPopover = () => setPopoverOpen(true);
   const closePopover = () => setPopoverOpen(false);
@@ -66,5 +66,3 @@ const WhoSubmitted = ({ leagueId }) => {
     </Box>
   )
 }
-
-export default WhoSubmitted

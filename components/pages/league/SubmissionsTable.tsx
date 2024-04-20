@@ -2,7 +2,7 @@ import { Body1 } from '@/components/Body1';
 import { useGetLeague } from '@/react-query/queries';
 import { Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
 
-const SubmissionsTable = ({ leagueId }) => {
+export const SubmissionsTable = ({ leagueId }) => {
   const { data: leagueData } = useGetLeague({ leagueId });
 
   const oldSubmissions = leagueData?.players.flatMap(player => {
@@ -61,5 +61,3 @@ const SubmissionsTable = ({ leagueId }) => {
     </Stack>
   )
 }
-
-export default SubmissionsTable
