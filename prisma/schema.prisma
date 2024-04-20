@@ -51,7 +51,7 @@ model Submission {
   playerName  String
   playerImage String
   teamName    String
-  date        DateTime @db.Date
+  date        DateTime @default(now())
   points      Int      @default(0)
   rebounds    Int      @default(0)
   assists     Int      @default(0)
