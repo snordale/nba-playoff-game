@@ -24,15 +24,15 @@ export async function POST(req: NextRequest) {
   if (!player) {
     return new Response("Player not found", { status: 401 });
   }
-  
-  const startOfDay = new Date();
-  startOfDay.setHours(10, 0, 0, 0);
+
+  const startOfDayPacific = new Date(new Date().setHours(0, 0, 0, 0));
+  startOfDayPacific.setHours(startOfDayPacific.getHours() - 7);
 
   const existingSubmission = await prisma.submission.findFirst({
     where: {
       playerId: player.id,
       createdAt: {
-        gte: startOfDay,
+        gte: startOfDayPacific,
       },
     },
   });
