@@ -1,4 +1,4 @@
-import { useCreateLeague, useJoinLeague } from "@/react-query/queries";
+import { useCreateLeague } from "@/react-query/queries";
 import {
   Button,
   Input,
@@ -10,15 +10,12 @@ import {
   ModalOverlay,
   Stack,
 } from "@chakra-ui/react";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 const CreateLeagueModal = ({ variant, onClose }) => {
   const createLeague = useCreateLeague();
-  const joinLeague = useJoinLeague();
 
   const handleSubmit = (e) => {
-    console.log("submit");
-    console.log(e);
     e.preventDefault();
     const formData = new FormData(e.target);
 
@@ -29,13 +26,6 @@ const CreateLeagueModal = ({ variant, onClose }) => {
       createLeague.mutate({
         leagueName,
         password
-      });
-    }
-    if (variant === "join") {
-      const leagueCode = formData.get("leagueCode");
-
-      joinLeague.mutate({
-        leagueCode,
       });
     }
   };
@@ -56,15 +46,6 @@ const CreateLeagueModal = ({ variant, onClose }) => {
           <Button type="submit" colorScheme="purple">
             Create League
           </Button>
-        </Stack>
-      );
-    }
-
-    if (variant === "join") {
-      return (
-        <Stack>
-          <Input name="leagueCode" placeholder="League Code" />
-          <Button value="Join League" />
         </Stack>
       );
     }

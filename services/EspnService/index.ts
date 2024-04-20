@@ -1,16 +1,27 @@
 import { rosterLinks } from "./rosters";
 
-export const getGames = async () => {
-  const url =
-    "https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=basketball&league=nba&region=us&lang=en&contentorigin=espn&buyWindow=1m&showAirings=buy%2Clive%2Creplay&showZipLookup=true";
-  const response = await fetch(url);
+// Header URL w/ Date
+// https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=basketball&league=nba&region=us&lang=en&contentorigin=espn&buyWindow=1m&showAirings=buy%2Clive%2Creplay&showZipLookup=true&tz=America%2FNew_York&dates=20240417
+
+export const getGamesByDate = async ({ date }) => {
+  // Format date as YYYYMMDD
+  const formattedDate = new Date(date)
+    .toISOString()
+    .split("T")[0]
+    .replace(/-/g, "");
+
+  const espnHeaderDataUrl = `https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=basketball&league=nba&region=us&lang=en&contentorigin=espn&buyWindow=1m&showAirings=buy%2Clive%2Creplay&showZipLookup=true&tz=America%2FNew_York&dates=${formattedDate}`;
+
+  const response = await fetch(espnHeaderDataUrl);
+
   const data = await response.json();
+
   const events = data.sports[0].leagues[0].events;
 
   return events;
 };
 
-export const getBoxScore = async ({ eventId }) => {
+export const getEventBoxScore = async ({ eventId }) => {
   const url = `https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/summary?region=us&lang=en&contentorigin=espn&event=${eventId}`;
   const response = await fetch(url);
   const data = await response.json();
@@ -18,12 +29,12 @@ export const getBoxScore = async ({ eventId }) => {
   return boxScore;
 };
 
-export const getTodaysBoxScores = async () => {
-  const todaysEvents = await getGames();
+export const getBoxScoresByDate = async ({ date }) => {
+  const todaysEvents = await getGamesByDate({ date });
 
   const boxScores = await Promise.all(
     todaysEvents.map(async (event) => {
-      const boxScore = await getBoxScore({ eventId: event.id });
+      const boxScore = await getEventBoxScore({ eventId: event.id });
       return boxScore;
     })
   );
@@ -49,7 +60,7 @@ function parsePlayerNamesFromHTML(html) {
 
 export const getTodaysPlayers = async () => {
   try {
-    const todaysBoxScores = await getTodaysBoxScores();
+    const todaysBoxScores = await getBoxScoresByDate({ date: new Date() });
 
     const teamNames = todaysBoxScores.flatMap((boxScore) =>
       boxScore.teams.map((team) => team.team.displayName)
