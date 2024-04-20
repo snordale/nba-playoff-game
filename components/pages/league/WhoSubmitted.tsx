@@ -11,12 +11,12 @@ export const WhoSubmitted = ({ leagueId }) => {
 
   const { data: leagueData } = useGetLeague({ leagueId });
 
-  const todaysSubmissions = useMemo(() => leagueData?.todaysSubmissions, [leagueData?.todaysSubmissions]);
+  const futureSubmissions = useMemo(() => leagueData?.futureSubmissions, [leagueData?.futureSubmissions]);
   const players = useMemo(() => leagueData?.players, [leagueData?.players]);
 
   const playerIdsWhoSubmitted = useMemo(() => {
-    return todaysSubmissions?.map(submission => submission.playerId) || [];
-  }, [todaysSubmissions]);
+    return futureSubmissions?.map(submission => submission.playerId) || [];
+  }, [futureSubmissions]);
 
   console.log('playerIdsWhoSubmitted');
   console.log(playerIdsWhoSubmitted);
@@ -46,7 +46,7 @@ export const WhoSubmitted = ({ leagueId }) => {
           <PopoverCloseButton />
           <PopoverHeader>Submissions</PopoverHeader>
           <PopoverBody>
-            {todaysSubmissions?.length > 0 ? (
+            {futureSubmissions?.length > 0 ? (
               <>
                 {playersWhoDidNotSubmit.length > 0 && (
                   <Box mt={4}>

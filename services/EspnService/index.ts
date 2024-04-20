@@ -35,7 +35,7 @@ export const getEventBoxScore = async ({ eventId }) => {
 export const getBoxScoresByDate = async ({ date }) => {
   const todaysEvents = await getGamesByDate({ date });
 
-  console.log(`Found ${todaysEvents.length} events today:`);
+  console.log(`Found ${todaysEvents.length} events for ${date}:`);
 
   if (!todaysEvents || todaysEvents.length === 0) return [];
 
@@ -66,11 +66,11 @@ function parsePlayerNamesFromHTML(html) {
   return playerNamesImages;
 }
 
-export const getTodaysPlayers = async () => {
+export const getPlayersByDate = async ({ date }) => {
   try {
     // Get the box scores for today (pacific time)
     const todaysBoxScores = await getBoxScoresByDate({
-      date: new Date(Date.now() - 10 * 60 * 60 * 1000),
+      date: new Date(date).toISOString().split("T")[0],
     });
 
     const teamNames = todaysBoxScores.flatMap((boxScore) =>

@@ -50,10 +50,13 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const todaysSubmissions = await prisma.submission.findMany({
+    console.log('league');
+    console.log(league);
+
+    const futureSubmissions = await prisma.submission.findMany({
       where: {
         player: {
-          leagueId: leagueId,
+          leagueId,
         },
         createdAt: {
           gte: startOfDay,
@@ -109,7 +112,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return Response.json({ league, todaysSubmissions, players: scoredPlayers });
+    return Response.json({ league, futureSubmissions, players: scoredPlayers });
   }
 
   // All leagues

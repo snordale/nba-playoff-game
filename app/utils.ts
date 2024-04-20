@@ -35,22 +35,3 @@ export const statKeyToIndex = {
   plusMinus: 15,
   points: 16,
 };
-
-export function isAfter8PacificUsingUTC() {
-  // Create a new Date object for the current time in UTC
-  const nowUTC = new Date();
-
-  // Convert to UTC hours
-  const hourUTC = nowUTC.getUTCHours();
-
-  // Pacific Standard Time (PST) is UTC-8, and Pacific Daylight Time (PDT) is UTC-7.
-  // Assuming Daylight Saving Time is not in effect (PST), 8 PM PST is 4 AM UTC the next day.
-  // If DST is in effect (PDT), 8 PM PDT is 3 AM UTC the next day.
-  // These calculations might need adjustment around the DST transitions.
-
-  // Check if current UTC hour is after 4 AM (not accounting for DST)
-  // This is a simplification and may not accurately handle the DST transition.
-  const isAfter8PM = hourUTC >= 4; // This is a very rough approximation
-
-  return isAfter8PM;
-}

@@ -47,9 +47,9 @@ export const useGetLeague = ({ leagueId }) => {
   });
 };
 
-export const useGetTodaysPlayers = () => {
+export const useGetTodaysPlayers = ({ date }) => {
   return useQuery({
-    queryKey: ["getTodaysPlayers"],
-    queryFn: () => getTodaysPlayers(),
+    queryKey: ["getTodaysPlayers", date.toString()],
+    queryFn: () => getTodaysPlayers({ date }),
   });
 };

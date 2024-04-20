@@ -2,33 +2,31 @@
 
 import { Body1 } from "@/components/Body1";
 import { useCreateSubmission, useGetLeague, useGetTodaysPlayers, useJoinLeague } from "@/react-query/queries";
-import { Avatar, Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack } from "@chakra-ui/react";
+import { Button, HStack, Input, Stack } from "@chakra-ui/react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Leaderboard } from './Leaderboard';
 import { ScoringKeyButton } from './ScoringKeyButton';
+import { SubmissionModal } from "./SubmissionModal";
 import { SubmissionsTable } from './SubmissionsTable';
 import { WhoSubmitted } from './WhoSubmitted';
-import { isAfter8PacificUsingUTC } from "@/app/utils";
 
 export const LeagueRoot = ({ params }) => {
   const { leagueId } = params;
   const router = useRouter();
   const { data: sessionData } = useSession();
   const [password, setPassword] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-
   const { data: leagueData } = useGetLeague({ leagueId });
-  const { data: teams } = useGetTodaysPlayers();
+  const { data: teams, isLoading: loadingPlayers } = useGetTodaysPlayers({ date: selectedDate });
   const { mutate: createSubmission, isSuccess: submitSuccess } = useCreateSubmission();
   const { mutate: joinLeague } = useJoinLeague();
 
-  const onModalClose = useCallback(() => setModalOpen(false), []);
-
   const onSubmit = useCallback(({ playerName, playerImage, teamName }) => {
-    createSubmission({ leagueId, playerName, playerImage, teamName });
+    createSubmission({ leagueId, playerName, playerImage, teamName, date: selectedDate });
   }, [createSubmission, leagueId]);
 
   const currentPlayerId = leagueData?.players?.find(player => player.user.email === sessionData?.user?.email)?.id;
@@ -58,6 +56,7 @@ export const LeagueRoot = ({ params }) => {
 
   const userInLeague = leagueData?.players?.some(player => player.user.email === sessionData?.user?.email);
 
+
   if (!leagueData) {
     return <Body1>Loading...</Body1>;
   }
@@ -67,14 +66,35 @@ export const LeagueRoot = ({ params }) => {
     return <Body1>Unauthorized</Body1>;
   }
 
+  console.log('leagueData.league.name')
+  console.log(leagueData)
+
   if (!userInLeague) {
     return (
-      <JoinLeagueSection password={password} onPasswordChange={setPassword} onJoinLeague={onJoinLeague} leagueName={leagueData?.league?.name} />
+      <JoinLeagueSection
+        password={password}
+        onPasswordChange={setPassword}
+        onJoinLeague={onJoinLeague}
+        leagueName={leagueData?.league?.name}
+      />
     );
   }
 
   return (
-    <LeagueInterface modalOpen={modalOpen} setModalOpen={setModalOpen} leagueData={leagueData} leagueId={leagueId} filteredPlayersByTeam={filteredPlayersByTeam} onSubmit={onSubmit} search={search} onSearchChange={setSearch} />
+    <LeagueInterface
+      modalOpen={modalOpen}
+      setModalOpen={setModalOpen}
+      leagueData={leagueData}
+      leagueId={leagueId}
+      futureSubmissions={leagueData?.futureSubmissions}
+      filteredPlayersByTeam={filteredPlayersByTeam}
+      loadingPlayers={loadingPlayers}
+      onSubmit={onSubmit}
+      selectedDate={selectedDate}
+      onDateChange={setSelectedDate}
+      search={search}
+      onSearchChange={setSearch}
+    />
   );
 };
 
@@ -87,72 +107,53 @@ const JoinLeagueSection = ({ password, onPasswordChange, onJoinLeague, leagueNam
   </Stack>
 );
 
-
-const LeagueInterface = ({ modalOpen, setModalOpen, leagueData, leagueId, filteredPlayersByTeam, onSubmit, search, onSearchChange }) => (
+const LeagueInterface = ({
+  modalOpen,
+  setModalOpen,
+  leagueData,
+  leagueId,
+  filteredPlayersByTeam,
+  futureSubmissions,
+  loadingPlayers,
+  onSubmit,
+  selectedDate,
+  onDateChange,
+  search,
+  onSearchChange
+}) => (
   <Stack gap={3}>
     <HStack justifyContent='space-between'>
-      <Body1>League: {leagueData?.league?.name}</Body1>
+      <Body1>
+        League: {leagueData?.league?.name}
+      </Body1>
       <HStack>
         <ScoringKeyButton />
         <WhoSubmitted leagueId={leagueId} />
       </HStack>
     </HStack>
-    <Body1>Today's Date: {new Date().toLocaleDateString()}</Body1>
+    <Body1>
+      Today's Date: {new Date().toLocaleDateString()}
+    </Body1>
     <Button
-      isDisabled={!leagueData?.players || isAfter8PacificUsingUTC()}
+      isDisabled={!leagueData?.players}
       colorScheme="purple"
       onClick={() => setModalOpen(true)}
     >
-      {isAfter8PacificUsingUTC() ? 'Submisssion Locked' : 'Create Submission'}
+      Create Submission
     </Button>
     <Leaderboard leagueId={leagueId} />
     <SubmissionsTable leagueId={leagueId} />
-    <SubmissionModal isOpen={modalOpen} onClose={setModalOpen} filteredPlayersByTeam={filteredPlayersByTeam} onSubmit={onSubmit} search={search} onSearchChange={onSearchChange} />
+    <SubmissionModal
+      isOpen={modalOpen}
+      onClose={setModalOpen}
+      filteredPlayersByTeam={filteredPlayersByTeam}
+      futureSubmissions={futureSubmissions}
+      loadingPlayers={loadingPlayers}
+      onSubmit={onSubmit}
+      selectedDate={selectedDate}
+      onDateChange={onDateChange}
+      search={search}
+      onSearchChange={onSearchChange}
+    />
   </Stack>
-);
-
-const SubmissionModal = ({ isOpen, onClose, filteredPlayersByTeam, onSubmit, search, onSearchChange }) => (
-  <Modal isOpen={isOpen} onClose={() => onClose(false)}>
-    <ModalOverlay />
-    <ModalCloseButton onClick={() => onClose(false)} />
-    <ModalContent>
-      <ModalHeader>Create Submission</ModalHeader>
-      <ModalBody>
-        <form>
-          <Stack>
-            <Input
-              value={search}
-              placeholder="Search"
-              onChange={e => onSearchChange(e.target.value)}
-            />
-            <Stack position='relative' overflow='scroll' height='300px'>
-              {filteredPlayersByTeam?.map(({ players, team }) => (
-                <>
-                  {players?.map((player) => (
-                    <Button
-                      size='md'
-                      colorScheme='purple'
-                      flexShrink={0}
-                      key={player.image}
-                      isDisabled={player.alreadySubmitted}
-                      onClick={() => onSubmit({
-                        teamName: team,
-                        playerName: player.name,
-                        playerImage: player.image
-                      })}
-                      justifyContent='flex-start'
-                      gap={2}
-                    >
-                      <Avatar src={player.image} size='sm' />
-                      {player.name} – {team}
-                    </Button>
-                  ))}
-                </>
-              ))}
-            </Stack>
-          </Stack>
-        </form>
-      </ModalBody>
-    </ModalContent>
-  </Modal>
 );
