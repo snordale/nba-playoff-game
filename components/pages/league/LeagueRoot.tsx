@@ -3,14 +3,13 @@
 import { Body1 } from "@/components/Body1";
 import { useCreateSubmission, useGetLeague, useGetTodaysPlayers, useJoinLeague } from "@/react-query/queries";
 import { Avatar, Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack } from "@chakra-ui/react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Leaderboard } from "./Leaderboard";
 import { ScoringKeyButton } from "./ScoringKeyButton";
 import SubmissionsTable from "./SubmissionsTable";
 import WhoSubmitted from "./WhoSubmitted";
-import { useSession } from "next-auth/react";
-import { Router } from "next/router";
-import { useRouter } from "next/navigation";
 
 export const LeagueRoot = ({ params }) => {
   const router = useRouter();
@@ -43,7 +42,7 @@ export const LeagueRoot = ({ params }) => {
   const currentPlayerId = currentPlayer?.id;
 
   const filteredPlayersByTeam = useMemo(() => {
-    if (!teams || !leagueData.players) {
+    if (!teams || !leagueData?.players) {
       return [];
     }
 
@@ -52,7 +51,7 @@ export const LeagueRoot = ({ params }) => {
       ...team,
       players: team.players.map(player => {
         // Check if the player has already submitted today
-        const alreadySubmitted = leagueData.players.some(p =>
+        const alreadySubmitted = leagueData?.players.some(p =>
           p.id === currentPlayerId &&
           p.submissions.some(submission =>
             submission.playerName === player.name &&

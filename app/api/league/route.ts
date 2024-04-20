@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const session = await auth();
 
   const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  startOfDay.setHours(10, 0, 0, 0);
 
   // Single League
   if (leagueId) {
@@ -82,6 +82,9 @@ export async function GET(req: NextRequest) {
               lt: startOfDay,
             },
           },
+          orderBy: {
+            createdAt: "desc",
+          }
         },
       },
     });

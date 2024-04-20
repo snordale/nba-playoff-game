@@ -12,7 +12,7 @@ const SubmissionsTable = ({ leagueId }) => {
         username: player.user.username,
       }
     })
-  })
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <Stack>
@@ -34,6 +34,11 @@ const SubmissionsTable = ({ leagueId }) => {
             </Tr>
           </Thead>
           <Tbody>
+            {oldSubmissions?.length === 0 && (
+              <Tr>
+                <Td colSpan={10} py={4}>No submissions yet</Td>
+              </Tr>
+            )}
             {oldSubmissions?.map(submission => {
               return (
                 <Tr>

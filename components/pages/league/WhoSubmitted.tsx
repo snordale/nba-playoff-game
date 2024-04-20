@@ -14,13 +14,17 @@ const WhoSubmitted = ({ leagueId }) => {
   const todaysSubmissions = useMemo(() => leagueData?.todaysSubmissions, [leagueData?.todaysSubmissions]);
   const players = useMemo(() => leagueData?.players, [leagueData?.players]);
 
-  const playersWhoSubmitted = useMemo(() => {
-    return todaysSubmissions?.map(submission => submission.playerName) || [];
+  const playerIdsWhoSubmitted = useMemo(() => {
+    return todaysSubmissions?.map(submission => submission.playerId) || [];
   }, [todaysSubmissions]);
 
+  console.log('playerIdsWhoSubmitted');
+  console.log(playerIdsWhoSubmitted);
+
   const playersWhoDidNotSubmit = useMemo(() => {
-    return players?.filter(player => !playersWhoSubmitted.includes(player.user.username)).map(player => player.user.username) || [];
-  }, [players, playersWhoSubmitted]);
+    return players?.filter(player => !playerIdsWhoSubmitted.includes(player.id)).map(player => player.user.username) || [];
+  }, [players, playerIdsWhoSubmitted]);
+
 
   return (
     <Box>
@@ -54,7 +58,7 @@ const WhoSubmitted = ({ leagueId }) => {
                 )}
               </>
             ) : (
-              <Body1>No submissions for today.</Body1>
+              <Body1>No submissions yet.</Body1>
             )}
           </PopoverBody>
         </PopoverContent>

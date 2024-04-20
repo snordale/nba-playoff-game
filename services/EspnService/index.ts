@@ -10,6 +10,7 @@ export const getGamesByDate = async ({ date }) => {
     .split("T")[0]
     .replace(/-/g, "");
 
+  console.log(`Fetching games for: ${formattedDate}`);
   const espnHeaderDataUrl = `https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=basketball&league=nba&region=us&lang=en&contentorigin=espn&buyWindow=1m&showAirings=buy%2Clive%2Creplay&showZipLookup=true&tz=America%2FNew_York&dates=${formattedDate}`;
 
   const response = await fetch(espnHeaderDataUrl);
@@ -17,6 +18,8 @@ export const getGamesByDate = async ({ date }) => {
   const data = await response.json();
 
   const events = data.sports[0].leagues[0].events;
+
+  if (!events) return [];
 
   return events;
 };
@@ -32,8 +35,13 @@ export const getEventBoxScore = async ({ eventId }) => {
 export const getBoxScoresByDate = async ({ date }) => {
   const todaysEvents = await getGamesByDate({ date });
 
+  console.log(`Found ${todaysEvents.length} events today:`);
+
+  if (!todaysEvents || todaysEvents.length === 0) return [];
+
   const boxScores = await Promise.all(
     todaysEvents.map(async (event) => {
+      console.log(`${event.name} (${event.id})`);
       const boxScore = await getEventBoxScore({ eventId: event.id });
       return boxScore;
     })
@@ -60,7 +68,10 @@ function parsePlayerNamesFromHTML(html) {
 
 export const getTodaysPlayers = async () => {
   try {
-    const todaysBoxScores = await getBoxScoresByDate({ date: new Date() });
+    // Get the box scores for today (pacific time)
+    const todaysBoxScores = await getBoxScoresByDate({
+      date: new Date(Date.now() - 10 * 60 * 60 * 1000),
+    });
 
     const teamNames = todaysBoxScores.flatMap((boxScore) =>
       boxScore.teams.map((team) => team.team.displayName)

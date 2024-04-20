@@ -22,7 +22,7 @@ export const useJoinLeague = () =>
   useMutation({
     mutationFn: joinLeague,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["getLeagues"] });
+      queryClient.invalidateQueries({ queryKey: ["getLeague"] });
     },
   });
 
@@ -30,7 +30,7 @@ export const useCreateSubmission = () =>
   useMutation({
     mutationFn: createSubmission,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["getTodaysPlayers"] });
+      queryClient.invalidateQueries({ queryKey: ["getLeague"] });
     },
   });
 
