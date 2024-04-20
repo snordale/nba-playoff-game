@@ -10,6 +10,7 @@ import { Leaderboard } from './Leaderboard';
 import { ScoringKeyButton } from './ScoringKeyButton';
 import { SubmissionsTable } from './SubmissionsTable';
 import { WhoSubmitted } from './WhoSubmitted';
+import { isAfter8PacificUsingUTC } from "@/app/utils";
 
 export const LeagueRoot = ({ params }) => {
   const { leagueId } = params;
@@ -86,6 +87,7 @@ const JoinLeagueSection = ({ password, onPasswordChange, onJoinLeague, leagueNam
   </Stack>
 );
 
+
 const LeagueInterface = ({ modalOpen, setModalOpen, leagueData, leagueId, filteredPlayersByTeam, onSubmit, search, onSearchChange }) => (
   <Stack gap={3}>
     <HStack justifyContent='space-between'>
@@ -96,7 +98,13 @@ const LeagueInterface = ({ modalOpen, setModalOpen, leagueData, leagueId, filter
       </HStack>
     </HStack>
     <Body1>Today's Date: {new Date().toLocaleDateString()}</Body1>
-    <Button isDisabled={!leagueData?.players} colorScheme="purple" onClick={() => setModalOpen(true)}>Create Submission</Button>
+    <Button
+      isDisabled={!leagueData?.players || isAfter8PacificUsingUTC()}
+      colorScheme="purple"
+      onClick={() => setModalOpen(true)}
+    >
+      {isAfter8PacificUsingUTC() ? 'Submisssion Locked' : 'Create Submission'}
+    </Button>
     <Leaderboard leagueId={leagueId} />
     <SubmissionsTable leagueId={leagueId} />
     <SubmissionModal isOpen={modalOpen} onClose={setModalOpen} filteredPlayersByTeam={filteredPlayersByTeam} onSubmit={onSubmit} search={search} onSearchChange={onSearchChange} />
