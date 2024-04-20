@@ -156,9 +156,4 @@ export const updateScores = async () => {
   console.log(results);
 
   console.log("Done updating scores ❄️");
-
-  // console.log("two days ago");
-  // const twoDaysAgo = await getBoxScoresByDate({
-  //   date: new Date(Date.now() - 24 * 60 * 60 * 1000 * 2),
-  // });
 };
