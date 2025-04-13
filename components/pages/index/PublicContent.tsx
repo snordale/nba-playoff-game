@@ -30,7 +30,7 @@ const PublicContent = () => {
             Pick one player each day during the NBA Playoffs. Maximize your points based on real game stats (Points, Rebounds, Assists, Steals, Blocks, Turnovers) and compete against your friends!
           </Text>
           <Text fontSize="md" color="gray.500">
-            Can you pick the top performers consistently? Sign up or log in to create or join a league!
+            Can you pick the top performers consistently? Sign up or log in to create or join a group!
           </Text>
           <HStack spacing={5} pt={5}>
             <AuthButton />

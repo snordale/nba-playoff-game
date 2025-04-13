@@ -1,65 +1,81 @@
 import { Body1 } from '../../Body1';
 import { useGetGroup } from '../../../react-query/queries';
 import { TimeIcon } from '@chakra-ui/icons';
-import { Box, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent, PopoverHeader, Text } from '@chakra-ui/react';
+import { Box, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent, PopoverHeader, Text, Spinner, Center, Stack } from '@chakra-ui/react';
 import React, { useMemo, useState } from 'react';
+import { format, startOfToday, isEqual, startOfDay, parseISO } from 'date-fns';
 
 export const WhoSubmitted = ({ groupId }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const openPopover = () => setPopoverOpen(true);
   const closePopover = () => setPopoverOpen(false);
 
-  const { data: groupData } = useGetGroup({ groupId });
+  const { data: groupData, isLoading } = useGetGroup({ groupId });
 
-  const futureSubmissions = useMemo(() => groupData?.futureSubmissions, [groupData?.futureSubmissions]);
-  const players = useMemo(() => groupData?.players, [groupData?.players]);
+  const todayKey = format(startOfToday(), 'yyyy-MM-dd');
 
-  const playerIdsWhoSubmitted = useMemo(() => {
-    return futureSubmissions?.map(submission => submission.playerId) || [];
-  }, [futureSubmissions]);
+  const userIdsWhoSubmittedToday = useMemo(() => {
+    const userIds = new Set<string>();
+    if (!groupData?.players) return userIds;
 
-  console.log('playerIdsWhoSubmitted');
-  console.log(playerIdsWhoSubmitted);
+    groupData.players.forEach(player => {
+      player.submissions?.forEach(sub => {
+        if (!sub.gameDate) return;
+        const subGameDateKey = format(startOfDay(parseISO(sub.gameDate.toISOString())), 'yyyy-MM-dd');
+        if (subGameDateKey === todayKey) {
+          userIds.add(player.userId);
+        }
+      });
+    });
+    return userIds;
+  }, [groupData, todayKey]);
 
   const playersWhoDidNotSubmit = useMemo(() => {
-    return players?.filter(player => !playerIdsWhoSubmitted.includes(player.id)).map(player => player.user.username) || [];
-  }, [players, playerIdsWhoSubmitted]);
-
-  const todaysDate = new Date().toLocaleDateString();
+    if (!groupData?.players) return [];
+    return groupData.players
+      .filter(player => !userIdsWhoSubmittedToday.has(player.userId))
+      .map(player => player.username);
+  }, [groupData, userIdsWhoSubmittedToday]);
 
   return (
     <Box>
       <IconButton
         icon={<TimeIcon />}
-        aria-label="Who Submitted"
+        aria-label="Who Submitted Today"
         variant="outline"
         size="sm"
+        colorScheme="orange"
         onClick={openPopover}
+        isLoading={isLoading}
       />
       <Popover
         isOpen={popoverOpen}
         onClose={closePopover}
-        placement="bottom"
+        placement="bottom-end"
         closeOnBlur={true}
       >
-        <PopoverContent>
+        <PopoverContent minW={{ base: "250px", md: "300px" }}>
           <PopoverArrow />
           <PopoverCloseButton />
-          <PopoverHeader>Submissions</PopoverHeader>
+          <PopoverHeader fontWeight="semibold">Submissions for {format(startOfToday(), 'MMM d')}</PopoverHeader>
           <PopoverBody>
-            {futureSubmissions?.length > 0 ? (
-              <>
-                {playersWhoDidNotSubmit.length > 0 && (
-                  <Box mt={4}>
-                    <Body1>Players who haven't submitted:</Body1>
-                    {playersWhoDidNotSubmit.map((playerName) => (
-                      <Text key={playerName}>{playerName}</Text>
+            {isLoading ? (
+              <Center p={4}><Spinner color="orange.500" /></Center>
+            ) : groupData?.players && groupData.players.length > 0 ? (
+              playersWhoDidNotSubmit.length > 0 ? (
+                <Box>
+                  <Text fontSize="sm" fontWeight="medium" mb={1}>Waiting for:</Text>
+                  <Stack spacing={0.5}>
+                    {playersWhoDidNotSubmit.map((username) => (
+                      <Text fontSize="sm" key={username}>{username}</Text>
                     ))}
-                  </Box>
-                )}
-              </>
+                  </Stack>
+                </Box>
+              ) : (
+                <Text fontSize="sm" color="green.600">Everyone has submitted for today!</Text>
+              )
             ) : (
-              <Body1>No submissions yet.</Body1>
+              <Text fontSize="sm">No members in this group yet.</Text>
             )}
           </PopoverBody>
         </PopoverContent>

@@ -19,9 +19,9 @@ export const Leaderboard = ({ groupId }) => {
           </Thead>
           <Tbody>
             {groupData?.players.map(player => (
-              <Tr>
+              <Tr key={player.userId}>
                 <Td>
-                  {player.user.username}
+                  {player.username}
                 </Td>
                 <Td isNumeric>
                   {player.score}

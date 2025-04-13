@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
-const CreateLeagueModal = ({ variant, onClose }) => {
+export const CreateGroupModal = ({ variant, onClose }) => {
   const createGroup = useCreateGroup();
   const [groupName, setGroupName] = useState("");
 
@@ -68,5 +68,3 @@ const CreateLeagueModal = ({ variant, onClose }) => {
     </Modal>
   );
 };
-
-export default CreateLeagueModal;

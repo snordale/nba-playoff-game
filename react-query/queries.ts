@@ -5,6 +5,7 @@ import {
   getGroups,
   getTodaysPlayers,
   joinGroup,
+  generateInviteLink,
 } from "@/services/ApiService";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
@@ -14,8 +15,9 @@ export const queryClient = new QueryClient();
 interface CreateGroupVariables { groupName: string }
 interface JoinGroupVariables { groupId: string }
 interface CreateSubmissionVariables { gameId: string; playerId: string }
+interface GenerateInviteVariables { groupId: string }
+interface GenerateInviteResponse { inviteUrl: string }
 
-// Rename useCreateLeague to useCreateGroup and add type
 export const useCreateGroup = () =>
   useMutation<unknown, Error, CreateGroupVariables>({
     mutationFn: createGroup,
@@ -24,7 +26,6 @@ export const useCreateGroup = () =>
     },
   });
 
-// Rename useJoinLeague to useJoinGroup and add type
 export const useJoinGroup = () =>
   useMutation<unknown, Error, JoinGroupVariables>({
     mutationFn: joinGroup,
@@ -65,3 +66,10 @@ export const useGetTodaysPlayers = ({ date }) => {
     queryFn: () => getTodaysPlayers({ date }),
   });
 };
+
+// Hook for generating a group invite link
+export const useGenerateInviteLink = () => 
+  useMutation<GenerateInviteResponse, Error, GenerateInviteVariables>({
+    mutationFn: generateInviteLink, 
+    // Optional: onSuccess/onError handling if needed
+  });

@@ -1,7 +1,8 @@
-import { updateScores } from "@/services/ScoringService";
+import { loadGamesForDate } from "@/services/GameLoaderService";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  await updateScores();
+  const targetDate = new Date();
+  await loadGamesForDate(targetDate);
   return NextResponse.json("Get some");
 }

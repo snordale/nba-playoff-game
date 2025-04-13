@@ -4,17 +4,18 @@ import { Body1 } from "@/components/Body1";
 import CustomLink from "@/components/CustomLink";
 import { Button, HStack, Stack } from "@chakra-ui/react";
 import { useState } from "react";
-import CreateLeagueModal from "./CreateLeagueModal";
+import { CreateGroupModal } from "./CreateGroupModal";
 import { useGetGroups } from "@/react-query/queries";
 
-const HomeContent = () => {
+export const HomeContent = () => {
   const { data: groups } = useGetGroups();
 
   const [modalVariant, setModalVariant] = useState("");
 
-  const onCreateLeagueClose = () => {
+  const onCreateGroupClose = () => {
     setModalVariant("");
   };
+  console.log("groups", groups);
 
   return (
     <>
@@ -25,7 +26,7 @@ const HomeContent = () => {
             colorScheme="orange"
             onClick={() => setModalVariant("create")}
           >
-            Create League
+            Create Group
           </Button>
         </HStack>
         <Body1 fontWeight={600}>Groups</Body1>
@@ -38,9 +39,7 @@ const HomeContent = () => {
           </CustomLink>
         ))}
       </Stack>
-      <CreateLeagueModal variant={modalVariant} onClose={onCreateLeagueClose} />
+      <CreateGroupModal variant={modalVariant} onClose={onCreateGroupClose} />
     </>
   );
 };
-
-export default HomeContent;

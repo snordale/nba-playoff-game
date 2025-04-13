@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import HomeContent from "./HomeContent";
+import { HomeContent } from "./HomeContent";
 import PublicContent from "./PublicContent";
 
 const IndexRoot = async () => {

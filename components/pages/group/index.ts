@@ -1,5 +1,5 @@
 export * from './Leaderboard'
-export * from './LeagueRoot'
+export * from './GroupRoot'
 export * from './ScoringKeyButton'
 export * from './SubmissionsTable'
 export * from './WhoSubmitted'
