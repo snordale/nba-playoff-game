@@ -8,57 +8,126 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  email     String   @unique
-  username  String   @unique
-  players   Player[]
+  id               String       @id @default(uuid())
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  email            String       @unique
+  username         String       @unique
+  groupMemberships GroupUser[]
+  submissions      Submission[]
 
   @@map("users")
 }
 
-model League {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name      String   @unique
-  password  String
-  players   Player[]
+model Group {
+  id           String       @id @default(uuid())
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  name         String       @unique
+  password     String
+  groupUsers   GroupUser[]
 
-  @@map("leagues")
+  @@map("groups")
+}
+
+model GroupUser {
+  id          String       @id @default(uuid())
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  userId      String       @map("user_id")
+  groupId     String       @map("group_id")
+  isAdmin     Boolean?     @map("is_admin")
+  group       Group        @relation(fields: [groupId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+  submissions Submission[]
+
+  @@map("group_users")
+}
+
+model Team {
+  id           String   @id @default(uuid())
+  espnId       String?  @unique
+  name         String   @unique
+  abbreviation String   @unique
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  homeGames    Game[]   @relation("HomeTeamGames")
+  awayGames    Game[]   @relation("AwayTeamGames")
+  players      Player[]
+
+  @@map("teams")
 }
 
 model Player {
-  id          String       @id @default(cuid())
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  userId      String
-  leagueId    String
-  isAdmin     DateTime?    @map("is_admin")
-  league      League       @relation(fields: [leagueId], references: [id])
-  user        User         @relation(fields: [userId], references: [id])
-  submissions Submission[]
+  id              String            @id @default(uuid())
+  espnId          String?           @unique
+  name            String
+  currentTeamId   String?           @map("current_team_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  stats           PlayerGameStats[]
+  submissions     Submission[]
+  currentTeam     Team?             @relation(fields: [currentTeamId], references: [id])
 
   @@map("players")
 }
 
-model Submission {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  playerId    String
-  playerName  String
-  playerImage String
-  teamName    String
-  date        DateTime @default(now())
-  points      Int      @default(0)
-  rebounds    Int      @default(0)
-  assists     Int      @default(0)
-  steals      Int      @default(0)
-  blocks      Int      @default(0)
-  turnovers   Int      @default(0)
-  player      Player   @relation(fields: [playerId], references: [id])
+model Game {
+  id             String            @id @default(uuid())
+  espnId         String            @unique
+  date           DateTime          @db.Date
+  homeTeamId     String            @map("home_team_id")
+  awayTeamId     String            @map("away_team_id")
+  homeScore      Int?
+  awayScore      Int?
+  status         String
+  statsProcessed Boolean           @default(false) @map("stats_processed")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  homeTeam       Team              @relation("HomeTeamGames", fields: [homeTeamId], references: [id])
+  awayTeam       Team              @relation("AwayTeamGames", fields: [awayTeamId], references: [id])
+  playerStats    PlayerGameStats[]
+  submissions    Submission[]
 
+  @@map("games")
+}
+
+model PlayerGameStats {
+  id        String   @id @default(uuid())
+  gameId    String   @map("game_id")
+  playerId  String   @map("player_id")
+  minutes   String?
+  points    Int?
+  rebounds  Int?
+  assists   Int?
+  steals    Int?
+  blocks    Int?
+  turnovers Int?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, playerId])
+  @@map("player_game_stats")
+}
+
+model Submission {
+  id              String        @id @default(uuid())
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  userId          String        @map("user_id")
+  groupUserId     String?       @map("group_user_id")
+  gameId          String        @map("game_id")
+  playerId        String        @map("player_id")
+  calculatedScore Int?          @map("calculated_score")
+
+  user      User       @relation(fields: [userId], references: [id])
+  groupUser GroupUser? @relation(fields: [groupUserId], references: [id])
+  game      Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player    Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId, playerId])
   @@map("submissions")
 }

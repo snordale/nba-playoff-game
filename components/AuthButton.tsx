@@ -7,12 +7,15 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  Spinner,
 } from "@chakra-ui/react";
 
 const AuthButton = () => {
   const { data: session, status } = useSession();
 
-  if (typeof session === undefined) return null;
+  if (status === "loading") {
+    return <Button isLoading leftIcon={<Spinner size="sm" />}>Loading...</Button>;
+  }
 
   if (status === "authenticated" && session?.user) {
     return (
