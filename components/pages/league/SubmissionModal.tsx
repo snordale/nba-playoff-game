@@ -63,28 +63,30 @@ export const SubmissionModal = ({
                   </HStack>
                 ) : (
                   <>
-                    {filteredPlayersByTeam?.map(({ players, team }) => (
-                      <>
-                        {players?.map((player) => (
-                          <Button
-                            size='md'
-                            colorScheme='purple'
-                            flexShrink={0}
-                            key={`${player.name}-${player.image}`}
-                            isDisabled={player.alreadySubmitted}
-                            onClick={() => onSubmit({
-                              teamName: team,
-                              playerName: player.name,
-                              playerImage: player.image
-                            })}
-                            justifyContent='flex-start'
-                            gap={2}
-                          >
-                            <Avatar src={player.image} size='sm' />
-                            {player.name} – {team}
-                          </Button>
+                    {filteredPlayersByTeam?.map((game) => (
+                      <Stack key={game.gameId} pl={2} mb={2}>
+                        {game.teams?.map((team) => (
+                          <Stack key={team.teamId} pl={2}>
+                            {team.players?.map((player) => (
+                              <Button
+                                size='sm'
+                                variant='ghost'
+                                colorScheme='purple'
+                                flexShrink={0}
+                                key={player.id}
+                                onClick={() => onSubmit({
+                                  gameId: game.gameId,
+                                  playerId: player.id
+                                })}
+                                justifyContent='flex-start'
+                                gap={2}
+                              >
+                                {player.name} – {team.abbreviation}
+                              </Button>
+                            ))}
+                          </Stack>
                         ))}
-                      </>
+                      </Stack>
                     ))}
                   </>
                 )}

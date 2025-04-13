@@ -60,6 +60,8 @@ This is a web game that occurs during the NBA Playoffs. Make a group, invite fri
    Create a `.env` file with the following variables:
    ```
    DATABASE_URL="your-database-url"
+   NEXTAUTH_SECRET="your-nextauth-secret" # Generate a strong secret: openssl rand -base64 32
+   NEXTAUTH_URL="http://localhost:3000" # Adjust for production
    ```
 
 4. **Development**
@@ -81,7 +83,9 @@ This is a web game that occurs during the NBA Playoffs. Make a group, invite fri
 - `npm run prisma:generate` - Generate Prisma client
 - `npm run prisma:migrate` - Run database migrations
 - `npm run prisma:deploy` - Deploy database migrations
-- `npm run update-scores` - Update player scores from previous day's games
+- `npm run update-scores` - Update player scores from previous day's games (uses ScoringService).
+- `npx tsx scripts/loadGames.ts [YYYY-MM-DD]` - Manually load game and player stats from ESPN for a specific date (defaults to today).
+- `npx tsx scripts/logDate.ts [YYYY-MM-DD]` - Log game and player stats from the database for a specific date (defaults to today).
 
 ## Scoring System
 

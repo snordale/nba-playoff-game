@@ -25,24 +25,32 @@ export const LeagueRoot = ({ params }) => {
   const { mutate: createSubmission, isSuccess: submitSuccess } = useCreateSubmission();
   const { mutate: joinLeague } = useJoinLeague();
 
-  const onSubmit = useCallback(({ playerName, playerImage, teamName }) => {
-    createSubmission({ leagueId, playerName, playerImage, teamName, date: selectedDate });
-  }, [createSubmission, leagueId]);
+  const onSubmit = useCallback(({ gameId, playerId }) => {
+    createSubmission({ gameId, playerId });
+  }, [createSubmission]);
 
   const currentPlayerId = leagueData?.players?.find(player => player.user.email === sessionData?.user?.email)?.id;
 
-  const filteredPlayersByTeam = useMemo(() => teams?.map(team => ({
-    ...team,
-    players: team.players.filter(player => player.name.toLowerCase().includes(search.toLowerCase())).map(player => ({
-      ...player,
-      alreadySubmitted: leagueData?.players?.some(p =>
-        p.id === currentPlayerId &&
-        p.submissions.some(submission =>
-          submission.playerName === player.name && submission.teamName === team.team
-        )
-      )
-    }))
-  })).filter(team => team.players.length > 0), [teams, search, currentPlayerId, leagueData?.players]);
+  const gamesForDate = teams;
+
+  const filteredGamesAndPlayers = useMemo(() => {
+    if (!gamesForDate) return [];
+    return (
+      gamesForDate
+        .map((game) => ({
+          ...game,
+          teams: game.teams
+            .map((team) => ({
+              ...team,
+              players: team.players.filter((player) =>
+                player.name.toLowerCase().includes(search.toLowerCase())
+              ),
+            }))
+            .filter((team) => team.players.length > 0),
+        }))
+        .filter((game) => game.teams.length > 0)
+    );
+  }, [gamesForDate, search]);
 
   useEffect(() => {
     if (submitSuccess) {
@@ -86,14 +94,15 @@ export const LeagueRoot = ({ params }) => {
       setModalOpen={setModalOpen}
       leagueData={leagueData}
       leagueId={leagueId}
+      filteredGamesAndPlayers={filteredGamesAndPlayers}
       futureSubmissions={leagueData?.futureSubmissions}
-      filteredPlayersByTeam={filteredPlayersByTeam}
       loadingPlayers={loadingPlayers}
       onSubmit={onSubmit}
       selectedDate={selectedDate}
       onDateChange={setSelectedDate}
       search={search}
       onSearchChange={setSearch}
+      gamesForDate={gamesForDate}
     />
   );
 };
@@ -112,14 +121,15 @@ const LeagueInterface = ({
   setModalOpen,
   leagueData,
   leagueId,
-  filteredPlayersByTeam,
+  filteredGamesAndPlayers,
   futureSubmissions,
   loadingPlayers,
   onSubmit,
   selectedDate,
   onDateChange,
   search,
-  onSearchChange
+  onSearchChange,
+  gamesForDate
 }) => (
   <Stack gap={3}>
     <HStack justifyContent='space-between'>
@@ -146,7 +156,7 @@ const LeagueInterface = ({
     <SubmissionModal
       isOpen={modalOpen}
       onClose={setModalOpen}
-      filteredPlayersByTeam={filteredPlayersByTeam}
+      filteredPlayersByTeam={filteredGamesAndPlayers}
       futureSubmissions={futureSubmissions}
       loadingPlayers={loadingPlayers}
       onSubmit={onSubmit}

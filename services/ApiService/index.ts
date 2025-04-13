@@ -12,20 +12,8 @@ export const joinLeague = async ({ leagueId, password }) => {
   return apiService.post("/league/join", { leagueId, password });
 };
 
-export const createSubmission = async ({
-  date,
-  leagueId,
-  playerName,
-  playerImage,
-  teamName,
-}) => {
-  return apiService.post("/submission", {
-    date,
-    leagueId,
-    playerName,
-    playerImage,
-    teamName,
-  });
+export const createSubmission = async ({ gameId, playerId }: { gameId: string; playerId: string; }) => {
+  return apiService.post("/submission", { gameId, playerId });
 };
 
 export const getLeagues = async () => {
