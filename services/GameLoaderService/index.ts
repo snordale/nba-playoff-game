@@ -14,29 +14,69 @@ const STAT_INDICES = {
 };
 
 /**
- * Finds or creates a Team record based on ESPN data.
+ * Finds or creates a Team record based on ESPN data using upsert.
  */
 const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abbreviation?: string }) => {
-  if (!teamData.id) {
-    console.warn(`Missing ESPN ID for team: ${teamData.displayName}. Skipping upsert based on ID.`);
-    const existingTeam = await prisma.team.findUnique({ where: { name: teamData.displayName } });
-    if (existingTeam) return existingTeam;
-    console.error(`Could not find or create team without ESPN ID: ${teamData.displayName}`);
-    return null;
+  const teamEspnId = teamData.id;
+  const teamName = teamData.displayName;
+  const teamAbbreviation = teamData.abbreviation ?? teamName.substring(0, 3).toUpperCase();
+
+  if (!teamEspnId) {
+    // Still handle the case where ESPN ID is missing - try to find by name
+    console.warn(`Warn: Missing ESPN ID for team: ${teamName}. Attempting findUnique by name.`);
+    try {
+        const existingTeam = await prisma.team.findUnique({ where: { name: teamName } });
+        if (existingTeam) {
+            console.log(`Found existing team by name: ${teamName} (ID: ${existingTeam.id})`);
+            return existingTeam;
+        }
+        // If not found by name either, we cannot reliably upsert without an ID
+        console.error(`Error: Cannot find or create team without ESPN ID and unique name not found: ${teamName}`);
+        return null;
+    } catch (error) {
+        console.error(`Error finding team by name ${teamName}:`, error);
+        return null;
+    }
   }
 
-  return prisma.team.upsert({
-    where: { espnId: teamData.id },
-    update: {
-      name: teamData.displayName,
-      abbreviation: teamData.abbreviation ?? teamData.displayName.substring(0, 3).toUpperCase(),
-    },
-    create: {
-      espnId: teamData.id,
-      name: teamData.displayName,
-      abbreviation: teamData.abbreviation ?? teamData.displayName.substring(0, 3).toUpperCase(),
-    },
-  });
+  // Proceed with upsert if ESPN ID exists
+  try {
+    const team = await prisma.team.upsert({
+      where: { espnId: teamEspnId }, // Use espnId as the primary lookup
+      update: {
+        name: teamName,
+        abbreviation: teamAbbreviation,
+      },
+      create: {
+        espnId: teamEspnId,
+        name: teamName,
+        abbreviation: teamAbbreviation,
+      },
+    });
+    return team;
+  } catch (error: any) {
+    // Log detailed info on failure
+    console.error(
+        `Error during prisma.team.upsert for team: ` +
+        `{ espnId: ${teamEspnId}, name: "${teamName}", abbreviation: "${teamAbbreviation}" }. ` +
+        `Error: ${error.message}`,
+        // Optionally log the full error object for more details
+        // error 
+    );
+    // Attempt to find the conflicting record(s) for better debugging (optional)
+    try {
+        const conflictByName = await prisma.team.findUnique({ where: { name: teamName }});
+        if (conflictByName && conflictByName.espnId !== teamEspnId) {
+            console.warn(`Potential conflict: Name "${teamName}" exists with espnId ${conflictByName.espnId}`);
+        }
+        const conflictByAbbr = await prisma.team.findFirst({ where: { abbreviation: teamAbbreviation }});
+         if (conflictByAbbr && conflictByAbbr.espnId !== teamEspnId) {
+            console.warn(`Potential conflict: Abbreviation "${teamAbbreviation}" exists with espnId ${conflictByAbbr.espnId}`);
+        }
+    } catch { /* Ignore errors during diagnostic lookup */ }
+    
+    return null; // Indicate failure
+  }
 };
 
 /**

@@ -1,8 +1,6 @@
-import React from 'react';
-import { Body1 } from '../../Body1';
+import { Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text } from '@chakra-ui/react';
 import { Body2 } from '../../Body2';
-import { Modal, ModalOverlay, ModalCloseButton, ModalContent, ModalHeader, ModalBody, Stack, Input, Button, Spinner, HStack, Text } from '@chakra-ui/react';
-import { useSession } from 'next-auth/react';
+import { format, parseISO } from 'date-fns';
 
 export const SubmissionModal = ({
   isOpen,
@@ -13,44 +11,34 @@ export const SubmissionModal = ({
   search,
   onSearchChange,
   selectedDate,
-  onDateChange
 }) => {
-  const { data } = useSession();
+  const displayDate = selectedDate ? format(parseISO(selectedDate), 'MMMM d, yyyy') : 'Selected Date';
 
   return (
     <Modal isOpen={isOpen} onClose={() => onClose(false)} size="xl">
       <ModalOverlay />
       <ModalCloseButton onClick={() => onClose(false)} />
       <ModalContent>
-        <ModalHeader>Create Submission for {selectedDate}</ModalHeader>
+        <ModalHeader>Create Submission for {displayDate}</ModalHeader>
         <ModalBody pb={6}>
           <form>
             <Stack gap={3}>
               <Stack gap={1}>
-                <Body2>Select a date to submit for:</Body2>
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => onDateChange(e.target.value)}
-                  placeholder="Select date"
-                />
-              </Stack>
-              <Stack gap={1}>
-                <Body2>Search players playing on {selectedDate}:</Body2>
+                <Body2>Search players playing on {displayDate}:</Body2>
                 <Input
                   value={search}
                   placeholder="Search players..."
                   onChange={e => onSearchChange(e.target.value)}
                 />
               </Stack>
-              <Stack 
-                position='relative' 
-                overflowY='auto' 
-                maxH='400px' 
-                borderWidth={1} 
-                borderColor="gray.200" 
-                borderRadius="md" 
-                p={2} 
+              <Stack
+                position='relative'
+                overflowY='auto'
+                maxH='400px'
+                borderWidth={1}
+                borderColor="gray.200"
+                borderRadius="md"
+                p={2}
               >
                 {loadingPlayers ? (
                   <HStack py={8} justifyContent='center'>
@@ -62,27 +50,27 @@ export const SubmissionModal = ({
                       filteredPlayersByTeam.map((game) => (
                         <Stack key={game.gameId} pl={2} mb={2} spacing={1}>
                           <Text fontWeight="semibold" fontSize="sm" color="gray.600">
-                            {game.teams[0].name} vs {game.teams[1].name} 
+                            {game.teams?.[0]?.name ?? 'Team A'} vs {game.teams?.[1]?.name ?? 'Team B'}
                             ({new Date(game.gameDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })})
                           </Text>
                           {game.teams?.map((team) => (
-                            <Stack key={team.teamId} pl={2} spacing={0.5}> 
+                            <Stack key={team.teamId} pl={2} spacing={0.5}>
                               {team.players?.map((player) => (
                                 <Button
                                   size='sm'
                                   variant='ghost'
-                                  colorScheme='orange' 
+                                  colorScheme='orange'
                                   flexShrink={0}
                                   key={player.id}
-                                  isDisabled={player.alreadySubmitted} 
-                                  onClick={() => onSubmit({ 
-                                    gameId: game.gameId, 
-                                    playerId: player.id 
+                                  isDisabled={player.alreadySubmitted}
+                                  onClick={() => onSubmit({
+                                    gameId: game.gameId,
+                                    playerId: player.id
                                   })}
                                   justifyContent='flex-start'
                                   gap={2}
-                                  fontWeight="normal" 
-                                  _disabled={{ opacity: 0.5, cursor: 'not-allowed', textDecoration: 'line-through' }} 
+                                  fontWeight="normal"
+                                  _disabled={{ opacity: 0.5, cursor: 'not-allowed', textDecoration: 'line-through' }}
                                 >
                                   {player.name} – {team.abbreviation}
                                   {player.alreadySubmitted && <Text as="span" fontSize="xs" color="gray.500" ml={2}>(Submitted)</Text>}

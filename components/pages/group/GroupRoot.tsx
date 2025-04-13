@@ -30,6 +30,14 @@ export const GroupRoot = ({ params }) => {
   const { onCopy, setValue, hasCopied } = useClipboard("");
   const toast = useToast();
 
+  // Log received data
+  useEffect(() => {
+    if(groupData) {
+      console.log("Data from useGetGroup:", groupData);
+      console.log("Game Counts Received:", groupData.gameCountsByDate);
+    }
+  }, [groupData]);
+
   const onSubmit = useCallback(({ gameId, playerId }) => {
     createSubmission({ gameId, playerId }, {
       onSuccess: () => {
@@ -40,9 +48,14 @@ export const GroupRoot = ({ params }) => {
 
   const currentUserId = sessionData?.user?.id;
 
+  const group = groupData?.group;
+  const scoredPlayers = groupData?.players;
+  const currentUserFutureSubmissionStatus = groupData?.currentUserFutureSubmissionStatus;
+  const gameCountsByDate = groupData?.gameCountsByDate;
+
   const currentUserGroupData = useMemo(() => {
-    return groupData?.players?.find(p => p.userId === currentUserId);
-  }, [groupData, currentUserId]);
+    return scoredPlayers?.find(p => p.userId === currentUserId);
+  }, [scoredPlayers, currentUserId]);
 
   const filteredGamesAndPlayers = useMemo(() => {
     if (!gamesForDate) return [];
@@ -81,9 +94,9 @@ export const GroupRoot = ({ params }) => {
 
   // Process submissions by date
   const submissionsByDate = useMemo(() => {
-    if (!groupData?.players) return {};
+    if (!scoredPlayers) return {};
     const submissionsMap: { [dateKey: string]: Array<{ username: string; playerName: string; score: number | null }> } = {};
-    groupData.players.forEach(player => {
+    scoredPlayers.forEach(player => {
       player.submissions?.forEach(sub => {
         if (!sub.gameDate || !sub.playerName) return;
         const gameDayStart = dateFnsStartOfDay(parseISO(sub.gameDate.toISOString()));
@@ -102,25 +115,20 @@ export const GroupRoot = ({ params }) => {
       submissionsMap[dateKey].sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity));
     });
     return submissionsMap;
-  }, [groupData]);
+  }, [scoredPlayers]);
 
   // Handler for clicking a day on the calendar
   const handleDayClick = useCallback((date: Date) => {
-    console.log("handleDayClick called with date:", date);
-    
     const today = dateFnsStartOfDay(new Date());
     const clickedDay = dateFnsStartOfDay(date);
-    console.log("Comparison:", { clickedDay, today, isPast: clickedDay < today });
 
     if (clickedDay < today) { 
       const formattedDate = format(clickedDay, 'yyyy-MM-dd');
-      console.log("Opening details modal for:", formattedDate);
       setDetailsDate(formattedDate);
       setDetailsModalOpen(true);
       setModalOpen(false); 
     } else {
       const formattedDate = format(clickedDay, 'yyyy-MM-dd');
-      console.log("Opening submission modal for:", formattedDate);
       setSelectedDate(formattedDate); 
       setModalOpen(true); 
       setDetailsModalOpen(false); 
@@ -131,7 +139,7 @@ export const GroupRoot = ({ params }) => {
     return <Body1>Loading Group...</Body1>;
   }
 
-  if (!groupData?.group) {
+  if (!group) {
     return <Body1>Group not found.</Body1>;
   }
 
@@ -148,14 +156,12 @@ export const GroupRoot = ({ params }) => {
     <GroupInterface
       modalOpen={modalOpen}
       setModalOpen={setModalOpen}
-      group={groupData.group}
-      groupUsers={groupData.players}
+      group={group}
       groupId={groupId}
       filteredGamesAndPlayers={filteredGamesAndPlayers}
       loadingPlayers={loadingPlayers}
       onSubmit={onSubmit}
       selectedDate={selectedDate}
-      onDateChange={setSelectedDate}
       search={search}
       onSearchChange={setSearch}
       submissionsByDate={submissionsByDate}
@@ -163,6 +169,9 @@ export const GroupRoot = ({ params }) => {
       detailsModalOpen={detailsModalOpen}
       setDetailsModalOpen={setDetailsModalOpen}
       detailsDate={detailsDate}
+      currentUserFutureSubmissionStatus={currentUserFutureSubmissionStatus}
+      currentUserId={currentUserId}
+      gameCountsByDate={gameCountsByDate}
     />
   );
 };
@@ -171,13 +180,11 @@ const GroupInterface = ({
   modalOpen,
   setModalOpen,
   group,
-  groupUsers,
   groupId,
   filteredGamesAndPlayers,
   loadingPlayers,
   onSubmit,
   selectedDate,
-  onDateChange,
   search,
   onSearchChange,
   submissionsByDate,
@@ -185,6 +192,9 @@ const GroupInterface = ({
   detailsModalOpen,
   setDetailsModalOpen,
   detailsDate,
+  currentUserFutureSubmissionStatus,
+  currentUserId,
+  gameCountsByDate,
 }) => {
   const { mutate: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
   const { onCopy, setValue, hasCopied } = useClipboard("");
@@ -218,7 +228,7 @@ const GroupInterface = ({
   return (
     <Stack gap={3}>
       <HStack justifyContent='space-between'>
-        <Body1 >
+        <Body1 fontWeight="semibold" fontSize="2xl">
           {group?.name}
         </Body1>
         <HStack>
@@ -235,18 +245,14 @@ const GroupInterface = ({
           <WhoSubmitted groupId={groupId} />
         </HStack>
       </HStack>
-      <Body1>
-        Today's Date: {new Date().toLocaleDateString()}
-      </Body1>
-      <Button
-        isDisabled={!groupUsers}
-        colorScheme="orange"
-        onClick={() => setModalOpen(true)}
-      >
-        Create Submission
-      </Button>
-      <CalendarDisplay submissionsByDate={submissionsByDate} onDateClick={onCalendarDateClick} />
       <Leaderboard groupId={groupId} />
+      <CalendarDisplay
+        submissionsByDate={submissionsByDate}
+        onDateClick={onCalendarDateClick}
+        currentUserFutureSubmissionStatus={currentUserFutureSubmissionStatus}
+        currentUserId={currentUserId}
+        gameCountsByDate={gameCountsByDate}
+      />
       <SubmissionModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -254,7 +260,6 @@ const GroupInterface = ({
         loadingPlayers={loadingPlayers}
         onSubmit={onSubmit}
         selectedDate={selectedDate}
-        onDateChange={onDateChange}
         search={search}
         onSearchChange={onSearchChange}
       />

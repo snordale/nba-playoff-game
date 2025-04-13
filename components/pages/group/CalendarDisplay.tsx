@@ -1,9 +1,10 @@
 // components/pages/group/CalendarDisplay.tsx
 import React from 'react';
-import { Box, Stack, Text, Badge, VStack, Tooltip, HStack } from '@chakra-ui/react';
+import { Box, Stack, Text, Badge, VStack, Tooltip, HStack, Center, Icon } from '@chakra-ui/react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css'; // Default styling
-import { format, parseISO, startOfDay } from 'date-fns';
+import { format, parseISO, startOfDay, isToday } from 'date-fns';
+import { CheckIcon, CloseIcon, MinusIcon } from '@chakra-ui/icons';
 
 // Define structure for submissions data passed as props
 interface SubmissionForDate {
@@ -17,56 +18,96 @@ interface SubmissionsByDateMap {
 interface CalendarDisplayProps {
   submissionsByDate: SubmissionsByDateMap;
   onDateClick: (date: Date) => void; // Define the callback prop type
+  currentUserFutureSubmissionStatus?: { [dateKey: string]: boolean };
+  currentUserId?: string;
+  gameCountsByDate?: { [dateKey: string]: number }; // Add prop type
   // Add other props if needed, e.g., firstDate, lastDate
 }
 
-// Helper to format tile content
-const TileContent = ({ date, view, submissionsByDate }: { date: Date; view: string; submissionsByDate: SubmissionsByDateMap }) => {
-  // Only render content for month view
-  if (view !== 'month') {
-    return null;
-  }
+// Updated TileContent helper
+const TileContent = ({
+  date,
+  view,
+  submissionsByDate,
+  currentUserFutureSubmissionStatus,
+  currentUserId,
+  gameCountsByDate
+}: {
+  date: Date;
+  view: string;
+  submissionsByDate: SubmissionsByDateMap;
+  currentUserFutureSubmissionStatus?: { [dateKey: string]: boolean };
+  currentUserId?: string;
+  gameCountsByDate?: { [dateKey: string]: number };
+}) => {
+  if (view !== 'month') return null;
 
-  const dateKey = format(date, 'yyyy-MM-dd'); // Get the key for this date
-  const submissions = submissionsByDate[dateKey];
+  const dateKey = format(date, 'yyyy-MM-dd');
+  const today = startOfDay(new Date());
+  const isDayInPast = date < today && !isToday(date);
+  const isDayToday = isToday(date);
+  const gameCount = gameCountsByDate?.[dateKey];
+  const submissions = submissionsByDate[dateKey]; // Past/present submissions for all users
 
-  if (!submissions || submissions.length === 0) {
-    return null; // No submissions for this day
-  }
-
-  // Sort by score for display (might be already sorted)
-  const sortedSubmissions = [...submissions].sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity));
+  // Find current user's submission for past/today (Requires submissionsByDate to include userId)
+  // const currentUserSubmission = submissions?.find(sub => sub.userId === currentUserId); 
+  const topScore = submissions?.[0]?.score; // Example: Get top score 
 
   return (
-    <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="60px">
-      {sortedSubmissions.slice(0, 3).map((sub, index) => ( // Show top 3 picks per day
-        <Tooltip key={index} label={`${sub.username}: ${sub.playerName} (${sub.score ?? 'N/A'} pts)`} placement="top" fontSize="xs">
-          <HStack justify="space-between" w="full">
-            <Text fontSize="xx-small" isTruncated maxWidth="calc(100% - 30px)">
-              <Badge variant="solid" colorScheme="gray" mr={1} fontSize="xx-small">{index + 1}</Badge>
-              {sub.username}
-            </Text>
-            <Badge colorScheme={sub.score === null ? 'gray' : 'orange'} fontSize="xx-small" flexShrink={0}>
-              {sub.score ?? 'N/A'}
-            </Badge>
-          </HStack>
-        </Tooltip>
-      ))}
-      {sortedSubmissions.length > 3 && (
-         <Text fontSize="xx-small" textAlign="center" color="gray.500">...</Text>
+    <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="80px"> 
+       {/* Display Game Count */} 
+       {gameCount !== undefined && gameCount > 0 && (
+           <Text fontSize="9px" color="gray.500" textAlign="right" lineHeight="1" w="full">
+               {gameCount} Game{gameCount > 1 ? 's' : ''}
+           </Text>
+       )}
+
+      {/* --- Render Past or Present Day --- */} 
+      {(isDayInPast || isDayToday) ? (
+         <>
+            {/* Placeholder/Indicator for Past Days */} 
+            {(submissions && submissions.length > 0) ? (
+              <Text fontSize="xs" color="gray.700" mt={1}> 
+                 Top: {topScore ?? 'N/A'} pts 
+              </Text>
+            ) : (
+              gameCount !== undefined && gameCount > 0 ?
+                 <Text fontSize="xx-small" color="gray.400" mt={1}>No Submissions</Text> : null
+            )}
+         </>
+
+      // --- Render Future Day --- 
+      ) : (
+         currentUserFutureSubmissionStatus?.[dateKey] ?? false ? (
+           <Center h="full" w="full" pt={2}>
+             <Tooltip label="You submitted for this day" placement="top">
+                <Icon as={CheckIcon} color="green.500" boxSize={3} />
+             </Tooltip>
+           </Center>
+         ) : (
+           gameCount !== undefined && gameCount > 0 ? (
+              <Center h="full" w="full" pt={2}>
+                <Tooltip label="Submission needed" placement="top">
+                  {/* Use gray MinusIcon for future needed */}
+                  <Icon as={MinusIcon} color="gray.400" boxSize={2.5} />
+                </Tooltip>
+              </Center>
+           ) : null // No indicator if no games scheduled
+         )
       )}
-    </VStack>
-  );
+   </VStack>
+ );
 };
 
-export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({ submissionsByDate, onDateClick }) => {
-  // Determine range for calendar (optional, could make dynamic)
-  // const activeStartDate = ...
-  // const maxDate = ...
-  const minDate = new Date('2025-04-19')
-
+export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
+  submissionsByDate,
+  onDateClick,
+  currentUserFutureSubmissionStatus,
+  currentUserId,
+  gameCountsByDate
+}) => {
   return (
-    <Box className="calendar-container" mt={6} mb={6}>
+    <Box width="100%" mt={6} mb={6}>
       {/* Apply some custom styles potentially */}
       <style>{`
         .react-calendar {
@@ -74,6 +115,7 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({ submissionsByD
           border-radius: 8px;
           padding: 5px;
           background: white;
+          width: 100%;
         }
         .react-calendar__tile {
           height: 90px; /* Adjust tile height */
@@ -101,13 +143,18 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({ submissionsByD
         }
       `}</style>
       <Calendar
-        // Configure calendar props as needed
-        // activeStartDate={activeStartDate}
-        // maxDate={maxDate}
-        minDate={minDate}
+        maxDate={new Date('2025-07-01')}
+        minDate={new Date('2025-04-19')}
         onClickDay={onDateClick}
         tileContent={({ date, view }) => (
-          <TileContent date={date} view={view} submissionsByDate={submissionsByDate} />
+          <TileContent 
+             date={date} 
+             view={view} 
+             submissionsByDate={submissionsByDate}
+             currentUserFutureSubmissionStatus={currentUserFutureSubmissionStatus}
+             currentUserId={currentUserId}
+             gameCountsByDate={gameCountsByDate}
+          />
         )}
       />
     </Box>
