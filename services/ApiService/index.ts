@@ -4,25 +4,25 @@ const apiService = axios.create({
   baseURL: process.env.API_URL,
 });
 
-export const createLeague = async ({ leagueName, password }) => {
-  return apiService.post("/league", { leagueName, password });
+export const createGroup = async ({ groupName }: { groupName: string }) => {
+  return apiService.post("/group", { groupName });
 };
 
-export const joinLeague = async ({ leagueId, password }) => {
-  return apiService.post("/league/join", { leagueId, password });
+export const joinGroup = async ({ groupId }: { groupId: string }) => {
+  return apiService.post("/group/join", { groupId });
 };
 
 export const createSubmission = async ({ gameId, playerId }: { gameId: string; playerId: string; }) => {
   return apiService.post("/submission", { gameId, playerId });
 };
 
-export const getLeagues = async () => {
-  const res = await apiService.get("/league");
+export const getGroups = async () => {
+  const res = await apiService.get("/group");
   return res.data;
 };
 
-export const getLeague = async ({ leagueId }) => {
-  const res = await apiService.get(`/league?leagueId=${leagueId}`);
+export const getGroup = async ({ groupId }: { groupId: string }) => {
+  const res = await apiService.get(`/group/${groupId}`);
   return res.data;
 };
 

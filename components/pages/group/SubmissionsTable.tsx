@@ -1,11 +1,12 @@
-import { Body1 } from '@/components/Body1';
-import { useGetLeague } from '@/react-query/queries';
+import React from 'react';
+import { Body1 } from '../../Body1';
+import { useGetGroup } from '../../../react-query/queries';
 import { Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
 
-export const SubmissionsTable = ({ leagueId }) => {
-  const { data: leagueData } = useGetLeague({ leagueId });
+export const SubmissionsTable = ({ groupId }) => {
+  const { data: groupData } = useGetGroup({ groupId });
 
-  const oldSubmissions = leagueData?.players.flatMap(player => {
+  const oldSubmissions = groupData?.players.flatMap(player => {
     return player.submissions.flatMap(submission => {
       return {
         ...submission,

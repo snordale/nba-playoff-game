@@ -1,6 +1,6 @@
-import { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/prisma/client";
-import { getEventBoxScore, ESPNBoxScore, ESPNEvent, getGamesByDate } from "../EspnService";
+import { Prisma } from "@prisma/client";
+import { ESPNBoxScore, ESPNEvent, getEventBoxScore, getGamesByDate } from "../EspnService";
 
 // Define stat indices based on expected ESPN API keys (Confirm these indices!)
 const STAT_INDICES = {
@@ -99,11 +99,11 @@ const calculateSubmissionScore = (stats: Prisma.PlayerGameStatsGetPayload<null>)
   if (!stats) return 0;
   // Example scoring rule:
   const score = (stats.points ?? 0)
-      + (stats.rebounds ?? 0) * 1.2
-      + (stats.assists ?? 0) * 1.5
-      + (stats.steals ?? 0) * 3
-      + (stats.blocks ?? 0) * 3
-      - (stats.turnovers ?? 0);
+    + (stats.rebounds ?? 0) * 1.2
+    + (stats.assists ?? 0) * 1.5
+    + (stats.steals ?? 0) * 3
+    + (stats.blocks ?? 0) * 3
+    - (stats.turnovers ?? 0);
   return Math.round(score * 10) / 10; // Example: round to one decimal place
 };
 
@@ -176,7 +176,7 @@ export const syncGamesFromEspn = async (date: Date) => {
             homeTeamId: homeTeam.id,
             awayTeamId: awayTeam.id,
             statsProcessed: false, // Default for new games
-             // Add score updates here if available directly in event data
+            // Add score updates here if available directly in event data
             // homeScore: homeComp.score ? parseInt(homeComp.score) : null,
             // awayScore: awayComp.score ? parseInt(awayComp.score) : null,
           },
@@ -192,7 +192,7 @@ export const syncGamesFromEspn = async (date: Date) => {
     console.log(`Game sync finished for ${date.toISOString().split("T")[0]}. Upserted: ${gamesUpserted}, Failed: ${gamesFailed}`);
 
   } catch (fetchError) {
-      console.error(`Error fetching games from ESPN for sync on ${date.toISOString().split("T")[0]}:`, fetchError);
+    console.error(`Error fetching games from ESPN for sync on ${date.toISOString().split("T")[0]}:`, fetchError);
   }
 };
 
@@ -217,7 +217,7 @@ export const updateGameStatsAndScores = async () => {
 
   // Look for games from ~48 hours ago up to 1 hour ago to process stats
   const startTime = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-  const endTime = new Date(now.getTime() - 1 * 60 * 60 * 1000); 
+  const endTime = new Date(now.getTime() - 1 * 60 * 60 * 1000);
 
   console.log(`Checking for games between ${startTime.toISOString()} and ${endTime.toISOString()} to process stats...`);
 
@@ -230,11 +230,11 @@ export const updateGameStatsAndScores = async () => {
       },
       statsProcessed: false, // Only fetch games not yet processed
       status: { // Optionally only process games likely finished
-        notIn: ['STATUS_SCHEDULED', 'STATUS_POSTPONED', 'STATUS_CANCELED'] 
+        notIn: ['STATUS_SCHEDULED', 'STATUS_POSTPONED', 'STATUS_CANCELED']
       }
     },
     orderBy: {
-        date: 'asc' // Process older games first
+      date: 'asc' // Process older games first
     }
   });
 
@@ -251,7 +251,7 @@ export const updateGameStatsAndScores = async () => {
   // 2. Process each game
   for (const game of gamesToProcess) {
     console.log(`\nProcessing game: ${game.espnId} (${new Date(game.date).toLocaleDateString()})`);
-    
+
     try {
       // 3. Fetch Box Score from ESPN
       const boxScore: ESPNBoxScore | null = await getEventBoxScore({ eventId: game.espnId });
@@ -261,12 +261,6 @@ export const updateGameStatsAndScores = async () => {
         continue;
       }
 
-      // Basic validation: Check if players data exists
-      if (!boxScore.players || boxScore.players.length === 0) {
-         console.warn(` - Box score for ${game.espnId} seems incomplete (missing players array). Skipping.`);
-         continue;
-      }
-       
       // TODO: Add a check here based on game status from ESPN API if available in boxScore response
       // For now, assume if boxscore exists, game might be final
       // const isGameCompleted = boxScore.gameInfo?.status?.type?.completed ?? false;
@@ -278,7 +272,7 @@ export const updateGameStatsAndScores = async () => {
         for (const teamBox of boxScore.players) { // Iterate through teams in the box score
           const team = await getOrCreateTeam(teamBox.team);
           if (!team) continue; // Skip if team couldn't be resolved
-          
+
           const statsData = teamBox.statistics?.[0]; // Assuming first entry has player stats
           if (!statsData || !statsData.keys || !statsData.athletes) {
             console.warn(` - Missing stats data for team ${team.name} in game ${game.espnId}`);
@@ -290,7 +284,7 @@ export const updateGameStatsAndScores = async () => {
           for (const playerBox of statsData.athletes) {
             const player = await getOrCreatePlayer(playerBox.athlete, team.id);
             if (!player) continue; // Skip if player couldn't be resolved
-            
+
             const stats = parsePlayerStats(playerBox.stats);
 
             // 5. Create/Update PlayerGameStats
@@ -319,33 +313,33 @@ export const updateGameStatsAndScores = async () => {
             awayScore: awayScore,
           },
         });
-        
+
         console.log(` - Successfully processed stats for game ${game.espnId}`);
         processedGames++;
 
         // 7. Calculate scores for submissions related to this game
         const submissionsToScore = await tx.submission.findMany({
-            where: { gameId: game.id, calculatedScore: null }, // Only score unprocessed submissions
-            include: { player: { include: { stats: { where: { gameId: game.id } } } } } // Include needed stats
+          where: { gameId: game.id, calculatedScore: null }, // Only score unprocessed submissions
+          include: { player: { include: { stats: { where: { gameId: game.id } } } } } // Include needed stats
         });
 
         console.log(` - Found ${submissionsToScore.length} submissions to score for game ${game.id}`);
 
-        for(const submission of submissionsToScore) {
-            const playerStats = await tx.playerGameStats.findUnique({ // Fetch stats within transaction
-                where: { gameId_playerId: { gameId: game.id, playerId: submission.playerId } }
-            });
+        for (const submission of submissionsToScore) {
+          const playerStats = await tx.playerGameStats.findUnique({ // Fetch stats within transaction
+            where: { gameId_playerId: { gameId: game.id, playerId: submission.playerId } }
+          });
 
-            if (playerStats) {
-                const score = calculateSubmissionScore(playerStats);
-                await tx.submission.update({
-                    where: { id: submission.id },
-                    data: { calculatedScore: score }
-                });
-                updatedSubmissions++;
-            } else {
-                console.warn(` - Could not find PlayerGameStats for submission ${submission.id} (Player: ${submission.playerId}, Game: ${game.id})`);
-            }
+          if (playerStats) {
+            const score = calculateSubmissionScore(playerStats);
+            await tx.submission.update({
+              where: { id: submission.id },
+              data: { calculatedScore: score }
+            });
+            updatedSubmissions++;
+          } else {
+            console.warn(` - Could not find PlayerGameStats for submission ${submission.id} (Player: ${submission.playerId}, Game: ${game.id})`);
+          }
         }
         console.log(` - Finished scoring submissions for game ${game.id}`);
 

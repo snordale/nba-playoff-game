@@ -32,7 +32,7 @@ const AuthButton = () => {
     );
   }
 
-  return <Button onClick={() => signIn("google")}>Login</Button>;
+  return <Button colorScheme="orange" onClick={() => signIn("google")}>Login</Button>;
 };
 
 export default AuthButton;

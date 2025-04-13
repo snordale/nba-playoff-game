@@ -1,18 +1,18 @@
-import { Body1 } from '@/components/Body1';
-import { useGetLeague } from '@/react-query/queries';
+import { Body1 } from '../../Body1';
+import { useGetGroup } from '../../../react-query/queries';
 import { TimeIcon } from '@chakra-ui/icons';
 import { Box, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent, PopoverHeader, Text } from '@chakra-ui/react';
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
-export const WhoSubmitted = ({ leagueId }) => {
+export const WhoSubmitted = ({ groupId }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const openPopover = () => setPopoverOpen(true);
   const closePopover = () => setPopoverOpen(false);
 
-  const { data: leagueData } = useGetLeague({ leagueId });
+  const { data: groupData } = useGetGroup({ groupId });
 
-  const futureSubmissions = useMemo(() => leagueData?.futureSubmissions, [leagueData?.futureSubmissions]);
-  const players = useMemo(() => leagueData?.players, [leagueData?.players]);
+  const futureSubmissions = useMemo(() => groupData?.futureSubmissions, [groupData?.futureSubmissions]);
+  const players = useMemo(() => groupData?.players, [groupData?.players]);
 
   const playerIdsWhoSubmitted = useMemo(() => {
     return futureSubmissions?.map(submission => submission.playerId) || [];
@@ -25,6 +25,7 @@ export const WhoSubmitted = ({ leagueId }) => {
     return players?.filter(player => !playerIdsWhoSubmitted.includes(player.id)).map(player => player.user.username) || [];
   }, [players, playerIdsWhoSubmitted]);
 
+  const todaysDate = new Date().toLocaleDateString();
 
   return (
     <Box>

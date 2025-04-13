@@ -1,4 +1,4 @@
-import { useCreateLeague } from "@/react-query/queries";
+import { useCreateGroup } from "@/react-query/queries";
 import {
   Button,
   Input,
@@ -10,41 +10,45 @@ import {
   ModalOverlay,
   Stack,
 } from "@chakra-ui/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const CreateLeagueModal = ({ variant, onClose }) => {
-  const createLeague = useCreateLeague();
+  const createGroup = useCreateGroup();
+  const [groupName, setGroupName] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
 
     if (variant === "create") {
-      const leagueName = formData.get("leagueName");
-      const password = formData.get("password");
-
-      createLeague.mutate({
-        leagueName,
-        password
-      });
+      if (groupName.trim()) {
+        createGroup.mutate({ groupName: groupName.trim() });
+      }
     }
   };
 
-
   useEffect(() => {
-    if (createLeague.isSuccess) {
+    if (createGroup.isSuccess) {
+      setGroupName("");
       onClose();
     }
-  }, [createLeague.isSuccess, onClose]);
+  }, [createGroup.isSuccess, onClose]);
 
   const renderBody = () => {
     if (variant === "create") {
       return (
         <Stack>
-          <Input name="leagueName" placeholder="League Name" />
-          <Input name="password" placeholder="Password" />
-          <Button type="submit" colorScheme="purple">
-            Create League
+          <Input 
+            name="groupName"
+            placeholder="Group Name"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+          />
+          <Button 
+            type="submit" 
+            colorScheme="orange" 
+            isDisabled={!groupName.trim()}
+          >
+            Create Group
           </Button>
         </Stack>
       );
@@ -56,7 +60,7 @@ const CreateLeagueModal = ({ variant, onClose }) => {
       <ModalOverlay />
       <ModalContent>
         <ModalCloseButton />
-        <ModalHeader>Create League</ModalHeader>
+        <ModalHeader>Create Group</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>{renderBody()}</form>
         </ModalBody>

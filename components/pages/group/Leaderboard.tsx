@@ -1,9 +1,10 @@
-import { Body1 } from '@/components/Body1'
-import { useGetLeague } from '@/react-query/queries'
+import React from 'react';
+import { Body1 } from '../../Body1'
+import { useGetGroup } from "../../../react-query/queries"
 import { Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react'
 
-export const Leaderboard = ({ leagueId }) => {
-  const { data: leagueData } = useGetLeague({ leagueId });
+export const Leaderboard = ({ groupId }) => {
+  const { data: groupData } = useGetGroup({ groupId });
 
   return (
     <Stack>
@@ -17,7 +18,7 @@ export const Leaderboard = ({ leagueId }) => {
             </Tr>
           </Thead>
           <Tbody>
-            {leagueData?.players.map(player => (
+            {groupData?.players.map(player => (
               <Tr>
                 <Td>
                   {player.user.username}

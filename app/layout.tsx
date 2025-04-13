@@ -30,7 +30,6 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
             position="relative"
             overflow="hidden"
             w='100%'
-            maxW="500px"
             mx="auto"
             maxH="100vh"
           >

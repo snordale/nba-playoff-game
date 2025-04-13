@@ -5,10 +5,10 @@ import CustomLink from "@/components/CustomLink";
 import { Button, HStack, Stack } from "@chakra-ui/react";
 import { useState } from "react";
 import CreateLeagueModal from "./CreateLeagueModal";
-import { useGetLeagues } from "@/react-query/queries";
+import { useGetGroups } from "@/react-query/queries";
 
 const HomeContent = () => {
-  const { data: leagues } = useGetLeagues();
+  const { data: groups } = useGetGroups();
 
   const [modalVariant, setModalVariant] = useState("");
 
@@ -28,13 +28,13 @@ const HomeContent = () => {
             Create League
           </Button>
         </HStack>
-        <Body1 fontWeight={600}>Leagues</Body1>
-        {leagues?.length === 0 && (
-          <Body1>No leagues yet. Create a league to get started.</Body1>
+        <Body1 fontWeight={600}>Groups</Body1>
+        {groups?.length === 0 && (
+          <Body1>No groups yet. Create a group to get started.</Body1>
         )}
-        {leagues?.map((league) => (
-          <CustomLink key={league.id} href={`/league/${league.id}`}>
-            {league.name}
+        {groups?.map((group) => (
+          <CustomLink key={group.id} href={`/group/${group.id}`}>
+            {group.name}
           </CustomLink>
         ))}
       </Stack>

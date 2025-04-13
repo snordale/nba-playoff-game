@@ -1,49 +1,61 @@
 import {
-  createLeague,
+  createGroup,
   createSubmission,
-  getLeague,
-  getLeagues,
+  getGroup,
+  getGroups,
   getTodaysPlayers,
-  joinLeague,
+  joinGroup,
 } from "@/services/ApiService";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 export const queryClient = new QueryClient();
 
-export const useCreateLeague = () =>
-  useMutation({
-    mutationFn: createLeague,
+// Define types for mutation variables
+interface CreateGroupVariables { groupName: string }
+interface JoinGroupVariables { groupId: string }
+interface CreateSubmissionVariables { gameId: string; playerId: string }
+
+// Rename useCreateLeague to useCreateGroup and add type
+export const useCreateGroup = () =>
+  useMutation<unknown, Error, CreateGroupVariables>({
+    mutationFn: createGroup,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["getLeagues"] });
+      queryClient.invalidateQueries({ queryKey: ["getGroups"] });
     },
   });
 
-export const useJoinLeague = () =>
-  useMutation({
-    mutationFn: joinLeague,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["getLeague"] });
+// Rename useJoinLeague to useJoinGroup and add type
+export const useJoinGroup = () =>
+  useMutation<unknown, Error, JoinGroupVariables>({
+    mutationFn: joinGroup,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["getGroup", variables.groupId] });
     },
   });
 
+// Add type to useCreateSubmission
 export const useCreateSubmission = () =>
-  useMutation({
+  useMutation<unknown, Error, CreateSubmissionVariables>({
     mutationFn: createSubmission,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["getLeague"] });
+    onSuccess: (data, variables) => {
+      // Attempt to invalidate the specific group the submission belongs to
+      // This requires getting the groupId from the submission response or variables
+      // For now, just invalidate all groups as a simpler approach
+      queryClient.invalidateQueries({ queryKey: ["getGroup"] });
     },
   });
 
-export const useGetLeagues = () =>
+export const useGetGroups = () =>
   useQuery({
-    queryKey: ["getLeagues"],
-    queryFn: getLeagues,
+    queryKey: ["getGroups"],
+    queryFn: getGroups,
   });
 
-export const useGetLeague = ({ leagueId }) => {
+export const useGetGroup = ({ groupId }) => {
   return useQuery({
-    queryKey: ["getLeague", leagueId],
-    queryFn: () => getLeague({ leagueId }),
+    queryKey: ["getGroup", groupId],
+    queryFn: () => getGroup({ groupId }),
+    enabled: !!groupId,
   });
 };
 
