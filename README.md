@@ -62,6 +62,7 @@ This is a web game that occurs during the NBA Playoffs. Make a group, invite fri
    DATABASE_URL="your-database-url"
    NEXTAUTH_SECRET="your-nextauth-secret" # Generate a strong secret: openssl rand -base64 32
    NEXTAUTH_URL="http://localhost:3000" # Adjust for production
+   JWT_INVITE_SECRET="your-super-strong-random-secret-key-here" # Used for signing group invite links
    ```
 
 4. **Development**

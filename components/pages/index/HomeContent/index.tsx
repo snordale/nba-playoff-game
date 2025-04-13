@@ -22,7 +22,7 @@ const HomeContent = () => {
         <HStack>
           <Button
             flex={1}
-            colorScheme="purple"
+            colorScheme="orange"
             onClick={() => setModalVariant("create")}
           >
             Create League
