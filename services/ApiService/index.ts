@@ -26,7 +26,7 @@ export const getGroup = async ({ groupId }: { groupId: string }) => {
   return res.data;
 };
 
-export const getTodaysPlayers = async ({ date }) => {
+export const getPlayers = async ({ date }) => {
   const res = await apiService.get(`/players?date=${date}`);
   return res.data;
 };

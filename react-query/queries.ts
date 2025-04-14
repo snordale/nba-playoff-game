@@ -1,12 +1,12 @@
 import {
   createGroup,
   createSubmission,
-  getGroup,
-  getGroups,
-  getTodaysPlayers,
-  joinGroup,
   generateInviteLink,
   getGames,
+  getGroup,
+  getGroups,
+  getPlayers,
+  joinGroup
 } from "@/services/ApiService";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
@@ -61,10 +61,11 @@ export const useGetGroup = ({ groupId }) => {
   });
 };
 
-export const useGetTodaysPlayers = ({ date }) => {
+export const useGetPlayers = ({ date }) => {
   return useQuery({
-    queryKey: ["getTodaysPlayers", date.toString()],
-    queryFn: () => getTodaysPlayers({ date }),
+    queryKey: ["getPlayers", date],
+    queryFn: () => getPlayers({ date }),
+    enabled: !!date,
   });
 };
 
@@ -77,8 +78,8 @@ export const useGetGames = ({ date }: { date: string }) => {
 };
 
 // Hook for generating a group invite link
-export const useGenerateInviteLink = () => 
+export const useGenerateInviteLink = () =>
   useMutation<GenerateInviteResponse, Error, GenerateInviteVariables>({
-    mutationFn: generateInviteLink, 
+    mutationFn: generateInviteLink,
     // Optional: onSuccess/onError handling if needed
   });
