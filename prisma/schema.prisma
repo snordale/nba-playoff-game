@@ -75,7 +75,7 @@ model Player {
 model Game {
   id             String            @id @default(uuid())
   espnId         String            @unique
-  date           DateTime          
+  date           DateTime          @db.Date
   homeTeamId     String            @map("home_team_id")
   awayTeamId     String            @map("away_team_id")
   homeScore      Int?

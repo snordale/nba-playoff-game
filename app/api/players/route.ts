@@ -16,38 +16,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or missing date parameter. Use YYYY-MM-DD format." }, { status: 400 });
   }
 
-  // --- Calculate UTC date range --- 
-  const [year, month, day] = dateString.split('-').map(Number);
-  const targetDateUTC = new Date(Date.UTC(year, month - 1, day));
-  const nextDayUTC = new Date(targetDateUTC);
-  nextDayUTC.setUTCDate(targetDateUTC.getUTCDate() + 1);
-  // --- End date range calculation ---
-
   try {
+    // Since we're using @db.Date, we can just pass the date string directly
     const gamesForDate = await prisma.game.findMany({
       where: {
-        date: {
-          gte: targetDateUTC, 
-          lt: nextDayUTC,     
-        },
-        // Optionally add status filters if needed (e.g., only scheduled/in-progress)
-        // status: { notIn: ['FINAL', 'STATUS_FINAL'] }
+        date: dateString
       },
       include: {
         homeTeam: {
           include: {
-            // Include players belonging to the home team
             players: {
-              select: { id: true, name: true, espnId: true /* Add other needed player fields */ },
-              orderBy: { name: 'asc' } 
+              select: { id: true, name: true, espnId: true },
+              orderBy: { name: 'asc' }
             }
           }
         },
         awayTeam: {
           include: {
-            // Include players belonging to the away team
             players: {
-              select: { id: true, name: true, espnId: true /* Add other needed player fields */ },
+              select: { id: true, name: true, espnId: true },
               orderBy: { name: 'asc' }
             }
           }
@@ -56,23 +43,21 @@ export async function GET(req: NextRequest) {
       orderBy: { date: 'asc' }
     });
 
-    // Structure the response for the frontend
-    // Group players by team within each game
     const responseData = gamesForDate.map(game => ({
       gameId: game.id,
-      gameDate: game.date,
+      gameDate: dateString, // Since we queried for this exact date
       status: game.status,
+      homeScore: game.homeScore,
+      awayScore: game.awayScore,
       teams: [
         {
           teamId: game.homeTeam.id,
           name: game.homeTeam.name,
           abbreviation: game.homeTeam.abbreviation,
           isHome: true,
-          players: game.homeTeam.players.map(p => ({ 
-            id: p.id, // This is the crucial playerId for submissions
+          players: game.homeTeam.players.map(p => ({
+            id: p.id,
             name: p.name,
-            // TODO: Add player image URL if available on Player model
-            // image: p.imageUrl || null 
           }))
         },
         {
@@ -81,9 +66,8 @@ export async function GET(req: NextRequest) {
           abbreviation: game.awayTeam.abbreviation,
           isHome: false,
           players: game.awayTeam.players.map(p => ({
-            id: p.id, // Player database ID
+            id: p.id,
             name: p.name,
-            // image: p.imageUrl || null 
           }))
         }
       ]
@@ -95,4 +79,5 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching games and players:", error);
     return NextResponse.json({ error: "Failed to fetch game/player data" }, { status: 500 });
   }
-}
+};
+

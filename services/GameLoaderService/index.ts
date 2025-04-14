@@ -287,12 +287,16 @@ export const loadGamesForDate = async (
           gamesFailed++;
           continue;
         }
-
+        console.log('event.date', event.date);
         // 4. Create/Update Game
+        const gameDate = new Date(event.date);
+        // Convert date to New York time
+        const newYorkDate = new Date(gameDate.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+        
         const game = await prisma.game.upsert({
           where: { espnId: event.id },
           update: {
-            date: new Date(event.date),
+            date: newYorkDate,
             status: event.status.type.name,
             homeTeamId: homeTeam.id,
             awayTeamId: awayTeam.id,
@@ -301,7 +305,7 @@ export const loadGamesForDate = async (
           },
           create: {
             espnId: event.id,
-            date: new Date(event.date),
+            date: newYorkDate,
             status: event.status.type.name,
             homeTeamId: homeTeam.id,
             awayTeamId: awayTeam.id,
