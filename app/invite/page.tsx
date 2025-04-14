@@ -12,6 +12,9 @@ interface InviteTokenPayload {
   exp?: number; // Expiration time (standard JWT claim)
 }
 
+// Define the expected digest code for redirects
+const REDIRECT_ERROR_CODE = "NEXT_REDIRECT";
+
 async function handleInvite(token: string, userId: string | undefined) {
   const jwtSecret = process.env.JWT_INVITE_SECRET;
   if (!jwtSecret) {
@@ -68,14 +71,23 @@ async function handleInvite(token: string, userId: string | undefined) {
             isAdmin: false, // Default to non-admin
           },
         });
+        console.log(`User ${userId} successfully added to group ${groupId}.`);
       }
-      // Redirect to the league page regardless of whether they were added now or already members
-      redirect(`/groups/${groupId}`); // Use redirect from next/navigation
+      redirect(`/groups/${groupId}`);
 
-    } catch (error) {
-      console.error(`Error adding user ${userId} to group ${groupId}:`, error);
-      // If adding fails, still show the invite prompt but include the error
-      return { error: "Could not automatically join the group. Please try logging in again.", groupName: group.name, token, needsLogin: true };
+    } catch (error: any) {
+        // Check if the error is a redirect error by its digest code
+        if (error?.digest === REDIRECT_ERROR_CODE) {
+            throw error; // Re-throw the redirect error
+        }
+        // Handle other actual errors
+        console.error(`Error adding user ${userId} to group ${groupId}:`, error);
+        return { 
+            error: "Could not join the group due to an unexpected error. Please try again or contact the group admin.", 
+            groupName: group.name, 
+            token, 
+            needsLogin: true // Still might need login if DB failed transiently
+        };
     }
   } else {
     // User is not logged in - prompt them

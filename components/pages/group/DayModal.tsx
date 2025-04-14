@@ -20,6 +20,8 @@ interface SubmissionDetailForModal {
     playerName: string | null; // Can be null if no pick yet
     score: number | null;
     stats: PlayerStats | null;
+    gameStatus?: string;
+    gameDate?: string | Date;
 }
 
 // Define structure for player data needed for selection
@@ -78,12 +80,8 @@ export const DayModal = ({
     const { data: games, isLoading: loadingGames } = useGetGames({ date: selectedDate });
     const toast = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Determine if the date is in the past (or today but games started/finished)
-    const today = startOfDay(new Date());
-    const selectedDay = startOfDay(parseISO(selectedDate));
-    const isLocked = isBefore(selectedDay, today);
-    // TODO: Enhance isLocked logic based on game status if needed
+    const now = new Date(); // Get current time for comparisons
+    const isLocked = isBefore(startOfDay(parseISO(selectedDate)), startOfDay(new Date())); // Day locked check
 
     // Fetch players available for selection ONLY if the date is not locked
     const { data: playersForSelectionData, isLoading: loadingPlayers } = useGetPlayers({
@@ -252,52 +250,61 @@ export const DayModal = ({
                                 <Text color="gray.500">No submissions yet for this day.</Text>
                             ) : (
                                 <Stack spacing={3} maxH="250px" overflowY="auto" pr={2}>
-                                    {sortedSubmissions.map((sub, index) => (
-                                        <Box
-                                            key={sub.username + index} // Consider a more stable key
-                                            p={3}
-                                            borderWidth="1px"
-                                            borderRadius="md"
-                                            // Highlight top score if locked, highlight current user if not locked
-                                            bg={isLocked ? (index === 0 ? 'orange.50' : 'transparent') : (sub.username === currentUserUsername ? 'blue.50' : 'transparent')}
-                                            borderColor={isLocked ? (index === 0 ? 'orange.200' : 'gray.200') : (sub.username === currentUserUsername ? 'blue.200' : 'gray.200')}
-                                        >
-                                            <HStack justify="space-between" align="flex-start">
-                                                <VStack align="start" spacing={1} flex={1} mr={2}>
-                                                    <Text fontWeight="bold">{isLocked ? `${index + 1}. ` : ''}{sub.username}</Text>
-                                                    <Text fontSize="sm" color="gray.600" noOfLines={1}>
-                                                        {sub.playerName ?? (isLocked ? 'No Pick' : <Text as="span" color="gray.400">No Pick Yet</Text>)}
-                                                    </Text>
-                                                    {/* Display Stats if available (only for locked dates) */}
-                                                    {isLocked && sub.stats && (
-                                                        <HStack gap={2} pt={1} width="100%">
-                                                            <Text fontSize="xs" color="gray.600">PTS: {sub.stats.points ?? '-'}</Text>
-                                                            <Text fontSize="xs" color="gray.600">REB: {sub.stats.rebounds ?? '-'}</Text>
-                                                            <Text fontSize="xs" color="gray.600">AST: {sub.stats.assists ?? '-'}</Text>
-                                                            <Text fontSize="xs" color="gray.600">STL: {sub.stats.steals ?? '-'}</Text>
-                                                            <Text fontSize="xs" color="gray.600">BLK: {sub.stats.blocks ?? '-'}</Text>
-                                                            <Text fontSize="xs" color="gray.600">TO: {sub.stats.turnovers ?? '-'}</Text>
-                                                        </HStack>
+                                    {sortedSubmissions.map((sub, index) => {
+                                        // Determine if this specific pick is locked
+                                        const gameDate = sub?.gameDate ? new Date(sub.gameDate) : null;
+                                        const isPickLocked = sub?.gameStatus !== 'STATUS_SCHEDULED' || (gameDate && gameDate <= now);
+                                        const canShowPick = isPickLocked || sub.username === currentUserUsername; // Show if locked or it's your pick
+
+                                        return (
+                                            <Box
+                                                key={sub.username + index} 
+                                                p={3}
+                                                borderWidth="1px"
+                                                borderRadius="md"
+                                                bg={isLocked ? (index === 0 ? 'orange.50' : 'transparent') : (sub.username === currentUserUsername ? 'blue.50' : 'transparent')}
+                                                borderColor={isLocked ? (index === 0 ? 'orange.200' : 'gray.200') : (sub.username === currentUserUsername ? 'blue.200' : 'gray.200')}
+                                            >
+                                                <HStack justify="space-between" align="flex-start">
+                                                    <VStack align="start" spacing={1} flex={1} mr={2}>
+                                                        <Text fontWeight="bold">{isLocked ? `${index + 1}. ` : ''}{sub.username}</Text>
+                                                        {/* Conditional Player Name */}
+                                                        <Text fontSize="sm" color="gray.600" noOfLines={1}>
+                                                            {canShowPick ? (sub.playerName ?? 'No Pick') : (sub.playerName ? "Pick Hidden" : "No Pick Yet")}
+                                                        </Text>
+                                                        {/* Conditional Stats Grid */}
+                                                        {canShowPick && sub.stats && (
+                                                            <HStack gap={2} pt={1} width="100%">
+                                                                <Text fontSize="xs" color="gray.600">PTS: {sub.stats.points ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">REB: {sub.stats.rebounds ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">AST: {sub.stats.assists ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">STL: {sub.stats.steals ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">BLK: {sub.stats.blocks ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">TO: {sub.stats.turnovers ?? '-'}</Text>
+                                                            </HStack>
+                                                        )}
+                                                    </VStack>
+                                                    {/* Score Badge / Status Badge - Conditionally Visible */}
+                                                    {isLocked ? (
+                                                        <Badge
+                                                            fontSize="md"
+                                                            colorScheme={sub.score === null && sub.playerName ? 'gray' : 'orange'}
+                                                            px={3} py={1} borderRadius="full"
+                                                            // Show badge only if pick is shown and player name exists
+                                                            visibility={canShowPick && sub.playerName ? 'visible' : 'hidden'}
+                                                        >
+                                                            {sub.score ?? 'N/A'} pts
+                                                        </Badge>
+                                                    ) : (
+                                                        // Show status based on whether a pick exists, not if it's revealed
+                                                        sub.playerName ?
+                                                            <Badge colorScheme='green' variant='subtle'>Pick In</Badge> :
+                                                            <Badge colorScheme='gray' variant='subtle'>No Pick</Badge>
                                                     )}
-                                                </VStack>
-                                                {/* Score Badge / Status Badge */}
-                                                {isLocked ? (
-                                                    <Badge
-                                                        fontSize="md"
-                                                        colorScheme={sub.score === null && sub.playerName ? 'gray' : 'orange'}
-                                                        px={3} py={1} borderRadius="full"
-                                                        visibility={sub.playerName ? 'visible' : 'hidden'}
-                                                    >
-                                                        {sub.score ?? 'N/A'} pts
-                                                    </Badge>
-                                                ) : (
-                                                    sub.playerName ?
-                                                        <Badge colorScheme='green' variant='subtle'>Pick In</Badge> :
-                                                        <Badge colorScheme='gray' variant='subtle'>No Pick</Badge>
-                                                )}
-                                            </HStack>
-                                        </Box>
-                                    ))}
+                                                </HStack>
+                                            </Box>
+                                        );
+                                    })}
                                 </Stack>
                             )}
                         </Stack>
@@ -313,15 +320,6 @@ export const DayModal = ({
                                         placeholder="Search players..."
                                         onChange={e => onSearchChange(e.target.value)}
                                     />
-                                    {/* Display current user's pick for the day */}
-                                    {currentSubmissionForUser && (
-                                        <Text
-                                            fontSize="sm"
-                                            fontWeight="semibold" color="orange.600" textAlign="center" p={2} borderWidth={1} borderRadius="md" borderColor="orange.600"
-                                        >
-                                            Current Pick: {currentSubmissionForUser.playerName} {currentPickTeamAbbreviation ? `– ${currentPickTeamAbbreviation}` : ''}
-                                        </Text>
-                                    )}
                                 </Stack>
                                 <Stack
                                     position='relative'

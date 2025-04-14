@@ -52,7 +52,7 @@ export const GroupRoot = ({ params }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [search, setSearch] = useState('');
   const [isDayModalOpen, setIsDayModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const { data: groupData, isLoading: isLoadingGroup } = useGetGroup({ groupId });
   const { mutate: createSubmission, isPending: isSubmitting } = useCreateSubmission();
   const { mutate: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();

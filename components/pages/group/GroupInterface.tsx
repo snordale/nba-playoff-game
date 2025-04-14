@@ -27,6 +27,8 @@ interface Submission {
     score: number | null;
     stats: PlayerStats | null;
     playerId?: string; // Optional player ID needed for some calculations
+    gameStatus?: string; 
+    gameDate?: string | Date; // Expecting ISO string or Date object from API
 }
 
 interface ScoredPlayer {
@@ -109,7 +111,8 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
     const { mutate: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
     const { onCopy, setValue, hasCopied } = useClipboard("");
     const toast = useToast();
-    const todayRef = useRef<HTMLDivElement>(null); // Explicitly type the ref
+    const todayRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const handleGenerateInvite = () => {
         generateLink({ groupId }, {
@@ -151,8 +154,28 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
     }, []);
 
     useEffect(() => {
-        if (viewMode === 'list' && todayRef.current) {
-            todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (viewMode === 'list' && todayRef.current && scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const element = todayRef.current;
+
+            // Calculate the position to scroll to center the element
+            // offsetTop is relative to the offsetParent, which might not be the scroll container.
+            // We need the element's position relative to the container.
+            const elementTopRelativeToContainer = element.offsetTop - container.offsetTop;
+            const containerHeight = container.clientHeight;
+            const elementHeight = element.offsetHeight;
+            
+            // Calculate the scroll position to center the element
+            const scrollTo = elementTopRelativeToContainer - (containerHeight / 2) + (elementHeight / 2);
+
+            // Use smooth scrolling if possible
+            container.scrollTo({
+                top: scrollTo,
+                behavior: 'smooth'
+            });
+            
+            // Fallback or alternative: direct scroll
+            // container.scrollTop = scrollTo; 
         }
     }, [viewMode]);
 
@@ -188,20 +211,21 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                 <HStack>
                     <ButtonGroup size="sm" isAttached variant="outline">
                         <Button
+                            onClick={() => setViewMode('list')}
+                            colorScheme="orange"
+                            variant={viewMode === 'list' ? 'solid' : 'outline'}
+                            leftIcon={<HamburgerIcon />}
+                            // zIndex={1}
+                        >
+                            List
+                        </Button>
+                        <Button
                             onClick={() => setViewMode('calendar')}
                             colorScheme="orange"
                             variant={viewMode === 'calendar' ? 'solid' : 'outline'}
                             leftIcon={<CalendarIcon />}
                         >
                             Calendar
-                        </Button>
-                        <Button
-                            onClick={() => setViewMode('list')}
-                            colorScheme="orange"
-                            variant={viewMode === 'list' ? 'solid' : 'outline'}
-                            leftIcon={<HamburgerIcon />}
-                        >
-                            List
                         </Button>
                     </ButtonGroup>
                 </HStack>
@@ -216,6 +240,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                     />
                 ) : (
                     <VStack
+                        ref={scrollContainerRef}
                         spacing={3}
                         align="stretch"
                         maxH="600px"
@@ -226,10 +251,12 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                             '&::-webkit-scrollbar-thumb': { background: 'rgba(0,0,0,0.2)', borderRadius: '24px' },
                         }}
                         px={1}
+                        borderTopWidth={1}
+                        borderColor="gray.100"
+                        pt={4}
                     >
                         {sortedDates.map(date => {
                             const isToday = new Date(date).toDateString() === new Date().toDateString();
-                            // Map players to the format expected by DailySubmissionCard
                             const playersWithSubmissionsForDate = scoredPlayers?.map(player => {
                                 const submission = player.submissions?.find(sub =>
                                     format(new Date(sub.date), 'yyyy-MM-dd') === date
@@ -237,10 +264,12 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                                 return {
                                     userId: player.userId,
                                     username: player.username,
-                                    submission: submission ? {
-                                        playerName: submission.playerName ?? 'Error: Missing Name', // Handle potential null
+                                    submission: submission ? { 
+                                        playerName: submission.playerName ?? 'Error',
                                         score: submission.score,
-                                        stats: submission.stats
+                                        stats: submission.stats,
+                                        gameStatus: submission.gameStatus,
+                                        gameDate: submission.gameDate
                                     } : null
                                 };
                             }) || [];
@@ -249,9 +278,10 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                                 <div key={date} ref={isToday ? todayRef : null}>
                                     <DailySubmissionCard
                                         date={date}
-                                        hasGames={(gameCountsByDate?.[date] ?? 0) > 0} // Ensure boolean
+                                        hasGames={(gameCountsByDate?.[date] ?? 0) > 0}
                                         onClick={handleCardClick}
                                         players={playersWithSubmissionsForDate}
+                                        currentUserId={currentUserId}
                                     />
                                 </div>
                             );

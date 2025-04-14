@@ -124,7 +124,6 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
 }) => {
   return (
     <Box width="100%">
-      {/* Apply some custom styles potentially */}
       <style>{`
         .react-calendar {
           border: 1px solid #ddd;
@@ -134,21 +133,22 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
           width: 100%;
         }
         .react-calendar__tile {
-          height: 140px; /* INCREASED tile height */
+          /* Default desktop height */
+          height: 120px; 
           display: flex;
           flex-direction: column;
           align-items: flex-start;
+          text-align: left; /* Ensure text aligns left */
           padding: 4px;
           border-radius: 4px;
           transition: background-color 0.2s ease;
+          overflow: hidden; /* Hide overflow on desktop */
         }
         .react-calendar__tile:enabled:hover,
         .react-calendar__tile:enabled:focus {
-            /* Use Chakra theme color token for light orange */
             background-color: var(--chakra-colors-orange-50); 
         }
         .react-calendar__tile--active { 
-             /* Style for the selected day, if needed */
             background-color: var(--chakra-colors-orange-100) !important; 
             color: var(--chakra-colors-orange-800); 
          } 
@@ -157,10 +157,10 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
           font-weight: bold;
         }
         .react-calendar__month-view__days__day--neighboringMonth {
-          color: #ccc; /* Dim days from other months */
+          color: #ccc; 
         }
         .react-calendar__navigation button {
-            color: #e67e22; /* Orange theme */
+            color: #e67e22; 
             min-width: 44px;
             background: none;
             font-size: 16px;
@@ -169,6 +169,25 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
         .react-calendar__navigation button:enabled:hover,
         .react-calendar__navigation button:enabled:focus {
             background-color: #f3f3f3;
+        }
+
+        /* --- Mobile Styles --- */
+        @media (max-width: 768px) {
+          .react-calendar {
+            padding: 2px;
+          }
+          .react-calendar__tile {
+             height: auto; /* Let content define height */
+             min-height: 100px; /* Ensure minimum tappable area */
+             padding: 3px;
+             overflow: visible; /* Allow content to slightly overflow if needed */
+          }
+          /* Optional: Adjust font sizes within tiles for mobile if needed */
+          .react-calendar__tile .chakra-text, 
+          .react-calendar__tile .chakra-badge {
+             /* Example: Slightly larger fonts for mobile */
+             /* font-size: 10px; */ 
+          }
         }
       `}</style>
       <Calendar

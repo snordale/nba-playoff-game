@@ -15,9 +15,11 @@ interface PlayerStats {
 
 // Define the structure for a player's submission within the card props
 interface PlayerSubmission {
-    playerName: string;
+    playerName: string | null; // Can be null
     score: number | null;
-    stats: PlayerStats | null; // Include stats, even if not displayed here currently
+    stats: PlayerStats | null;
+    gameStatus?: string;
+    gameDate?: string | Date;
 }
 
 // Define the structure for each player object in the players array
@@ -32,14 +34,14 @@ interface DailySubmissionCardProps {
     hasGames: boolean;
     onClick: (date: string) => void;
     players: PlayerForCard[];
+    currentUserId: string | undefined; // Add currentUserId prop
 }
 
-export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({ date, hasGames, onClick, players }) => {
+export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({ date, hasGames, onClick, players, currentUserId }) => {
     const formattedDate = format(parseISO(date), 'MMM d, yyyy');
     const isToday = new Date(date).toDateString() === new Date().toDateString();
-    const today = dateFnsStartOfDay(new Date());
-    const cardDate = dateFnsStartOfDay(new Date(date));
-    const isLocked = isBefore(cardDate, today);
+    const isDayLocked = isBefore(dateFnsStartOfDay(new Date(date)), dateFnsStartOfDay(new Date()));
+    const now = new Date();
 
     return (
         <Card
@@ -63,8 +65,8 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({ date, 
                             {isToday && " (Today)"}
                         </Text>
                         {hasGames && (
-                            <Text fontSize="sm" color={isLocked ? "gray.600" : "orange.500"} fontWeight="medium">
-                                {isLocked ? "Final" : "Open"}
+                            <Text fontSize="sm" color={isDayLocked ? "gray.600" : "orange.500"} fontWeight="medium">
+                                {isDayLocked ? "Final" : "Open"}
                             </Text>
                         )}
                     </HStack>
@@ -72,31 +74,40 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({ date, 
                     {/* Body: Player Submissions */}
                     {hasGames ? (
                         <VStack align="stretch" width="100%" spacing={1}>
-                            {players.map((player) => (
-                                <VStack key={player.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1}>
-                                    {/* Username and Score/Status */}
-                                    <HStack justify="space-between" width="100%">
-                                        <Text fontSize="sm" fontWeight="medium">{player.username}</Text>
-                                        {isLocked ? (
-                                            player.submission ? (
-                                                <Badge colorScheme={player.submission.score !== null ? "orange" : "gray"}>
-                                                    {player.submission.score !== null ? `${player.submission.score} pts` : 'N/A'}
-                                                </Badge>
+                            {players.map((player) => {
+                                const submission = player.submission;
+                                const gameDate = submission?.gameDate ? new Date(submission.gameDate) : null;
+                                const isPickLocked = submission?.gameStatus !== 'STATUS_SCHEDULED' || (gameDate && gameDate <= now);
+                                const canShowPick = isPickLocked || player.userId === currentUserId;
+
+                                return (
+                                    <VStack key={player.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
+                                        {/* Username and Score/Status */}
+                                        <HStack justify="space-between" width="100%">
+                                            <Text fontSize="xs" fontWeight="medium">{player.username}</Text>
+                                            {isDayLocked ? (
+                                                submission ? (
+                                                    <HStack>
+                                                        <Text fontSize="xs" fontWeight="medium">{submission.playerName}</Text>
+                                                        <Badge
+                                                            colorScheme={submission.score !== null ? "orange" : "gray"}
+                                                            visibility={canShowPick || submission.score !== null ? 'visible' : 'hidden'}
+                                                        >
+                                                            {submission.score !== null ? `${submission.score} pts` : 'N/A'}
+                                                        </Badge>
+                                                    </HStack>
+                                                ) : (
+                                                    <Text fontSize="xs" color="red.500">No pick</Text>
+                                                )
                                             ) : (
-                                                <Text fontSize="sm" color="red.500">No pick</Text>
-                                            )
-                                        ) : (
-                                            <Text fontSize="sm" color={player.submission ? "green.500" : "orange.500"}>
-                                                {player.submission ? "Pick made" : "No pick"}
-                                            </Text>
-                                        )}
-                                    </HStack>
-                                    {/* Player Name */}
-                                    {player.submission && (
-                                        <Text fontSize="sm" color="gray.700" pl={2}>{player.submission.playerName}</Text>
-                                    )}
-                                </VStack>
-                            ))}
+                                                <Text fontSize="xs" color={submission ? "green.500" : "orange.500"}>
+                                                    {submission && canShowPick ? submission?.playerName : (submission?.playerName ? "Hidden" : "No Pick")}
+                                                </Text>
+                                            )}
+                                        </HStack>
+                                    </VStack>
+                                );
+                            })}
                         </VStack>
                     ) : (
                         <Text color="gray.500">No games</Text>

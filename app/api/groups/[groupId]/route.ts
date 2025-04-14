@@ -67,15 +67,12 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                                 id: true,
                                 date: true,
                                 status: true,
-                                homeTeam: true,
-                                awayTeam: true
                             }
                         },
                         player: {
                             select: {
                                 id: true,
                                 name: true,
-                                currentTeamId: true
                             }
                         }
                     },
@@ -94,7 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         );
 
         const calculatedScoresMap = new Map<string, number | null>();
-        const statsMap = new Map<string, PlayerGameStats | null>(); // <-- Map to store full stats objects
+        const statsMap = new Map<string, PlayerGameStats | null>();
 
         if (statLookupKeys.length > 0) {
             const statsData = await prisma.playerGameStats.findMany({
@@ -102,8 +99,8 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
             });
             statsData.forEach(stat => {
                 const key = `${stat.gameId}_${stat.playerId}`;
-                calculatedScoresMap.set(key, calculateScore(stat)); // Calculate score
-                statsMap.set(key, stat); // <-- Store the full stats object
+                calculatedScoresMap.set(key, calculateScore(stat));
+                statsMap.set(key, stat);
             });
         }
         // --- End Stats Fetch and Score Calculation --- 
@@ -131,44 +128,37 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         // --- End Game Counts --- 
 
         const todayUTCStart = startOfDay(new Date());
-        const currentUserSubmissionsMap: { [k: string]: { playerName: string; score: number | null; isFuture: boolean } } = {};
+        const now = new Date();
 
         // --- Process Users for Final Response --- 
         const scoredGroupUsers = groupUsersWithData.map((groupUser) => {
             let totalScore = 0;
-            const submissions = groupUser.submissions.map(sub => ({
-                date: format(sub.game.date, 'yyyy-MM-dd'),
-                playerName: sub.player.name,
-                playerId: sub.playerId, // Keep player ID if needed
-                gameId: sub.gameId, // Keep game ID if needed
-                score: calculatedScoresMap.get(`${sub.gameId}_${sub.playerId}`) ?? null,
-                stats: statsMap.get(`${sub.gameId}_${sub.playerId}`) ?? null // <-- Add the stats object here
-            }));
+            const submissions = groupUser.submissions.map(sub => {
+                if (!sub.game || !sub.player) return null;
 
-            groupUser.submissions.forEach((sub) => {
-                if (!sub.game?.date || !sub.player?.name) return;
+                const gameDate = new Date(sub.game.date);
+                const isPickLocked = sub.game.status !== 'STATUS_SCHEDULED' || gameDate <= now;
 
-                const gameDateStart = startOfDay(sub.game.date);
-                const isFuture = gameDateStart > todayUTCStart;
-                let submissionScore: number | null = null;
-
-                if (!isFuture) {
-                    submissionScore = calculatedScoresMap.get(`${sub.gameId}_${sub.playerId}`) ?? null;
-                    if (submissionScore !== null) {
-                        totalScore += submissionScore;
-                    }
+                const score = isPickLocked ? (calculatedScoresMap.get(`${sub.gameId}_${sub.playerId}`) ?? null) : null;
+                const stats = isPickLocked ? (statsMap.get(`${sub.gameId}_${sub.playerId}`) ?? null) : null;
+                
+                if (score !== null) {
+                    totalScore += score;
                 }
 
-                // Populate map for the current user's calendar display
-                if (groupUser.user.id === userId) {
-                    const dateKey = format(gameDateStart, 'yyyy-MM-dd');
-                    currentUserSubmissionsMap[dateKey] = {
-                        playerName: sub.player.name,
-                        score: submissionScore,
-                        isFuture: isFuture
-                    };
-                }
-            });
+                return {
+                    date: format(gameDate, 'yyyy-MM-dd'),
+                    gameId: sub.gameId,
+                    playerId: sub.playerId,
+                    playerName: sub.player.name,
+                    score: score,
+                    stats: stats,
+                    gameStatus: sub.game.status,
+                    gameDate: sub.game.date,
+                };
+            }).filter(sub => sub !== null);
+
+            totalScore = submissions.reduce((acc, cur) => acc + (cur?.score ?? 0), 0);
 
             return {
                 groupUserId: groupUser.id,
@@ -176,7 +166,7 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                 username: groupUser.user.username,
                 isAdmin: groupUser.isAdmin,
                 score: totalScore,
-                submissions // Include submissions in the response
+                submissions: submissions as any
             };
         }).sort((a, b) => b.score - a.score);
 
@@ -214,10 +204,25 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
 
         console.log('Submissions by date:', submissionsByDate);
 
+        const currentUserSubmissionsMap: { [k: string]: { playerName: string | null; score: number | null; isFuture: boolean; playerId?: string } } = {};
+        
+        scoredGroupUsers.find(p => p.userId === userId)?.submissions.forEach(sub => {
+            if (!sub) return;
+            const gameDateStart = startOfDay(new Date(sub.gameDate));
+            const isFuture = gameDateStart > todayUTCStart;
+            const dateKey = format(gameDateStart, 'yyyy-MM-dd');
+             currentUserSubmissionsMap[dateKey] = {
+                 playerName: sub.playerName,
+                 score: sub.score,
+                 isFuture: isFuture,
+                 playerId: sub.playerId
+             };
+        });
+
         return NextResponse.json({
             group,
-            players: scoredGroupUsers, 
-            currentUserSubmissionsMap, 
+            players: scoredGroupUsers,
+            currentUserSubmissionsMap,
             gameCountsByDate,
             submissionsByDate,
         });

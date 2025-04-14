@@ -38,7 +38,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
                 backdropFilter='blur(12px)'
                 position='absolute'
                 top={0}
-                zIndex={1}
+                zIndex={10}
                 borderBottom='1px solid'
                 borderColor='orange.600'
               >
