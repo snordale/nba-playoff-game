@@ -1,19 +1,18 @@
 'use client';
 
-import { Button, ButtonGroup, Card, CardBody, HStack, IconButton, Stack, Text, useClipboard, useToast, VStack, Badge } from "@chakra-ui/react";
-import { format, parseISO, startOfDay as dateFnsStartOfDay, isBefore, isAfter, eachDayOfInterval } from 'date-fns';
+import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
+import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
+import { Badge, Button, ButtonGroup, Card, CardBody, HStack, Stack, Text, useClipboard, useToast, VStack } from "@chakra-ui/react";
+import { startOfDay as dateFnsStartOfDay, eachDayOfInterval, format, isBefore, parseISO } from 'date-fns';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { queryClient, useCreateSubmission, useGenerateInviteLink, useGetGroup, useGetGames, useGetTodaysPlayers } from "../../../react-query/queries";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { queryClient, useCreateSubmission, useGenerateInviteLink, useGetGames, useGetGroup, useGetTodaysPlayers } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
 import { CalendarDisplay } from './CalendarDisplay';
-import { Leaderboard } from './Leaderboard';
-import { ScoringKeyButton } from './ScoringKeyButton';
-import { SubmissionModal } from "./SubmissionModal";
 import { DailyDetailsModal } from './DailyDetailsModal';
-import { HamburgerIcon, CalendarIcon, ViewIcon } from '@chakra-ui/icons';
-import { PLAYOFF_START_DATE, PLAYOFF_END_DATE } from '@/constants';
+import { Leaderboard } from './Leaderboard';
+import { SubmissionModal } from "./SubmissionModal";
 
 interface Player {
   id: string;
@@ -21,10 +20,12 @@ interface Player {
   teamName: string;
   teamAbbreviation: string;
   gameId: string;
+  gameDate: Date;
 }
 
 interface GameWithTeams {
   gameId: string;
+  gameDate: Date;
   teams: {
     [teamName: string]: {
       name: string;
@@ -136,10 +137,33 @@ export const GroupRoot = ({ params }) => {
   const onSubmit = useCallback(({ gameId, playerId }) => {
     createSubmission({ gameId, playerId }, {
       onSuccess: () => {
+        // Invalidate both group and games queries to refresh all data
         queryClient.invalidateQueries({ queryKey: ["getGroup", groupId] });
+        queryClient.invalidateQueries({ queryKey: ["getGames"] });
+        
+        // Show success toast
+        toast({
+          title: "Pick submitted!",
+          description: "Your player selection has been recorded.",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+
+        // Close the modal
+        setModalOpen(false);
+      },
+      onError: (error) => {
+        toast({
+          title: "Error submitting pick",
+          description: error.message || "Could not submit your pick. Please try again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       }
     });
-  }, [createSubmission, groupId]);
+  }, [createSubmission, groupId, toast, setModalOpen]);
 
   const currentUserId = sessionData?.user?.id;
 
@@ -150,7 +174,7 @@ export const GroupRoot = ({ params }) => {
 
   const filteredGamesAndPlayers = useMemo(() => {
     if (!playersForDate) return [];
-    
+
     // Group players by game
     const playersByGame = (playersForDate as Player[])
       .filter(player => player.name.toLowerCase().includes(search.toLowerCase()))
@@ -158,10 +182,11 @@ export const GroupRoot = ({ params }) => {
         if (!acc[player.gameId]) {
           acc[player.gameId] = {
             gameId: player.gameId,
+            gameDate: player.gameDate,
             teams: {}
           };
         }
-        
+
         // Group players by team within each game
         if (!acc[player.gameId].teams[player.teamName]) {
           acc[player.gameId].teams[player.teamName] = {
@@ -170,19 +195,20 @@ export const GroupRoot = ({ params }) => {
             players: []
           };
         }
-        
+
         acc[player.gameId].teams[player.teamName].players.push({
           id: player.id,
           name: player.name,
           alreadySubmitted: false
         });
-        
+
         return acc;
       }, {});
 
     // Convert to array format expected by SubmissionModal
     return Object.values(playersByGame).map(game => ({
       gameId: game.gameId,
+      gameDate: game.gameDate,
       teams: Object.values(game.teams)
     }));
   }, [playersForDate, search]);
@@ -317,11 +343,12 @@ const GroupInterface = ({
       
       // Add submissions for each player on this date
       scoredPlayers?.forEach(player => {
-        if (player.submission && format(new Date(player.submission.date), 'yyyy-MM-dd') === dateKey) {
+        const submission = player.submission;
+        if (submission && format(new Date(submission.date), 'yyyy-MM-dd') === dateKey) {
           submissionMap[dateKey].push({
             username: player.username,
-            playerName: player.submission.playerName,
-            score: player.submission.score
+            playerName: submission.playerName,
+            score: submission.score
           });
         }
       });
@@ -329,6 +356,12 @@ const GroupInterface = ({
     
     return submissionMap;
   }, [scoredPlayers, gameCountsByDate]);
+
+  // Log submissions data for debugging
+  useEffect(() => {
+    console.log('Current submissions map:', submissionsByDate);
+    console.log('Scored players:', scoredPlayers);
+  }, [submissionsByDate, scoredPlayers]);
 
   const handleGenerateInvite = () => {
     generateLink({ groupId }, {

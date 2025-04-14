@@ -14,34 +14,41 @@ const STAT_INDICES = {
   minutes: 0,
 };
 
+interface ESPNTeamRef {
+  id?: string;
+  displayName: string;
+  abbreviation?: string;
+  logos?: Array<{ href: string }>;
+}
+
 /**
  * Finds or creates a Team record based on ESPN data. Handles potential conflicts and TBD teams.
  */
-const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abbreviation?: string }) => {
+const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abbreviation?: string; logos?: { href: string }[] }) => {
   const teamName = teamData.displayName;
   const teamEspnId = teamData.id;
+  const teamImage = teamData.logos?.[0]?.href;
   
   // --- Handle TBD Teams --- 
   if (teamName === "TBD") {
       const tbdTeam = await prisma.team.findUnique({ where: { name: "TBD" } });
       if (tbdTeam) {
-          return tbdTeam; // Return existing TBD record
+          return tbdTeam;
       }
-      // TBD team doesn't exist, create it (use unique name/abbr)
       try {
           console.log("Creating dedicated TBD team record...");
           return await prisma.team.create({
               data: {
                   name: "TBD",
                   abbreviation: "TBD",
-                  espnId: null // Or a special placeholder ID if preferred
+                  espnId: null,
+                  image: null
               }
           });
       } catch (error: any) {
-          // Handle potential race condition if another process created it simultaneously
           if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
               console.warn("Warn: Race condition creating TBD team, attempting to fetch again.");
-              return await prisma.team.findUnique({ where: { name: "TBD" } }); // Should exist now
+              return await prisma.team.findUnique({ where: { name: "TBD" } });
           }
           console.error("CRITICAL: Failed to create or find TBD team:", error);
           return null;
@@ -54,12 +61,14 @@ const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abb
   const updatePayload = {
       name: teamName,
       abbreviation: teamAbbreviation,
-      ...(teamEspnId && { espnId: teamEspnId })
+      ...(teamEspnId && { espnId: teamEspnId }),
+      ...(teamImage && { image: teamImage })
   };
   const createPayload = {
       espnId: teamEspnId,
       name: teamName,
       abbreviation: teamAbbreviation,
+      image: teamImage
   };
 
   let team = null;
@@ -106,7 +115,7 @@ const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abb
 /**
  * Finds or creates a Player record based on ESPN data.
  */
-const getOrCreatePlayer = async (playerData: { id?: string; displayName: string }, teamId: string | null) => {
+const getOrCreatePlayer = async (playerData: { id?: string; displayName: string; headshot?: { href: string } }, teamId: string | null) => {
   if (!playerData.id) {
     console.warn(`Missing ESPN ID for player: ${playerData.displayName}. Skipping upsert based on ID.`);
     console.error(`Could not find or create player without ESPN ID: ${playerData.displayName}`);
@@ -118,11 +127,13 @@ const getOrCreatePlayer = async (playerData: { id?: string; displayName: string 
     update: {
       name: playerData.displayName,
       currentTeamId: teamId,
+      ...(playerData.headshot?.href && { image: playerData.headshot.href })
     },
     create: {
       espnId: playerData.id,
       name: playerData.displayName,
       currentTeamId: teamId,
+      image: playerData.headshot?.href || null
     },
   });
 };
@@ -222,6 +233,21 @@ export const logGameStats = (game: Game & {
   console.log("=================================");
 };
 
+interface ESPNCompetitor {
+  id: string;
+  uid: string;
+  type: string;
+  order: number;
+  homeAway: "home" | "away";
+  team: ESPNTeamRef;
+  score?: string;
+  athletes?: Array<{
+    id: string;
+    displayName: string;
+    headshot?: { href: string };
+  }>;
+}
+
 /**
  * Loads all games and their associated data (teams, players, stats) for a given date.
  * @param date The date to load games for
@@ -265,6 +291,10 @@ export const loadGamesForDate = async (
           continue;
         }
 
+        // Log competition structure to understand available player data
+        log('\nCompetition data structure:');
+        log(JSON.stringify(competition, null, 2));
+
         const homeComp = competition.competitors.find(c => c.homeAway === 'home');
         const awayComp = competition.competitors.find(c => c.homeAway === 'away');
 
@@ -275,6 +305,12 @@ export const loadGamesForDate = async (
           gamesFailed++;
           continue;
         }
+
+        // Log competitor structure to understand player data
+        log('\nHome competitor data:');
+        log(JSON.stringify(homeComp, null, 2));
+        log('\nAway competitor data:');
+        log(JSON.stringify(awayComp, null, 2));
 
         // 3. Create/Update Teams
         const homeTeam = await getOrCreateTeam(homeComp.team);
@@ -287,6 +323,20 @@ export const loadGamesForDate = async (
           gamesFailed++;
           continue;
         }
+
+        // Initialize players from competition data if available
+        if (competition.competitors) {
+          for (const competitor of competition.competitors as ESPNCompetitor[]) {
+            const team = competitor.homeAway === 'home' ? homeTeam : awayTeam;
+            if (competitor.athletes) {
+              log(`Processing ${competitor.homeAway} team athletes for ${team.name}...`);
+              for (const athlete of competitor.athletes) {
+                await getOrCreatePlayer(athlete, team.id);
+              }
+            }
+          }
+        }
+
         console.log('event.date', event.date);
         // 4. Create/Update Game
         const gameDate = new Date(event.date);
@@ -378,12 +428,10 @@ export const loadGamesForDate = async (
               data: { statsProcessed: true },
             });
             log(`  Marked game ${game.id} as statsProcessed.`);
-          } else {
-            log(`  Stats not yet available in box score for game ${game.id}. statsProcessed remains false.`);
           }
         }
 
-        // After processing each game, fetch the complete game data with relations
+        // Update the game object before pushing to processedGames
         const gameWithRelations = await prisma.game.findUnique({
           where: { id: game.id },
           include: {
@@ -391,13 +439,10 @@ export const loadGamesForDate = async (
             awayTeam: true,
             playerStats: {
               include: {
-                player: true,
-              },
-              orderBy: {
-                points: 'desc',
-              },
-            },
-          },
+                player: true
+              }
+            }
+          }
         });
 
         if (gameWithRelations) {
@@ -405,23 +450,16 @@ export const loadGamesForDate = async (
         }
 
         gamesProcessed++;
-        log(`Successfully processed game ${event.id}`);
-
-      } catch (gameError) {
-        const error = `Error processing game ${event.id}: ${gameError.message}`;
-        log(error);
-        errors.push(error);
+      } catch (error: any) {
+        log(`Error processing game ${event.id}:`, error);
+        errors.push(`Error processing game ${event.id}: ${error.message}`);
         gamesFailed++;
       }
     }
 
-    log(`\nFinished processing games. Processed: ${gamesProcessed}, Failed: ${gamesFailed}`);
     return { gamesProcessed, gamesFailed, errors, games: processedGames };
-
-  } catch (error) {
-    const errorMsg = `Error in loadGamesForDate: ${error.message}`;
-    errors.push(errorMsg);
-    log(errorMsg);
-    return { gamesProcessed, gamesFailed, errors, games: processedGames };
+  } catch (error: any) {
+    log(`Error loading games for date ${date}:`, error);
+    return { gamesProcessed, gamesFailed, errors, games: [] };
   }
-}; 
+};

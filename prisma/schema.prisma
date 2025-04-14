@@ -49,6 +49,7 @@ model Team {
   espnId       String?  @unique
   name         String   @unique
   abbreviation String   @unique
+  image        String?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   homeGames    Game[]   @relation("HomeTeamGames")
@@ -65,6 +66,7 @@ model Player {
   currentTeamId String?           @map("current_team_id")
   createdAt     DateTime          @default(now()) @map("created_at")
   updatedAt     DateTime          @updatedAt @map("updated_at")
+  image         String?
   stats         PlayerGameStats[]
   submissions   Submission[]
   currentTeam   Team?             @relation(fields: [currentTeamId], references: [id])
@@ -114,13 +116,13 @@ model PlayerGameStats {
 }
 
 model Submission {
-  id              String   @id @default(uuid())
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  userId          String   @map("user_id")
-  groupUserId     String?  @map("group_user_id")
-  gameId          String   @map("game_id")
-  playerId        String   @map("player_id")
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  userId      String   @map("user_id")
+  groupUserId String?  @map("group_user_id")
+  gameId      String   @map("game_id")
+  playerId    String   @map("player_id")
 
   user      User       @relation(fields: [userId], references: [id])
   groupUser GroupUser? @relation(fields: [groupUserId], references: [id])

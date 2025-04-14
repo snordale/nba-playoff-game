@@ -57,7 +57,8 @@ export async function GET(req: NextRequest) {
           name: p.name,
           teamName: game.homeTeam.name,
           teamAbbreviation: game.homeTeam.abbreviation,
-          gameId: game.id
+          gameId: game.id,
+          gameDate: game.date
         }));
 
       const awayPlayers = game.awayTeam.players
@@ -67,7 +68,8 @@ export async function GET(req: NextRequest) {
           name: p.name,
           teamName: game.awayTeam.name,
           teamAbbreviation: game.awayTeam.abbreviation,
-          gameId: game.id
+          gameId: game.id,
+          gameDate: game.date
         }));
 
       return [...homePlayers, ...awayPlayers];

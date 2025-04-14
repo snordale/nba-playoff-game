@@ -1,4 +1,4 @@
-import { Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, Divider, Box } from '@chakra-ui/react';
+import { Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, Divider, Box, Grid, VStack } from '@chakra-ui/react';
 import { Body2 } from '../../Body2';
 import { format, parseISO } from 'date-fns';
 import { useGetGames } from '@/react-query/queries';
@@ -38,41 +38,37 @@ export const SubmissionModal = ({
           <Stack gap={4}>
             {/* Games Section */}
             <Stack gap={2}>
-              <Body2 fontWeight="semibold">Games</Body2>
               {loadingGames ? (
                 <HStack py={2} justifyContent='center'>
                   <Spinner color="orange.500" size="sm" />
                 </HStack>
               ) : games && games.length > 0 ? (
-                <Stack gap={2}>
+                <Grid gap={2} gridTemplateColumns={['1fr', '1fr 1fr', '1fr 1fr', '1fr 1fr 1fr']}>
                   {games.map((game) => (
                     <Box key={game.id} p={3} borderWidth="1px" borderRadius="md">
-                      <HStack justify="space-between">
-                        <Text fontSize="sm" color="gray.600">
-                          {game.homeTeam.name} vs {game.awayTeam.name}
-                        </Text>
+                      <HStack justify="space-between" alignItems='flex-start'>
+                        <VStack alignItems='flex-start'>
+                          <Text fontSize="sm" color="gray.600">
+                            {game.homeTeam.abbreviation} - {game.homeScore}
+                          </Text>
+                          <Text fontSize="sm" color="gray.600">
+                            {game.awayTeam.abbreviation} - {game.awayScore}
+                          </Text>
+                        </VStack>
                         <Text fontSize="sm" color={getStatusColor(game.status)}>
                           {format(game.date, 'h:mm a')}
                         </Text>
                       </HStack>
-                      {game.homeScore !== null && game.awayScore !== null && (
-                        <Text fontSize="sm" color="gray.700" mt={1}>
-                          {game.homeTeam.abbreviation} {game.homeScore} - {game.awayScore} {game.awayTeam.abbreviation}
-                        </Text>
-                      )}
                     </Box>
                   ))}
-                </Stack>
+                </Grid>
               ) : (
                 <Text color="gray.500">No games scheduled for this date.</Text>
               )}
             </Stack>
 
-            <Divider />
-
             {/* Players Section */}
             <Stack gap={1}>
-              <Body2>Search players playing on {displayDate}:</Body2>
               <Input
                 value={search}
                 placeholder="Search players..."
@@ -99,8 +95,9 @@ export const SubmissionModal = ({
                       <Stack key={game.gameId} pl={2} mb={2} spacing={1}>
                         <Text fontWeight="semibold" fontSize="sm" color="gray.600">
                           {game.teams?.[0]?.name ?? 'Team A'} vs {game.teams?.[1]?.name ?? 'Team B'}
-                          ({new Date(game.gameDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })})
+                          &nbsp;({new Date(game.gameDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })})
                         </Text>
+                        {console.log(game)}
                         {game.teams?.map((team) => (
                           <Stack key={team.teamId} pl={2} spacing={0.5}>
                             {team.players?.map((player) => (

@@ -37,6 +37,8 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
               position='absolute'
               top={0}
               zIndex={1}
+              borderBottom='1px solid'
+              borderColor='orange.600'
             >
               <CustomLink href="/">
                 <Body1 fontWeight={600}>NBA Playoff Game</Body1>
@@ -47,7 +49,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
               <Box minH='calc(100vh - 4rem)' pt={16} px={4}>
                 {children}
               </Box>
-              <Box bottom={0} py={4} borderTop='1px solid' borderColor='orange.100' px={4}>
+              <Box bottom={0} py={4} borderTop='1px solid' borderColor='orange.600' px={4}>
                 <Body1 fontWeight={600} color='orange.600'>
                   NBA Playoff Game {new Date().getFullYear()}
                 </Body1>
