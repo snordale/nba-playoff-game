@@ -1,6 +1,6 @@
 // components/pages/group/CalendarDisplay.tsx
-import { CheckIcon, MinusIcon } from '@chakra-ui/icons';
-import { Badge, Box, Center, Icon, Text, Tooltip, VStack } from '@chakra-ui/react';
+import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
+import { Badge, Box, Text, Tooltip, VStack } from '@chakra-ui/react';
 import { format, isToday, startOfDay } from 'date-fns';
 import React from 'react';
 import Calendar from 'react-calendar';
@@ -78,10 +78,10 @@ const TileContent = ({
           // Show all submissions for this day
           <VStack align="stretch" spacing={0.5} mt={1}>
             {allSubmissions.map((submission, index) => (
-              <Tooltip 
+              <Tooltip
                 key={index}
-                label={`${submission.username}: ${submission.playerName} (${submission.score ?? 'N/A'} pts)`} 
-                placement="top" 
+                label={`${submission.username}: ${submission.playerName} (${submission.score ?? 'N/A'} pts)`}
+                placement="top"
                 fontSize="xs"
               >
                 <VStack align="stretch" spacing={0}>
@@ -173,8 +173,8 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
       `}</style>
       <Calendar
         defaultActiveStartDate={new Date()}
-        maxDate={new Date('2025-07-01')}
-        minDate={new Date('2025-04-14')}
+        maxDate={new Date(PLAYOFF_END_DATE)}
+        minDate={new Date(PLAYOFF_START_DATE)}
         onClickDay={onDateClick}
         tileContent={({ date, view }) => (
           <TileContent

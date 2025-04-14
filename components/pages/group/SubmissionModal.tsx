@@ -1,9 +1,8 @@
-import { Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, Divider, Box, Grid, VStack, useToast } from '@chakra-ui/react';
-import { Body2 } from '../../Body2';
-import { format, parseISO } from 'date-fns';
 import { useGetGames } from '@/react-query/queries';
-import { useState } from 'react';
 import { CheckCircleIcon } from '@chakra-ui/icons';
+import { Box, Button, Grid, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, VStack, useToast } from '@chakra-ui/react';
+import { format, parseISO } from 'date-fns';
+import { useState } from 'react';
 
 export const SubmissionModal = ({
   isOpen,
@@ -69,6 +68,20 @@ export const SubmissionModal = ({
     }
   };
 
+  let currentPickTeamAbbreviation = ''
+  if (currentSubmission && filteredPlayersByTeam) {
+    for (const game of filteredPlayersByTeam) {
+      for (const team of game.teams ?? []) {
+        const player = team.players?.find(p => p.id === currentSubmission.playerId || p.name === currentSubmission.playerName);
+        if (player) {
+          currentPickTeamAbbreviation = team.abbreviation;
+          break; // Found the player, stop searching teams
+        }
+      }
+      if (currentPickTeamAbbreviation) break; // Found the player, stop searching games
+    }
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={() => onClose(false)} size="xl">
       <ModalOverlay />
@@ -119,7 +132,7 @@ export const SubmissionModal = ({
                 <Text
                   fontSize="sm"
                   fontWeight="semibold" color="orange.600" textAlign="center" p={2} borderWidth={1} borderRadius="md" borderColor="orange.600">
-                  {currentSubmission.playerName}
+                  {currentSubmission.playerName} {currentPickTeamAbbreviation ? `– ${currentPickTeamAbbreviation}` : ''}
                 </Text>
               )}
             </Stack>
@@ -175,7 +188,7 @@ export const SubmissionModal = ({
                                 >
                                   <Text>{player.name} – {team.abbreviation}</Text>
                                   <HStack spacing={2}>
-                                    {isPreviouslySubmitted && 
+                                    {isPreviouslySubmitted &&
                                       <Text as="span" fontSize="xs" color="gray.500">(Already Used)</Text>
                                     }
                                     {isCurrentPick && (

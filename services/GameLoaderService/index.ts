@@ -36,7 +36,6 @@ const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abb
           return tbdTeam;
       }
       try {
-          console.log("Creating dedicated TBD team record...");
           return await prisma.team.create({
               data: {
                   name: "TBD",
@@ -337,7 +336,6 @@ export const loadGamesForDate = async (
           }
         }
 
-        console.log('event.date', event.date);
         // 4. Create/Update Game
         const gameDate = new Date(event.date);
         // Convert date to New York time

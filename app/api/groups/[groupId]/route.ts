@@ -94,13 +94,16 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         );
 
         const calculatedScoresMap = new Map<string, number | null>();
+        const statsMap = new Map<string, PlayerGameStats | null>(); // <-- Map to store full stats objects
+
         if (statLookupKeys.length > 0) {
             const statsData = await prisma.playerGameStats.findMany({
                 where: { OR: statLookupKeys },
             });
             statsData.forEach(stat => {
                 const key = `${stat.gameId}_${stat.playerId}`;
-                calculatedScoresMap.set(key, calculateScore(stat)); // Calculate score here
+                calculatedScoresMap.set(key, calculateScore(stat)); // Calculate score
+                statsMap.set(key, stat); // <-- Store the full stats object
             });
         }
         // --- End Stats Fetch and Score Calculation --- 
@@ -136,7 +139,10 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
             const submissions = groupUser.submissions.map(sub => ({
                 date: format(sub.game.date, 'yyyy-MM-dd'),
                 playerName: sub.player.name,
-                score: calculatedScoresMap.get(`${sub.gameId}_${sub.playerId}`) ?? null
+                playerId: sub.playerId, // Keep player ID if needed
+                gameId: sub.gameId, // Keep game ID if needed
+                score: calculatedScoresMap.get(`${sub.gameId}_${sub.playerId}`) ?? null,
+                stats: statsMap.get(`${sub.gameId}_${sub.playerId}`) ?? null // <-- Add the stats object here
             }));
 
             groupUser.submissions.forEach((sub) => {

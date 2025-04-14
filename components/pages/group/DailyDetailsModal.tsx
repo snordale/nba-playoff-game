@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody,
-  Stack, Text, Badge, Heading, VStack, HStack, Box, Divider
+  Stack, Text, Badge, Heading, VStack, HStack, Box, Divider, Grid
 } from '@chakra-ui/react';
 import { format, parseISO } from 'date-fns';
 
@@ -14,10 +14,21 @@ interface GameInfo {
   gameTime: string;
 }
 
+// Define PlayerStats interface
+interface PlayerStats {
+  points: number | null;
+  rebounds: number | null;
+  assists: number | null;
+  steals: number | null;
+  blocks: number | null;
+  turnovers: number | null;
+}
+
 interface SubmissionDetail {
   username: string;
   playerName: string;
-  score: number | null;
+  score: number | null; // Note: score likely just reflects points
+  stats: PlayerStats | null; // Add stats object
 }
 
 interface DailyDetailsModalProps {
@@ -86,28 +97,38 @@ export const DailyDetailsModal: React.FC<DailyDetailsModalProps> = ({
             ) : (
               <Stack spacing={3}>
                 {sortedSubmissions.map((sub, index) => (
-                  <Box 
-                    key={index} 
-                    p={3} 
-                    borderWidth="1px" 
-                    borderRadius="md" 
+                  <Box
+                    key={index}
+                    p={3}
+                    borderWidth="1px"
+                    borderRadius="md"
                     bg={index === 0 ? 'orange.50' : 'transparent'}
                   >
-                    <HStack justify="space-between" align="center">
-                      <VStack align="start" spacing={0}>
+                    <HStack justify="space-between" align="flex-start">
+                      <VStack align="start" spacing={1}>
                         <Text fontWeight="bold">{index + 1}. {sub.username}</Text>
-                        <Text fontSize="sm" color="gray.600">Picked: {sub.playerName}</Text>
+                        <Text fontSize="sm" color="gray.600">{sub.playerName}</Text>
                       </VStack>
-                      <Badge 
-                        fontSize="md" 
-                        colorScheme={sub.score === null ? 'gray' : 'orange'} 
-                        px={3} 
-                        py={1} 
+                      <Badge
+                        fontSize="md"
+                        colorScheme={sub.score === null ? 'gray' : 'orange'}
+                        px={3}
+                        py={1}
                         borderRadius="full"
                       >
                         {sub.score ?? 'N/A'} pts
                       </Badge>
                     </HStack>
+                    {sub.stats && (
+                      <HStack gap={2} pt={1} flex={1}>
+                        <Text fontSize="xs" color="gray.500">PTS: {sub.stats.points ?? '-'}</Text>
+                        <Text fontSize="xs" color="gray.500">REB: {sub.stats.rebounds ?? '-'}</Text>
+                        <Text fontSize="xs" color="gray.500">AST: {sub.stats.assists ?? '-'}</Text>
+                        <Text fontSize="xs" color="gray.500">STL: {sub.stats.steals ?? '-'}</Text>
+                        <Text fontSize="xs" color="gray.500">BLK: {sub.stats.blocks ?? '-'}</Text>
+                        <Text fontSize="xs" color="gray.500">TO: {sub.stats.turnovers ?? '-'}</Text>
+                      </HStack>
+                    )}
                   </Box>
                 ))}
               </Stack>

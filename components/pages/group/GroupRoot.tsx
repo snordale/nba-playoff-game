@@ -2,7 +2,7 @@
 
 import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
-import { Badge, Button, ButtonGroup, Card, CardBody, HStack, Stack, Text, useClipboard, useToast, VStack } from "@chakra-ui/react";
+import { Badge, Button, ButtonGroup, Card, CardBody, HStack, Stack, Text, useClipboard, useToast, VStack, Grid } from "@chakra-ui/react";
 import { startOfDay as dateFnsStartOfDay, eachDayOfInterval, format, isBefore, parseISO } from 'date-fns';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -39,6 +39,15 @@ interface GameWithTeams {
   };
 }
 
+interface PlayerStats {
+  points: number | null;
+  rebounds: number | null;
+  assists: number | null;
+  steals: number | null;
+  blocks: number | null;
+  turnovers: number | null;
+}
+
 type ViewMode = 'calendar' | 'list';
 
 const DailySubmissionCard = ({ date, hasGames, onClick, players }) => {
@@ -69,33 +78,35 @@ const DailySubmissionCard = ({ date, hasGames, onClick, players }) => {
               {isToday && " (Today)"}
             </Text>
             {hasGames && (
-              <Text fontSize="sm" color="orange.500" fontWeight="medium">
-                {isLocked ? "Locked" : "Open"}
+              <Text fontSize="sm" color={isLocked ? "gray.600" : "orange.500"} fontWeight="medium">
+                {isLocked ? "Final" : "Open"}
               </Text>
             )}
           </HStack>
           {hasGames ? (
             <VStack align="stretch" width="100%" spacing={1}>
               {players.map((player) => (
-                <HStack key={player.userId} justify="space-between" width="100%">
-                  <Text fontSize="sm" fontWeight="medium">{player.username}</Text>
-                  {isLocked ? (
-                    player.submission ? (
-                      <HStack spacing={2}>
-                        <Text fontSize="sm">{player.submission.playerName}</Text>
+                <VStack key={player.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1}>
+                  <HStack justify="space-between" width="100%">
+                    <Text fontSize="sm" fontWeight="medium">{player.username}</Text>
+                    {isLocked ? (
+                      player.submission ? (
                         <Badge colorScheme={player.submission.score !== null ? "orange" : "gray"}>
-                          {player.submission.score !== null ? player.submission.score : 'N/A'}
+                          {player.submission.score !== null ? `${player.submission.score} pts` : 'N/A'}
                         </Badge>
-                      </HStack>
+                      ) : (
+                        <Text fontSize="sm" color="red.500">No pick</Text>
+                      )
                     ) : (
-                      <Text fontSize="sm" color="red.500">No pick</Text>
-                    )
-                  ) : (
-                    <Text fontSize="sm" color={player.submission ? "green.500" : "orange.500"}>
-                      {player.submission ? "Pick made" : "No pick"}
-                    </Text>
+                      <Text fontSize="sm" color={player.submission ? "green.500" : "orange.500"}>
+                        {player.submission ? "Pick made" : "No pick"}
+                      </Text>
+                    )}
+                  </HStack>
+                  {player.submission && (
+                    <Text fontSize="sm" color="gray.700" pl={2}>{player.submission.playerName}</Text>
                   )}
-                </HStack>
+                </VStack>
               ))}
             </VStack>
           ) : (
@@ -293,7 +304,7 @@ export const GroupRoot = ({ params }) => {
         homeScore: game.homeScore,
         awayScore: game.awayScore,
         status: game.status,
-        gameTime: format(parseISO(game.gameDate), 'h:mm a')
+        gameTime: format(parseISO(game.date), 'h:mm a')
       }))}
     />
   );
@@ -500,7 +511,7 @@ const GroupInterface = ({
             {sortedDates.map(date => {
               const isToday = new Date(date).toDateString() === new Date().toDateString();
               
-              // Map players to include their submission details for THIS specific date
+              // Update mapping to include stats
               const playersWithSubmissionsForDate = scoredPlayers?.map(player => {
                 const submission = player.submissions?.find(sub =>
                   format(new Date(sub.date), 'yyyy-MM-dd') === date
@@ -510,7 +521,8 @@ const GroupInterface = ({
                   username: player.username,
                   submission: submission ? {
                     playerName: submission?.playerName,
-                    score: submission.score
+                    score: submission.score,
+                    stats: submission.stats // Include stats here
                   } : null
                 };
               }) || [];
@@ -521,7 +533,7 @@ const GroupInterface = ({
                     date={date}
                     hasGames={gameCountsByDate?.[date] > 0}
                     onClick={handleCardClick}
-                    players={playersWithSubmissionsForDate}
+                    players={playersWithSubmissionsForDate} // Pass data with stats
                   />
                 </div>
               );
@@ -547,13 +559,16 @@ const GroupInterface = ({
         onClose={() => setDetailsModalOpen(false)}
         selectedDate={detailsDate}
         submissions={detailsDate && scoredPlayers ? scoredPlayers.map(player => {
+          // Find the specific submission for the detailsDate
           const submission = player.submissions?.find(sub => 
             format(new Date(sub.date), 'yyyy-MM-dd') === detailsDate
           );
+          // Return the structure expected by DailyDetailsModal, now including stats
           return {
             username: player.username,
             playerName: submission?.playerName || 'No pick',
-            score: submission?.score || null
+            score: submission?.score || null, // score is likely points
+            stats: submission?.stats || null // Pass the stats object
           };
         }) : []}
         games={detailsGames}
