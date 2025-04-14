@@ -1,9 +1,9 @@
 // app/invite/page.tsx
 import { auth } from "@/auth"; // Adjust path if needed
-import { prisma } from "@/prisma/client"; // Adjust path if needed
-import { redirect } from 'next/navigation';
-import jwt from 'jsonwebtoken';
 import InviteClientPage from "@/components/pages/invite/InviteClientPage"; // We'll create this next
+import { prisma } from "@/prisma/client"; // Adjust path if needed
+import jwt from 'jsonwebtoken';
+import { redirect } from 'next/navigation';
 
 // Define the expected payload structure after verifying the JWT
 interface InviteTokenPayload {
@@ -71,7 +71,7 @@ async function handleInvite(token: string, userId: string | undefined) {
         console.log(`User ${userId} successfully added to group ${groupId}.`);
       }
       // Redirect to the league page regardless of whether they were added now or already members
-      redirect(`/group/${groupId}`); // Use redirect from next/navigation
+      redirect(`/groups/${groupId}`); // Use redirect from next/navigation
 
     } catch (error) {
       console.error(`Error adding user ${userId} to group ${groupId}:`, error);

@@ -1,10 +1,10 @@
 // components/pages/group/CalendarDisplay.tsx
+import { CheckIcon, MinusIcon } from '@chakra-ui/icons';
+import { Badge, Box, Center, Icon, Text, Tooltip, VStack } from '@chakra-ui/react';
+import { format, isToday, startOfDay } from 'date-fns';
 import React from 'react';
-import { Box, Stack, Text, Badge, VStack, Tooltip, HStack, Center, Icon } from '@chakra-ui/react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css'; // Default styling
-import { format, parseISO, startOfDay, isToday } from 'date-fns';
-import { CheckIcon, CloseIcon, MinusIcon } from '@chakra-ui/icons';
 
 // Define structure for submissions data passed as props
 interface SubmissionForDate {
@@ -51,56 +51,56 @@ const TileContent = ({
   const isDayInPastOrToday = date < today && !isToday(date);
   const isDayToday = isToday(date);
   const gameCount = gameCountsByDate?.[dateKey];
-  const userSubmission = currentUserSubmissionsMap?.[dateKey]; 
+  const userSubmission = currentUserSubmissionsMap?.[dateKey];
 
   return (
-    <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="110px"> 
-       {/* Display Game Count */} 
-       {gameCount !== undefined && gameCount > 0 && (
-           <Text fontSize="9px" color="gray.500" textAlign="right" lineHeight="1" w="full">
-               {gameCount} Game{gameCount > 1 ? 's' : ''}
-           </Text>
-       )}
+    <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="110px">
+      {/* Display Game Count */}
+      {gameCount !== undefined && gameCount > 0 && (
+        <Text fontSize="9px" color="gray.500" textAlign="right" lineHeight="1" w="full">
+          {gameCount} Game{gameCount > 1 ? 's' : ''}
+        </Text>
+      )}
 
-      {/* --- Render Past or Present Day --- */} 
+      {/* --- Render Past or Present Day --- */}
       {(isDayInPastOrToday) ? (
-          userSubmission ? (
-            // User submitted: Show Player + Score
-            <Tooltip label={`${userSubmission.playerName} (${userSubmission.score ?? 'N/A'} pts)`} placement="top" fontSize="xs">
-                 <VStack align="stretch" spacing={0} mt={1}>
-                    <Text fontSize="xs" color="blue.600" fontWeight="medium" isTruncated noOfLines={1}>
-                        {userSubmission.playerName}
-                     </Text>
-                    <Badge alignSelf="flex-end" colorScheme={userSubmission.score === null ? 'gray' : 'orange'} fontSize="xx-small" px={1.5}>
-                       {userSubmission.score ?? 'N/A'} pts
-                     </Badge>
-                  </VStack>
-             </Tooltip>
-          ) : (
-             // User did NOT submit for this past/present day with games
-             gameCount !== undefined && gameCount > 0 ? 
-               <Text fontSize="xx-small" color="gray.400" mt={1}>No Submission</Text> : null 
-          )
-       ) : (
-          // --- Render Future Day --- 
-          userSubmission ? ( // Equivalent to checking currentUserFutureSubmissionStatus[dateKey]
-            <Center h="full" w="full" pt={1}> {/* Adjust padding */} 
-              <Tooltip label="You submitted for this day" placement="top">
-                 <Icon as={CheckIcon} color="green.500" boxSize={3} />
+        userSubmission ? (
+          // User submitted: Show Player + Score
+          <Tooltip label={`${userSubmission.playerName} (${userSubmission.score ?? 'N/A'} pts)`} placement="top" fontSize="xs">
+            <VStack align="stretch" spacing={0} mt={1}>
+              <Text fontSize="xs" color="blue.600" fontWeight="medium" isTruncated noOfLines={1}>
+                {userSubmission.playerName}
+              </Text>
+              <Badge alignSelf="flex-end" colorScheme={userSubmission.score === null ? 'gray' : 'orange'} fontSize="xx-small" px={1.5}>
+                {userSubmission.score ?? 'N/A'} pts
+              </Badge>
+            </VStack>
+          </Tooltip>
+        ) : (
+          // User did NOT submit for this past/present day with games
+          gameCount !== undefined && gameCount > 0 ?
+            <Text fontSize="xx-small" color="gray.400" mt={1}>No Submission</Text> : null
+        )
+      ) : (
+        // --- Render Future Day --- 
+        userSubmission ? ( // Equivalent to checking currentUserFutureSubmissionStatus[dateKey]
+          <Center h="full" w="full" pt={1}> {/* Adjust padding */}
+            <Tooltip label="You submitted for this day" placement="top">
+              <Icon as={CheckIcon} color="green.500" boxSize={3} />
+            </Tooltip>
+          </Center>
+        ) : (
+          gameCount !== undefined && gameCount > 0 ? (
+            <Center h="full" w="full" pt={1}> {/* Adjust padding */}
+              <Tooltip label="Submission needed" placement="top">
+                <Icon as={MinusIcon} color="gray.400" boxSize={2.5} />
               </Tooltip>
             </Center>
-          ) : (
-            gameCount !== undefined && gameCount > 0 ? (
-               <Center h="full" w="full" pt={1}> {/* Adjust padding */} 
-                 <Tooltip label="Submission needed" placement="top">
-                   <Icon as={MinusIcon} color="gray.400" boxSize={2.5} />
-                 </Tooltip>
-               </Center>
-            ) : null 
-          )
-       )}
-   </VStack>
- );
+          ) : null
+        )
+      )}
+    </VStack>
+  );
 };
 
 export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
@@ -158,15 +158,16 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
         }
       `}</style>
       <Calendar
+        defaultActiveStartDate={new Date()}
         maxDate={new Date('2025-07-01')}
         minDate={new Date('2025-04-14')}
         onClickDay={onDateClick}
         tileContent={({ date, view }) => (
-          <TileContent 
-             date={date} 
-             view={view} 
-             currentUserSubmissionsMap={currentUserSubmissionsMap}
-             gameCountsByDate={gameCountsByDate}
+          <TileContent
+            date={date}
+            view={view}
+            currentUserSubmissionsMap={currentUserSubmissionsMap}
+            gameCountsByDate={gameCountsByDate}
           />
         )}
       />

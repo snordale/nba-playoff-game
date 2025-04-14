@@ -2,26 +2,19 @@ import AuthButton from "@/components/AuthButton";
 import { Body1 } from "@/components/Body1";
 import CustomLink from "@/components/CustomLink";
 import { Box, Flex } from "@chakra-ui/react";
-import Head from "next/head";
 import { Providers } from "./providers";
 import { fonts } from "./fonts";
+import type { Metadata } from 'next';
 
-// export const metadata: Metadata = {
-//   title: "NBA Playoff Game",
-//   description:
-//     "Compete with your friends over the course of the playoffs. Pick a player each day and get points for their performance.",
-// }
+export const metadata: Metadata = {
+  title: "NBA Playoff Game",
+  description:
+    "Compete with your friends over the course of the playoffs. Pick a player each day and get points for their performance.",
+};
 
 export default function RootLayout({ children }: React.PropsWithChildren) {
   return (
     <html lang="en">
-      <Head>
-        <title>NBA Playoff Game</title>
-        <meta name="title" content="NBA Playoff Game" />
-        <meta name="description" content="Compete with your friends over the course of the playoffs. Pick a player each day and get points for their performance." />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
       <Box as="body" className={fonts.rubik.className}>
         <Providers>
           <Flex
