@@ -1,10 +1,10 @@
 'use client';
 
-import { Button, HStack, Stack, useClipboard, useToast } from "@chakra-ui/react";
-import { format, parseISO, startOfDay as dateFnsStartOfDay } from 'date-fns';
+import { Button, ButtonGroup, Card, CardBody, HStack, IconButton, Stack, Text, useClipboard, useToast, VStack } from "@chakra-ui/react";
+import { format, parseISO, startOfDay as dateFnsStartOfDay, isBefore, isAfter, eachDayOfInterval } from 'date-fns';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { queryClient, useCreateSubmission, useGenerateInviteLink, useGetGroup, useGetTodaysPlayers } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
 import { CalendarDisplay } from './CalendarDisplay';
@@ -12,6 +12,62 @@ import { Leaderboard } from './Leaderboard';
 import { ScoringKeyButton } from './ScoringKeyButton';
 import { SubmissionModal } from "./SubmissionModal";
 import { DailyDetailsModal } from './DailyDetailsModal';
+import { HamburgerIcon, CalendarIcon, ViewIcon } from '@chakra-ui/icons';
+import { PLAYOFF_START_DATE, PLAYOFF_END_DATE } from '@/constants';
+
+type ViewMode = 'calendar' | 'list';
+
+const DailySubmissionCard = ({ date, submission, hasGames, onClick }) => {
+  const formattedDate = format(parseISO(date), 'MMM d, yyyy');
+  const isToday = new Date(date).toDateString() === new Date().toDateString();
+  
+  return (
+    <Card 
+      variant="outline" 
+      w="full"
+      cursor="pointer"
+      onClick={() => onClick(date)}
+      borderColor={isToday ? "orange.500" : undefined}
+      _hover={{
+        borderColor: "orange.300",
+        transform: "translateY(-1px)",
+        transition: "all 0.2s ease-in-out"
+      }}
+    >
+      <CardBody>
+        <VStack align="start" spacing={2}>
+          <HStack justify="space-between" width="100%">
+            <Text fontWeight={isToday ? "bold" : "semibold"} color={isToday ? "orange.500" : undefined}>
+              {formattedDate}
+              {isToday && " (Today)"}
+            </Text>
+            {hasGames && !submission && (
+              <Text fontSize="sm" color="orange.500" fontWeight="medium">
+                Pick needed
+              </Text>
+            )}
+          </HStack>
+          {hasGames ? (
+            submission ? (
+              <VStack align="start" spacing={1}>
+                <Text>Pick: {submission.playerName}</Text>
+                {submission.score !== null ? (
+                  <Text>Score: {submission.score}</Text>
+                ) : (
+                  <Text color="gray.500">Game not started</Text>
+                )}
+              </VStack>
+            ) : (
+              <Text color="gray.500">No pick made</Text>
+            )
+          ) : (
+            <Text color="gray.500">No games</Text>
+          )}
+        </VStack>
+      </CardBody>
+    </Card>
+  );
+};
 
 export const GroupRoot = ({ params }) => {
   const { groupId } = params;
@@ -22,6 +78,7 @@ export const GroupRoot = ({ params }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [detailsDate, setDetailsDate] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const { data: groupData, isLoading: isLoadingGroup } = useGetGroup({ groupId });
   const { data: gamesForDate, isLoading: loadingPlayers } = useGetTodaysPlayers({ date: selectedDate });
   const { mutate: createSubmission, isSuccess: submitSuccess } = useCreateSubmission();
@@ -126,14 +183,18 @@ export const GroupRoot = ({ params }) => {
       loadingPlayers={loadingPlayers}
       onSubmit={onSubmit}
       selectedDate={selectedDate}
+      setSelectedDate={setSelectedDate}
       search={search}
       onSearchChange={setSearch}
       onCalendarDateClick={handleDayClick}
       detailsModalOpen={detailsModalOpen}
       setDetailsModalOpen={setDetailsModalOpen}
       detailsDate={detailsDate}
+      setDetailsDate={setDetailsDate}
       currentUserSubmissionsMap={currentUserSubmissionsMap}
       gameCountsByDate={gameCountsByDate}
+      viewMode={viewMode}
+      setViewMode={setViewMode}
     />
   );
 };
@@ -147,18 +208,23 @@ const GroupInterface = ({
   loadingPlayers,
   onSubmit,
   selectedDate,
+  setSelectedDate,
   search,
   onSearchChange,
   onCalendarDateClick,
   detailsModalOpen,
   setDetailsModalOpen,
   detailsDate,
+  setDetailsDate,
   currentUserSubmissionsMap,
   gameCountsByDate,
+  viewMode,
+  setViewMode,
 }) => {
   const { mutate: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
   const { onCopy, setValue, hasCopied } = useClipboard("");
   const toast = useToast();
+  const todayRef = useRef(null);
 
   const handleGenerateInvite = () => {
     generateLink({ groupId }, {
@@ -185,30 +251,119 @@ const GroupInterface = ({
     });
   };
 
+  // Convert submissions map to sorted array for list view
+  const sortedDates = useMemo(() => {
+    const startDate = parseISO(PLAYOFF_START_DATE);
+    const endDate = parseISO(PLAYOFF_END_DATE);
+    
+    // Get all dates in the playoff range
+    return eachDayOfInterval({ start: startDate, end: endDate })
+      .map(date => format(date, 'yyyy-MM-dd'))
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  }, []);
+
+  // Scroll to today when switching to list view
+  useEffect(() => {
+    if (viewMode === 'list' && todayRef.current) {
+      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [viewMode]);
+
+  const handleCardClick = (date) => {
+    const today = dateFnsStartOfDay(new Date());
+    const clickedDay = dateFnsStartOfDay(new Date(date));
+
+    if (isBefore(clickedDay, today)) {
+      setDetailsDate(date);
+      setDetailsModalOpen(true);
+    } else {
+      setSelectedDate(date);
+      setModalOpen(true);
+    }
+  };
+
   return (
     <Stack gap={3}>
       <HStack justifyContent='space-between'>
         <Body1 fontWeight="semibold" fontSize="2xl">
           {group?.name}
         </Body1>
-        <HStack>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleGenerateInvite}
-            isLoading={isGeneratingLink}
-            colorScheme="orange"
-          >
-            {hasCopied ? "Copied!" : "Copy Invite Link"}
-          </Button>
-        </HStack>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleGenerateInvite}
+          isLoading={isGeneratingLink}
+          colorScheme="orange"
+        >
+          {hasCopied ? "Copied!" : "Copy Invite Link"}
+        </Button>
       </HStack>
       <Leaderboard groupId={groupId} />
-      <CalendarDisplay
-        onDateClick={onCalendarDateClick}
-        currentUserSubmissionsMap={currentUserSubmissionsMap}
-        gameCountsByDate={gameCountsByDate}
-      />
+      
+      <HStack justify="flex-end">
+        <ButtonGroup size="sm" isAttached variant="outline">
+          <Button
+            onClick={() => setViewMode('calendar')}
+            colorScheme="orange"
+            variant={viewMode === 'calendar' ? 'solid' : 'outline'}
+            leftIcon={<CalendarIcon />}
+          >
+            Calendar
+          </Button>
+          <Button
+            onClick={() => setViewMode('list')}
+            colorScheme="orange"
+            variant={viewMode === 'list' ? 'solid' : 'outline'}
+            leftIcon={<HamburgerIcon />}
+          >
+            List
+          </Button>
+        </ButtonGroup>
+      </HStack>
+
+      {viewMode === 'calendar' ? (
+        <CalendarDisplay
+          onDateClick={onCalendarDateClick}
+          currentUserSubmissionsMap={currentUserSubmissionsMap}
+          gameCountsByDate={gameCountsByDate}
+        />
+      ) : (
+        <VStack 
+          spacing={3} 
+          align="stretch" 
+          maxH="600px" 
+          overflowY="auto" 
+          css={{
+            '&::-webkit-scrollbar': {
+              width: '4px',
+            },
+            '&::-webkit-scrollbar-track': {
+              width: '6px',
+              background: 'rgba(0,0,0,0.1)',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: 'rgba(0,0,0,0.2)',
+              borderRadius: '24px',
+            },
+          }}
+          px={1}
+        >
+          {sortedDates.map(date => {
+            const isToday = new Date(date).toDateString() === new Date().toDateString();
+            return (
+              <div key={date} ref={isToday ? todayRef : null}>
+                <DailySubmissionCard
+                  date={date}
+                  submission={currentUserSubmissionsMap?.[date]}
+                  hasGames={gameCountsByDate?.[date] > 0}
+                  onClick={handleCardClick}
+                />
+              </div>
+            );
+          })}
+        </VStack>
+      )}
+
       <SubmissionModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
