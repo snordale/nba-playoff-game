@@ -44,87 +44,103 @@ export async function POST(req: NextRequest) {
 
     // 4. Validate Game State (Ensure game hasn't started or finished)
     const now = new Date();
-    const isScheduled = game.status === 'STATUS_SCHEDULED'; // Check for specific scheduled status
+    // Use startOfDay to compare dates without time component influencing the check
+    const gameDateStart = new Date(game.date); 
+    gameDateStart.setHours(0, 0, 0, 0); 
 
-    // Prevent submission if game status is not scheduled OR if the scheduled start time is in the past
-    if (!isScheduled || game.date <= now) { 
-        let reason = !isScheduled ? `status is ${game.status}` : `start time (${game.date.toLocaleString()}) has passed`;
-        return NextResponse.json(
-            { error: `Cannot submit for this game because its ${reason}.` }, 
-            { status: 400 } // Bad Request status
-        );
-    }
+    const nowStart = new Date();
+    nowStart.setHours(0, 0, 0, 0);
+
+    // Allow submission only if game status is scheduled AND game date is today or in the future
+    // AND the exact game time hasn't passed yet.
+    const isScheduled = game.status === 'STATUS_SCHEDULED';
+    const gameTimeHasPassed = game.date <= now;
     
-    // It might also be useful to check game.status if available and reliable
-    // e.g., if (game.status === 'STATUS_FINAL' || game.status === 'FINAL') { ... }
-
-    // 5. Validate Unique Player Pick (across all games for this user)
-    const existingPlayerSubmission = await prisma.submission.findFirst({
-      where: { userId, playerId },
-    });
-    if (existingPlayerSubmission) {
+    // Allow submission if game is scheduled and time has not passed
+    if (!isScheduled || gameTimeHasPassed) {
+      let reason = gameTimeHasPassed ? `start time (${game.date.toLocaleString()}) has passed` : `status is ${game.status}`;
       return NextResponse.json(
-        { error: `Player ${player.name} already submitted previously.` },
-        { status: 409 } // 409 Conflict
+        { error: `Cannot submit for this game because its ${reason}.` },
+        { status: 400 } 
       );
     }
 
-    // 6. Validate Unique Game Pick (only one submission per game per user)
-    const existingGameSubmission = await prisma.submission.findFirst({
-      where: { userId, gameId },
-    });
-    if (existingGameSubmission) {
-      return NextResponse.json(
-        { error: "Submission already exists for this game." },
-        { status: 409 } // 409 Conflict
-      );
-    }
+    // Find if a submission already exists for this user on this date
+    const gameDate = game.date;
+    const startOfDay = new Date(gameDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
-    // Find the GroupUser record for this submission
-    const gameRecord = await prisma.game.findUnique({
-      where: { id: gameId }
-    });
-
-    if (!gameRecord) {
-      return NextResponse.json(
-        { error: "Game not found" },
-        { status: 404 }
-      );
-    }
-
-    // Find all groups the user is a member of
-    const groupUsers = await prisma.groupUser.findMany({
+    const existingDailySubmission = await prisma.submission.findFirst({
       where: {
-        userId
-      }
-    });
-
-    if (groupUsers.length === 0) {
-      return NextResponse.json(
-        { error: "You are not a member of any groups" },
-        { status: 400 }
-      );
-    }
-
-    // For now, just use the first group user record
-    // In the future, we might want to allow specifying which group to submit for
-    const groupUser = groupUsers[0];
-
-    // 7. Create Submission
-    const newSubmission = await prisma.submission.create({
-      data: {
-        userId: userId,
-        gameId: gameId,
-        playerId: playerId,
-        groupUserId: groupUser.id
+        userId,
+        game: {
+          date: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
       },
     });
 
-    // 8. Return Success
-    return NextResponse.json(newSubmission, { status: 201 }); // 201 Created
+    // 5. Validate Unique Player Pick (across all *other* submissions for this user)
+    const existingPlayerSubmission = await prisma.submission.findFirst({
+      where: {
+        userId,
+        playerId,
+        // Ensure we are not looking at the submission for *today* if it exists
+        NOT: {
+          id: existingDailySubmission?.id // Exclude today's submission from this check
+        }
+      },
+    });
+    if (existingPlayerSubmission) {
+      return NextResponse.json(
+        { error: `Player ${player.name} already submitted previously on a different day.` },
+        { status: 409 } // 409 Conflict
+      );
+    }
+
+    // Find the GroupUser record (assuming user is only in one active group context)
+    const groupUsers = await prisma.groupUser.findMany({ where: { userId } });
+    if (groupUsers.length === 0) {
+      return NextResponse.json({ error: "You are not a member of any groups" }, { status: 400 });
+    }
+    const groupUser = groupUsers[0]; // Use the first group found
+
+    // 6. Create or Update Submission
+    let resultSubmission;
+    if (existingDailySubmission) {
+      // Update existing submission for the day
+      resultSubmission = await prisma.submission.update({
+        where: { id: existingDailySubmission.id },
+        data: {
+          gameId: gameId,       // Update to the new game
+          playerId: playerId,     // Update to the new player
+          // groupUserId remains the same
+        },
+      });
+      console.log(`Updated submission ${resultSubmission.id} for user ${userId} on ${startOfDay.toLocaleDateString()}`);
+      return NextResponse.json(resultSubmission, { status: 200 }); // OK status for update
+
+    } else {
+      // Create new submission
+      resultSubmission = await prisma.submission.create({
+        data: {
+          userId: userId,
+          gameId: gameId,
+          playerId: playerId,
+          groupUserId: groupUser.id
+        },
+      });
+      console.log(`Created submission ${resultSubmission.id} for user ${userId} on ${startOfDay.toLocaleDateString()}`);
+      return NextResponse.json(resultSubmission, { status: 201 }); // Created status for new
+    }
 
   } catch (error) {
-    console.error("Error creating submission:", error);
-    return NextResponse.json({ error: "Failed to create submission" }, { status: 500 });
+    console.error("Error creating/updating submission:", error);
+    // Add check for specific Prisma errors if needed, e.g., unique constraint violation
+    return NextResponse.json({ error: "Failed to create or update submission" }, { status: 500 });
   }
 }

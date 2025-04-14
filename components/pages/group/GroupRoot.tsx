@@ -338,6 +338,17 @@ const GroupInterface = ({
   const toast = useToast();
   const todayRef = useRef(null);
 
+  // Extract all player IDs ever submitted by the current user
+  const previouslySubmittedPlayerIds = useMemo(() => {
+    if (!currentUserSubmissionsMap) return [];
+    // Get unique player IDs from all submissions in the map
+    // Assume sub has { playerId: string }
+    return Array.from(new Set(Object.values(currentUserSubmissionsMap)
+      .map(sub => (sub as { playerId: string })?.playerId) // Use playerId
+      .filter(id => id != null) // Filter out potential null/undefined IDs
+    ));
+  }, [currentUserSubmissionsMap]);
+
   // Convert submissions to the format needed by CalendarDisplay
   const submissionsByDate = useMemo(() => {
     const submissionMap: { [dateKey: string]: { username: string; playerName: string; score: number | null; }[] } = {};
@@ -537,6 +548,8 @@ const GroupInterface = ({
         selectedDate={selectedDate}
         search={search}
         onSearchChange={onSearchChange}
+        currentSubmission={currentUserSubmissionsMap?.[selectedDate]}
+        previouslySubmittedPlayerIds={previouslySubmittedPlayerIds}
       />
       <DailyDetailsModal
         isOpen={detailsModalOpen}

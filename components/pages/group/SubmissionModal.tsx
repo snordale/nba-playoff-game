@@ -1,7 +1,8 @@
-import { Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, Divider, Box, Grid, VStack } from '@chakra-ui/react';
+import { Button, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, Divider, Box, Grid, VStack, useToast } from '@chakra-ui/react';
 import { Body2 } from '../../Body2';
 import { format, parseISO } from 'date-fns';
 import { useGetGames } from '@/react-query/queries';
+import { useState } from 'react';
 
 export const SubmissionModal = ({
   isOpen,
@@ -12,9 +13,13 @@ export const SubmissionModal = ({
   search,
   onSearchChange,
   selectedDate,
+  currentSubmission,
+  previouslySubmittedPlayerIds,
 }) => {
   const displayDate = selectedDate ? format(parseISO(selectedDate), 'MMMM d, yyyy') : 'Selected Date';
   const { data: games, isLoading: loadingGames } = useGetGames({ date: selectedDate });
+  const toast = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function getStatusColor(status: string) {
     if (status === 'STATUS_SCHEDULED') {
@@ -27,6 +32,41 @@ export const SubmissionModal = ({
       return 'red.500';
     }
   }
+
+  const handleSubmit = async (submissionData: { gameId: string; playerId: string }) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(submissionData);
+
+      let playerName = 'Player';
+      filteredPlayersByTeam?.forEach(game => {
+        game.teams?.forEach(team => {
+          const player = team.players?.find(p => p.id === submissionData.playerId);
+          if (player) playerName = player.name;
+        });
+      });
+
+      toast({
+        title: 'Submission Successful',
+        description: `You picked ${playerName}.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      onClose(true);
+    } catch (error: any) {
+      console.error("Submission failed:", error);
+      toast({
+        title: 'Submission Failed',
+        description: error?.message || 'Could not submit your pick. The game might have started, or an error occurred.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={() => onClose(false)} size="xl">
@@ -68,12 +108,19 @@ export const SubmissionModal = ({
             </Stack>
 
             {/* Players Section */}
-            <Stack gap={1}>
+            <Stack gap={2}>
               <Input
                 value={search}
                 placeholder="Search players..."
                 onChange={e => onSearchChange(e.target.value)}
               />
+              {currentSubmission && (
+                <Text
+                  fontSize="sm"
+                  fontWeight="semibold" color="orange.600" textAlign="center" p={2} borderWidth={1} borderRadius="md" borderColor="orange.600">
+                  {currentSubmission.playerName}
+                </Text>
+              )}
             </Stack>
             <Stack
               position='relative'
@@ -100,27 +147,34 @@ export const SubmissionModal = ({
                         {console.log(game)}
                         {game.teams?.map((team) => (
                           <Stack key={team.teamId} pl={2} spacing={0.5}>
-                            {team.players?.map((player) => (
-                              <Button
-                                size='sm'
-                                variant='ghost'
-                                colorScheme='orange'
-                                flexShrink={0}
-                                key={player.id}
-                                isDisabled={player.alreadySubmitted}
-                                onClick={() => onSubmit({
-                                  gameId: game.gameId,
-                                  playerId: player.id
-                                })}
-                                justifyContent='flex-start'
-                                gap={2}
-                                fontWeight="normal"
-                                _disabled={{ opacity: 0.5, cursor: 'not-allowed', textDecoration: 'line-through' }}
-                              >
-                                {player.name} – {team.abbreviation}
-                                {player.alreadySubmitted && <Text as="span" fontSize="xs" color="gray.500" ml={2}>(Submitted)</Text>}
-                              </Button>
-                            ))}
+                            {team.players?.map((player) => {
+                              const isCurrentPick = currentSubmission?.playerId === player.id;
+                              const isPreviouslySubmitted = previouslySubmittedPlayerIds?.includes(player.id) && !isCurrentPick;
+
+                              return (
+                                <Button
+                                  size='sm'
+                                  variant={isCurrentPick ? 'solid' : 'ghost'}
+                                  colorScheme='orange'
+                                  flexShrink={0}
+                                  key={player.id}
+                                  isDisabled={isPreviouslySubmitted || (player.alreadySubmitted && !isCurrentPick) || isSubmitting}
+                                  isLoading={isSubmitting && currentSubmission?.playerId === player.id}
+                                  onClick={() => handleSubmit({
+                                    gameId: game.gameId,
+                                    playerId: player.id
+                                  })}
+                                  justifyContent='flex-start'
+                                  gap={2}
+                                  fontWeight="normal"
+                                  _disabled={{ opacity: 0.5, cursor: 'not-allowed', textDecoration: 'line-through' }}
+                                >
+                                  {player.name} – {team.abbreviation}
+                                  {isPreviouslySubmitted && <Text as="span" fontSize="xs" color="gray.500" ml={2}>(Already Used)</Text>}
+                                  {isCurrentPick && <Text as="span" fontSize="xs" color="white" ml={2}>(Your Pick)</Text>}
+                                </Button>
+                              );
+                            })}
                           </Stack>
                         ))}
                       </Stack>

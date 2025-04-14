@@ -4,7 +4,7 @@ NBA Playoff Game: Pick one player every day for the entire NBA Playoffs and maxi
 
 ## Overview
 
-This is a web game that occurs during the NBA Playoffs. Make a group, invite friends, then everyone picks one player per day for the NBA playoffs. You receive scores points based on your picks' points, assists, turnovers, rebounds, blocks, and steals. You cannot pick the same player twice. Whoever has the most points at the end of the playoffs wins.
+This is a web game that occurs during the NBA Playoffs. Make a group, invite friends, then everyone picks one player per day for the NBA playoffs. You receive scores points based on your picks' points, assists, turnovers, rebounds, blocks, and steals. You cannot pick the same player twice. Whoever has the most points at the end of the playoffs wins. Submission lock in once the game starts, and you can only submit a player whose game has not started.
 
 ## Scoring
 
@@ -111,48 +111,43 @@ The application processes game statistics fetched from ESPN for:
 
 Scores for user submissions are calculated dynamically when viewing group data based on the loaded player statistics.
 
-## Pre-Launch Checklist
+## Core Game Mechanics Verification
 
-### Environment & Security
-- [ ] Set up production database with proper scaling
-- [ ] Configure SSL/TLS certificates
-- [ ] Set up proper CORS policies
-- [ ] Implement rate limiting for API endpoints
-- [ ] Set up automated database backups
-- [ ] Configure production logging
-- [ ] Review and set all required environment variables
-- [ ] Set up request size limits to prevent abuse
-- [ ] Add input sanitization for user inputs
+- **Data Loading:** Daily stats are fetched via ESPN API and stored using `scripts/loadGames.ts`. Requires external scheduler (e.g., cron) for automation.
+- **Data Integrity:** Fetched data (games, players, stats) is correctly stored in the Prisma database.
+- **Data Retrieval:** Group data, including dynamically calculated scores, is correctly pulled by the frontend.
+- **Submissions:** Users can create and update one submission per day before the game locks.
+    - Validation prevents picking the same player on different days.
+    - Validation prevents submitting after the game starts.
+- **Account Creation:** Uses NextAuth.js with Google OAuth.
+- **Group Management:** Users can create groups and invite others.
+- **Submission Visibility:**
+    - Past/locked submissions are visible to all group members (List & Calendar).
+    - Future/unlocked submissions are hidden (List View). **Note:** Calendar view (`CalendarDisplay.tsx`) might need adjustment to hide future player names.
+- **Leaderboard Accuracy:** Scores are calculated based on defined rules and fetched stats, providing an accurate leaderboard.
+
+## Pre-Launch Checklist (Simplified for Friends & Family)
+
+### Environment
+- [X] Set up production database
+- [X] Configure SSL/TLS certificates (if hosting publicly)
+- [ ] Review and set all required environment variables (`.env`)
 
 ### Testing & Validation
 - [ ] Test group invite flow end-to-end
-- [ ] Verify submission validation logic
+- [ ] Verify submission validation logic (one pick per day, game start lock, no duplicate players)
 - [ ] Test scoring calculation accuracy
-- [ ] Verify timezone handling for game schedules
-- [ ] Test concurrent user submissions
-- [ ] Verify data pipeline reliability
-- [ ] Test error handling scenarios
+- [ ] Verify timezone handling for game schedules/locking
+- [ ] Test basic error handling (e.g., failed submissions)
+- [ ] Verify data loading script (`loadGames.ts`) works
 - [ ] Validate mobile responsiveness
 
-### Monitoring & Maintenance
-- [ ] Set up error tracking (e.g., Sentry)
-- [ ] Configure performance monitoring
-- [ ] Set up automated health checks
-- [ ] Create maintenance documentation
-- [ ] Document deployment process
-- [ ] Set up alerting for critical failures
-- [ ] Configure backup restoration process
-- [ ] Document incident response procedures
-
 ### User Experience
-- [ ] Add loading states for all async operations
-- [ ] Implement proper error messages and notifications
-- [ ] Add input validation feedback
-- [ ] Test mobile responsiveness
-- [ ] Add user onboarding flow
-- [ ] Implement proper toast notifications for actions
-- [ ] Add error boundaries for component failures
-- [ ] Test and optimize page load performance
+- [X] Add loading states for async operations (Implemented)
+- [X] Implement basic error messages and notifications (Toasts added)
+- [X] Test mobile responsiveness (Seems OK, further testing recommended)
+- [X] Implement proper toast notifications for actions (Implemented for submissions)
+- [X] Add error boundaries for component failures (Implemented)
 
 ## Contributing
 
