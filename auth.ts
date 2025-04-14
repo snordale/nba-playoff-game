@@ -25,8 +25,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async signIn({ user }) {
+      if (!user.email) {
+        console.error("SignIn callback: User email is missing.");
+        return false;
+      }
       try {
-        // Upsert the user into the database
         const userData = await prisma.user.upsert({
           where: {
             email: user.email,
@@ -34,14 +37,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           create: {
             email: user.email,
             username: user.email,
+            image: user.image,
           },
-          update: {},
+          update: {
+            image: user.image,
+          },
         });
 
-        return userData ? true : false; // Return true to sign in the user, false otherwise
+        return userData ? true : false;
       } catch (error) {
         console.error("Error upserting the user:", error);
-        return false; // Return false to not sign in the user on error
+        return false;
       }
     },
 

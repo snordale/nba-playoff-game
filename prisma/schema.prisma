@@ -13,6 +13,7 @@ model User {
   updatedAt        DateTime     @updatedAt @map("updated_at")
   email            String       @unique
   username         String       @unique
+  image            String?      @map("image")
   groupMemberships GroupUser[]
   submissions      Submission[]
 
@@ -20,11 +21,11 @@ model User {
 }
 
 model Group {
-  id           String       @id @default(uuid())
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  name         String       @unique
-  groupUsers   GroupUser[]
+  id         String      @id @default(uuid())
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  name       String      @unique
+  groupUsers GroupUser[]
 
   @@map("groups")
 }
@@ -58,15 +59,15 @@ model Team {
 }
 
 model Player {
-  id              String            @id @default(uuid())
-  espnId          String?           @unique
-  name            String
-  currentTeamId   String?           @map("current_team_id")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
-  stats           PlayerGameStats[]
-  submissions     Submission[]
-  currentTeam     Team?             @relation(fields: [currentTeamId], references: [id])
+  id            String            @id @default(uuid())
+  espnId        String?           @unique
+  name          String
+  currentTeamId String?           @map("current_team_id")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  stats         PlayerGameStats[]
+  submissions   Submission[]
+  currentTeam   Team?             @relation(fields: [currentTeamId], references: [id])
 
   @@map("players")
 }
@@ -113,14 +114,14 @@ model PlayerGameStats {
 }
 
 model Submission {
-  id              String        @id @default(uuid())
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  userId          String        @map("user_id")
-  groupUserId     String?       @map("group_user_id")
-  gameId          String        @map("game_id")
-  playerId        String        @map("player_id")
-  calculatedScore Int?          @map("calculated_score")
+  id              String   @id @default(uuid())
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  userId          String   @map("user_id")
+  groupUserId     String?  @map("group_user_id")
+  gameId          String   @map("game_id")
+  playerId        String   @map("player_id")
+  calculatedScore Int?     @map("calculated_score")
 
   user      User       @relation(fields: [userId], references: [id])
   groupUser GroupUser? @relation(fields: [groupUserId], references: [id])
@@ -130,4 +131,3 @@ model Submission {
   @@unique([userId, gameId, playerId])
   @@map("submissions")
 }
-

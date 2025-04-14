@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, HStack, Stack, useClipboard, useToast } from "@chakra-ui/react";
-import { format, parseISO, startOfDay as dateFnsStartOfDay, isPast, isToday } from 'date-fns';
+import { format, parseISO, startOfDay as dateFnsStartOfDay } from 'date-fns';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -50,18 +50,11 @@ export const GroupRoot = ({ params }) => {
 
   const group = groupData?.group;
   const scoredPlayers = groupData?.players;
-  const currentUserFutureSubmissionStatus = groupData?.currentUserFutureSubmissionStatus;
+  const currentUserSubmissionsMap = groupData?.currentUserSubmissionsMap;
   const gameCountsByDate = groupData?.gameCountsByDate;
-
-  const currentUserGroupData = useMemo(() => {
-    return scoredPlayers?.find(p => p.userId === currentUserId);
-  }, [scoredPlayers, currentUserId]);
 
   const filteredGamesAndPlayers = useMemo(() => {
     if (!gamesForDate) return [];
-
-    const submittedPlayerIds = new Set(currentUserGroupData?.submissions?.map(sub => sub.playerId) ?? []);
-
     return (
       gamesForDate
         .map((game) => ({
@@ -73,16 +66,13 @@ export const GroupRoot = ({ params }) => {
                 .filter((player) =>
                   player.name.toLowerCase().includes(search.toLowerCase())
                 )
-                .map(p => ({
-                  ...p,
-                  alreadySubmitted: submittedPlayerIds.has(p.id)
-                })),
+                .map(p => ({ ...p, alreadySubmitted: false }))
             }))
             .filter((team) => team.players.length > 0),
         }))
         .filter((game) => game.teams.length > 0)
     );
-  }, [gamesForDate, search, currentUserGroupData]);
+  }, [gamesForDate, search]);
 
   useEffect(() => {
     if (submitSuccess) {
@@ -90,32 +80,7 @@ export const GroupRoot = ({ params }) => {
     }
   }, [submitSuccess]);
 
-  const userInGroup = !!currentUserGroupData;
-
-  // Process submissions by date
-  const submissionsByDate = useMemo(() => {
-    if (!scoredPlayers) return {};
-    const submissionsMap: { [dateKey: string]: Array<{ username: string; playerName: string; score: number | null }> } = {};
-    scoredPlayers.forEach(player => {
-      player.submissions?.forEach(sub => {
-        if (!sub.gameDate || !sub.playerName) return;
-        const gameDayStart = dateFnsStartOfDay(parseISO(sub.gameDate.toISOString()));
-        const dateKey = format(gameDayStart, 'yyyy-MM-dd');
-        if (!submissionsMap[dateKey]) {
-          submissionsMap[dateKey] = [];
-        }
-        submissionsMap[dateKey].push({
-          username: player.username,
-          playerName: sub.playerName,
-          score: sub.score,
-        });
-      });
-    });
-    Object.keys(submissionsMap).forEach(dateKey => {
-      submissionsMap[dateKey].sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity));
-    });
-    return submissionsMap;
-  }, [scoredPlayers]);
+  const userInGroup = scoredPlayers?.some(p => p.userId === currentUserId);
 
   // Handler for clicking a day on the calendar
   const handleDayClick = useCallback((date: Date) => {
@@ -164,13 +129,11 @@ export const GroupRoot = ({ params }) => {
       selectedDate={selectedDate}
       search={search}
       onSearchChange={setSearch}
-      submissionsByDate={submissionsByDate}
       onCalendarDateClick={handleDayClick}
       detailsModalOpen={detailsModalOpen}
       setDetailsModalOpen={setDetailsModalOpen}
       detailsDate={detailsDate}
-      currentUserFutureSubmissionStatus={currentUserFutureSubmissionStatus}
-      currentUserId={currentUserId}
+      currentUserSubmissionsMap={currentUserSubmissionsMap}
       gameCountsByDate={gameCountsByDate}
     />
   );
@@ -187,13 +150,11 @@ const GroupInterface = ({
   selectedDate,
   search,
   onSearchChange,
-  submissionsByDate,
   onCalendarDateClick,
   detailsModalOpen,
   setDetailsModalOpen,
   detailsDate,
-  currentUserFutureSubmissionStatus,
-  currentUserId,
+  currentUserSubmissionsMap,
   gameCountsByDate,
 }) => {
   const { mutate: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
@@ -247,10 +208,8 @@ const GroupInterface = ({
       </HStack>
       <Leaderboard groupId={groupId} />
       <CalendarDisplay
-        submissionsByDate={submissionsByDate}
         onDateClick={onCalendarDateClick}
-        currentUserFutureSubmissionStatus={currentUserFutureSubmissionStatus}
-        currentUserId={currentUserId}
+        currentUserSubmissionsMap={currentUserSubmissionsMap}
         gameCountsByDate={gameCountsByDate}
       />
       <SubmissionModal
@@ -267,7 +226,7 @@ const GroupInterface = ({
         isOpen={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
         selectedDate={detailsDate}
-        submissions={detailsDate ? submissionsByDate[detailsDate] : undefined}
+        submissions={detailsDate && currentUserSubmissionsMap?.[detailsDate] ? [currentUserSubmissionsMap[detailsDate]] : []}
       />
     </Stack>
   );

@@ -89,34 +89,31 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         // Determine today's date (start of day UTC) for filtering submissions
         const todayUTCStart = startOfDay(new Date());
 
-        // Map to store future submission status for the requesting user only
-        const currentUserFutureSubmissionStatus: { [dateKey: string]: boolean } = {};
+        // --- Create Map for CURRENT User's Submissions ---
+        const currentUserSubmissionsMap: {
+            [dateKey: string]: { playerName: string; score: number | null; isFuture: boolean }
+        } = {};
+        const currentUserData = groupUsers.find(gu => gu.userId === userId);
+        currentUserData?.submissions.forEach(sub => {
+            if (!sub.game?.date || !sub.player?.name) return;
+            const gameDateStart = startOfDay(sub.game.date);
+            const dateKey = format(gameDateStart, 'yyyy-MM-dd');
+            const isFuture = gameDateStart > todayUTCStart;
+            currentUserSubmissionsMap[dateKey] = {
+                playerName: sub.player.name,
+                score: !isFuture ? (sub.calculatedScore ?? null) : null,
+                isFuture: isFuture
+            };
+        });
+        // --- End Current User Submissions Map ---
 
         // Calculate scores
         const scoredGroupUsers = groupUsers.map((groupUser) => {
             let totalScore = 0;
-            const pastPresentSubmissions = [];
             groupUser.submissions.forEach((sub) => {
-                if (!sub.game || !sub.player || !sub.game.date) return;
-                const gameDateStart = startOfDay(sub.game.date);
-                if (gameDateStart <= todayUTCStart) {
-                    const score = sub.calculatedScore ?? 0;
-                    totalScore += score;
-                    pastPresentSubmissions.push({
-                        id: sub.id,
-                        createdAt: sub.createdAt,
-                        gameId: sub.game.id,
-                        gameDate: sub.game.date,
-                        gameStatus: sub.game.status,
-                        playerId: sub.player.id,
-                        playerName: sub.player.name,
-                        score: score,
-                    });
-                } else {
-                    if (groupUser.userId === userId) {
-                        const dateKey = format(gameDateStart, 'yyyy-MM-dd');
-                        currentUserFutureSubmissionStatus[dateKey] = true;
-                    }
+                const gameDateStart = sub.game?.date ? startOfDay(sub.game.date) : null;
+                if (gameDateStart && gameDateStart <= todayUTCStart) {
+                    totalScore += sub.calculatedScore ?? 0;
                 }
             });
 
@@ -126,7 +123,6 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                 username: groupUser.user.username,
                 isAdmin: groupUser.isAdmin,
                 score: totalScore,
-                submissions: pastPresentSubmissions.sort((a, b) => b.gameDate.getTime() - a.gameDate.getTime()),
             };
         }).sort((a, b) => b.score - a.score);
 
@@ -134,7 +130,7 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         return NextResponse.json({
             group,
             players: scoredGroupUsers,
-            currentUserFutureSubmissionStatus,
+            currentUserSubmissionsMap,
             gameCountsByDate,
         });
 
