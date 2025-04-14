@@ -140,15 +140,6 @@ export const GroupRoot = ({ params }) => {
         // Invalidate both group and games queries to refresh all data
         queryClient.invalidateQueries({ queryKey: ["getGroup", groupId] });
         queryClient.invalidateQueries({ queryKey: ["getGames"] });
-        
-        // Show success toast
-        toast({
-          title: "Pick submitted!",
-          description: "Your player selection has been recorded.",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
 
         // Close the modal
         setModalOpen(false);

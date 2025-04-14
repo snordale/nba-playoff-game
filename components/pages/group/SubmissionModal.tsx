@@ -3,6 +3,7 @@ import { Body2 } from '../../Body2';
 import { format, parseISO } from 'date-fns';
 import { useGetGames } from '@/react-query/queries';
 import { useState } from 'react';
+import { CheckCircleIcon } from '@chakra-ui/icons';
 
 export const SubmissionModal = ({
   isOpen,
@@ -83,19 +84,19 @@ export const SubmissionModal = ({
                   <Spinner color="orange.500" size="sm" />
                 </HStack>
               ) : games && games.length > 0 ? (
-                <Grid gap={2} gridTemplateColumns={['1fr 1fr', '1fr 1fr', '1fr 1fr 1fr']}>
+                <Grid gap={2} gridTemplateColumns={['1fr 1fr', '1fr 1fr', '1fr 1fr 1fr 1fr']}>
                   {games.map((game) => (
-                    <Box key={game.id} p={3} borderWidth="1px" borderRadius="md">
+                    <Box key={game.id} p={2} borderWidth="1px" borderRadius="md">
                       <HStack justify="space-between" alignItems='flex-start'>
                         <VStack alignItems='flex-start'>
-                          <Text fontSize="sm" color="gray.600">
+                          <Text fontSize="xs" color="gray.600">
                             {game.homeTeam.abbreviation} - {game.homeScore}
                           </Text>
-                          <Text fontSize="sm" color="gray.600">
+                          <Text fontSize="xs" color="gray.600">
                             {game.awayTeam.abbreviation} - {game.awayScore}
                           </Text>
                         </VStack>
-                        <Text fontSize="sm" color={getStatusColor(game.status)}>
+                        <Text fontSize="xs" color={getStatusColor(game.status)}>
                           {format(game.date, 'h:mm a')}
                         </Text>
                       </HStack>
@@ -144,11 +145,10 @@ export const SubmissionModal = ({
                           {game.teams?.[0]?.name ?? 'Team A'} vs {game.teams?.[1]?.name ?? 'Team B'}
                           &nbsp;({new Date(game.gameDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })})
                         </Text>
-                        {console.log(game)}
                         {game.teams?.map((team) => (
                           <Stack key={team.teamId} pl={2} spacing={0.5}>
                             {team.players?.map((player) => {
-                              const isCurrentPick = currentSubmission?.playerId === player.id;
+                              const isCurrentPick = currentSubmission?.playerId === player.id || currentSubmission?.playerName === player.name;
                               const isPreviouslySubmitted = previouslySubmittedPlayerIds?.includes(player.id) && !isCurrentPick;
 
                               return (
@@ -164,14 +164,24 @@ export const SubmissionModal = ({
                                     gameId: game.gameId,
                                     playerId: player.id
                                   })}
-                                  justifyContent='flex-start'
+                                  justifyContent='space-between'
                                   gap={2}
                                   fontWeight="normal"
-                                  _disabled={{ opacity: 0.5, cursor: 'not-allowed', textDecoration: 'line-through' }}
+                                  _disabled={{
+                                    opacity: isPreviouslySubmitted ? 0.5 : 1,
+                                    cursor: isPreviouslySubmitted ? 'not-allowed' : 'pointer',
+                                    textDecoration: isPreviouslySubmitted ? 'line-through' : 'none'
+                                  }}
                                 >
-                                  {player.name} – {team.abbreviation}
-                                  {isPreviouslySubmitted && <Text as="span" fontSize="xs" color="gray.500" ml={2}>(Already Used)</Text>}
-                                  {isCurrentPick && <Text as="span" fontSize="xs" color="white" ml={2}>(Your Pick)</Text>}
+                                  <Text>{player.name} – {team.abbreviation}</Text>
+                                  <HStack spacing={2}>
+                                    {isPreviouslySubmitted && 
+                                      <Text as="span" fontSize="xs" color="gray.500">(Already Used)</Text>
+                                    }
+                                    {isCurrentPick && (
+                                      <CheckCircleIcon color="white" boxSize={4} />
+                                    )}
+                                  </HStack>
                                 </Button>
                               );
                             })}
