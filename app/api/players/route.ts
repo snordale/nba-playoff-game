@@ -17,67 +17,67 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Since we're using @db.Date, we can just pass the date string directly
-    const gamesForDate = await prisma.game.findMany({
+    // Get all games for the date
+    const games = await prisma.game.findMany({
       where: {
-        date: dateString
+        date: new Date(dateString)
       },
       include: {
         homeTeam: {
           include: {
             players: {
-              select: { id: true, name: true, espnId: true },
-              orderBy: { name: 'asc' }
+              select: {
+                id: true,
+                name: true,
+                currentTeamId: true
+              }
             }
           }
         },
         awayTeam: {
           include: {
             players: {
-              select: { id: true, name: true, espnId: true },
-              orderBy: { name: 'asc' }
+              select: {
+                id: true,
+                name: true,
+                currentTeamId: true
+              }
             }
           }
         }
-      },
-      orderBy: { date: 'asc' }
+      }
     });
 
-    const responseData = gamesForDate.map(game => ({
-      gameId: game.id,
-      gameDate: dateString, // Since we queried for this exact date
-      status: game.status,
-      homeScore: game.homeScore,
-      awayScore: game.awayScore,
-      teams: [
-        {
-          teamId: game.homeTeam.id,
-          name: game.homeTeam.name,
-          abbreviation: game.homeTeam.abbreviation,
-          isHome: true,
-          players: game.homeTeam.players.map(p => ({
-            id: p.id,
-            name: p.name,
-          }))
-        },
-        {
-          teamId: game.awayTeam.id,
-          name: game.awayTeam.name,
-          abbreviation: game.awayTeam.abbreviation,
-          isHome: false,
-          players: game.awayTeam.players.map(p => ({
-            id: p.id,
-            name: p.name,
-          }))
-        }
-      ]
-    }));
+    // Flatten and transform into a simple list of players with their team info
+    const players = games.flatMap(game => {
+      const homePlayers = game.homeTeam.players
+        .filter(p => p.currentTeamId === game.homeTeam.id)
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          teamName: game.homeTeam.name,
+          teamAbbreviation: game.homeTeam.abbreviation,
+          gameId: game.id
+        }));
 
-    return NextResponse.json(responseData);
+      const awayPlayers = game.awayTeam.players
+        .filter(p => p.currentTeamId === game.awayTeam.id)
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          teamName: game.awayTeam.name,
+          teamAbbreviation: game.awayTeam.abbreviation,
+          gameId: game.id
+        }));
+
+      return [...homePlayers, ...awayPlayers];
+    });
+
+    return NextResponse.json(players);
 
   } catch (error) {
-    console.error("Error fetching games and players:", error);
-    return NextResponse.json({ error: "Failed to fetch game/player data" }, { status: 500 });
+    console.error("Error fetching players:", error);
+    return NextResponse.json({ error: "Failed to fetch player data" }, { status: 500 });
   }
 };
 

@@ -5,7 +5,7 @@ import { format, parseISO, startOfDay as dateFnsStartOfDay, isBefore, isAfter, e
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { queryClient, useCreateSubmission, useGenerateInviteLink, useGetGroup, useGetTodaysPlayers } from "../../../react-query/queries";
+import { queryClient, useCreateSubmission, useGenerateInviteLink, useGetGroup, useGetGames, useGetTodaysPlayers } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
 import { CalendarDisplay } from './CalendarDisplay';
 import { Leaderboard } from './Leaderboard';
@@ -15,6 +15,29 @@ import { DailyDetailsModal } from './DailyDetailsModal';
 import { HamburgerIcon, CalendarIcon, ViewIcon } from '@chakra-ui/icons';
 import { PLAYOFF_START_DATE, PLAYOFF_END_DATE } from '@/constants';
 
+interface Player {
+  id: string;
+  name: string;
+  teamName: string;
+  teamAbbreviation: string;
+  gameId: string;
+}
+
+interface GameWithTeams {
+  gameId: string;
+  teams: {
+    [teamName: string]: {
+      name: string;
+      abbreviation: string;
+      players: Array<{
+        id: string;
+        name: string;
+        alreadySubmitted: boolean;
+      }>;
+    };
+  };
+}
+
 type ViewMode = 'calendar' | 'list';
 
 const DailySubmissionCard = ({ date, hasGames, onClick, players }) => {
@@ -23,10 +46,10 @@ const DailySubmissionCard = ({ date, hasGames, onClick, players }) => {
   const today = dateFnsStartOfDay(new Date());
   const cardDate = dateFnsStartOfDay(new Date(date));
   const isLocked = isBefore(cardDate, today);
-  
+
   return (
-    <Card 
-      variant="outline" 
+    <Card
+      variant="outline"
       w="full"
       cursor="pointer"
       onClick={() => onClick(date)}
@@ -94,8 +117,9 @@ export const GroupRoot = ({ params }) => {
   const [detailsDate, setDetailsDate] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const { data: groupData, isLoading: isLoadingGroup } = useGetGroup({ groupId });
-  const { data: gamesForDate, isLoading: loadingPlayers } = useGetTodaysPlayers({ date: selectedDate });
-  const { data: detailsGames, isLoading: loadingDetailsGames } = useGetTodaysPlayers({ date: detailsDate || '' });
+  const { data: gamesForDate, isLoading: loadingGames } = useGetGames({ date: selectedDate });
+  const { data: playersForDate, isLoading: loadingPlayers } = useGetTodaysPlayers({ date: selectedDate });
+  const { data: detailsGames, isLoading: loadingDetailsGames } = useGetGames({ date: detailsDate || '' });
   const { mutate: createSubmission, isSuccess: submitSuccess } = useCreateSubmission();
   const { mutate: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
   const { onCopy, setValue, hasCopied } = useClipboard("");
@@ -103,7 +127,7 @@ export const GroupRoot = ({ params }) => {
 
   // Log received data
   useEffect(() => {
-    if(groupData) {
+    if (groupData) {
       console.log("Data from useGetGroup:", groupData);
       console.log("Game Counts Received:", groupData.gameCountsByDate);
     }
@@ -125,25 +149,43 @@ export const GroupRoot = ({ params }) => {
   const gameCountsByDate = groupData?.gameCountsByDate;
 
   const filteredGamesAndPlayers = useMemo(() => {
-    if (!gamesForDate) return [];
-    return (
-      gamesForDate
-        .map((game) => ({
-          ...game,
-          teams: game.teams
-            .map((team) => ({
-              ...team,
-              players: team.players
-                .filter((player) =>
-                  player.name.toLowerCase().includes(search.toLowerCase())
-                )
-                .map(p => ({ ...p, alreadySubmitted: false }))
-            }))
-            .filter((team) => team.players.length > 0),
-        }))
-        .filter((game) => game.teams.length > 0)
-    );
-  }, [gamesForDate, search]);
+    if (!playersForDate) return [];
+    
+    // Group players by game
+    const playersByGame = (playersForDate as Player[])
+      .filter(player => player.name.toLowerCase().includes(search.toLowerCase()))
+      .reduce<Record<string, GameWithTeams>>((acc, player) => {
+        if (!acc[player.gameId]) {
+          acc[player.gameId] = {
+            gameId: player.gameId,
+            teams: {}
+          };
+        }
+        
+        // Group players by team within each game
+        if (!acc[player.gameId].teams[player.teamName]) {
+          acc[player.gameId].teams[player.teamName] = {
+            name: player.teamName,
+            abbreviation: player.teamAbbreviation,
+            players: []
+          };
+        }
+        
+        acc[player.gameId].teams[player.teamName].players.push({
+          id: player.id,
+          name: player.name,
+          alreadySubmitted: false
+        });
+        
+        return acc;
+      }, {});
+
+    // Convert to array format expected by SubmissionModal
+    return Object.values(playersByGame).map(game => ({
+      gameId: game.gameId,
+      teams: Object.values(game.teams)
+    }));
+  }, [playersForDate, search]);
 
   useEffect(() => {
     if (submitSuccess) {
@@ -159,15 +201,15 @@ export const GroupRoot = ({ params }) => {
     const clickedDay = dateFnsStartOfDay(date);
     const formattedDate = format(clickedDay, 'yyyy-MM-dd');
 
-    if (clickedDay < today) { 
+    if (clickedDay < today) {
       setDetailsDate(formattedDate);
       setDetailsModalOpen(true);
-      setModalOpen(false); 
+      setModalOpen(false);
     } else {
       // Only open the submission modal if there are games on this date
       const hasGames = gameCountsByDate?.[formattedDate] > 0;
       if (hasGames) {
-        setSelectedDate(formattedDate); 
+        setSelectedDate(formattedDate);
         setModalOpen(true);
         setDetailsModalOpen(false);
       } else {
@@ -224,8 +266,8 @@ export const GroupRoot = ({ params }) => {
       scoredPlayers={scoredPlayers}
       currentUserId={currentUserId}
       detailsGames={detailsGames?.map(game => ({
-        homeTeam: game.teams[0].name,
-        awayTeam: game.teams[1].name,
+        homeTeam: game.homeTeam.name,
+        awayTeam: game.awayTeam.name,
         homeScore: game.homeScore,
         awayScore: game.awayScore,
         status: game.status,
@@ -265,6 +307,29 @@ const GroupInterface = ({
   const toast = useToast();
   const todayRef = useRef(null);
 
+  // Convert submissions to the format needed by CalendarDisplay
+  const submissionsByDate = useMemo(() => {
+    const submissionMap: { [dateKey: string]: { username: string; playerName: string; score: number | null; }[] } = {};
+    
+    // Iterate through each date in the gameCountsByDate
+    Object.keys(gameCountsByDate || {}).forEach(dateKey => {
+      submissionMap[dateKey] = [];
+      
+      // Add submissions for each player on this date
+      scoredPlayers?.forEach(player => {
+        if (player.submission && format(new Date(player.submission.date), 'yyyy-MM-dd') === dateKey) {
+          submissionMap[dateKey].push({
+            username: player.username,
+            playerName: player.submission.playerName,
+            score: player.submission.score
+          });
+        }
+      });
+    });
+    
+    return submissionMap;
+  }, [scoredPlayers, gameCountsByDate]);
+
   const handleGenerateInvite = () => {
     generateLink({ groupId }, {
       onSuccess: (data) => {
@@ -294,7 +359,7 @@ const GroupInterface = ({
   const sortedDates = useMemo(() => {
     const startDate = parseISO(PLAYOFF_START_DATE);
     const endDate = parseISO(PLAYOFF_END_DATE);
-    
+
     // Get all dates in the playoff range
     return eachDayOfInterval({ start: startDate, end: endDate })
       .map(date => format(date, 'yyyy-MM-dd'))
@@ -322,7 +387,7 @@ const GroupInterface = ({
   };
 
   return (
-    <Stack gap={3}>
+    <Stack gap={8}>
       <HStack justifyContent='space-between'>
         <Body1 fontWeight="semibold" fontSize="2xl">
           {group?.name}
@@ -338,93 +403,95 @@ const GroupInterface = ({
         </Button>
       </HStack>
       <Leaderboard groupId={groupId} />
-      
-      <HStack >
-        <ButtonGroup size="sm" isAttached variant="outline">
-          <Button
-            onClick={() => setViewMode('calendar')}
-            colorScheme="orange"
-            variant={viewMode === 'calendar' ? 'solid' : 'outline'}
-            leftIcon={<CalendarIcon />}
-          >
-            Calendar
-          </Button>
-          <Button
-            onClick={() => setViewMode('list')}
-            colorScheme="orange"
-            variant={viewMode === 'list' ? 'solid' : 'outline'}
-            leftIcon={<HamburgerIcon />}
-          >
-            List
-          </Button>
-        </ButtonGroup>
-      </HStack>
+      <VStack alignItems='stretch'>
+        <HStack>
+          <ButtonGroup size="sm" isAttached variant="outline">
+            <Button
+              onClick={() => setViewMode('calendar')}
+              colorScheme="orange"
+              variant={viewMode === 'calendar' ? 'solid' : 'outline'}
+              leftIcon={<CalendarIcon />}
+            >
+              Calendar
+            </Button>
+            <Button
+              onClick={() => setViewMode('list')}
+              colorScheme="orange"
+              variant={viewMode === 'list' ? 'solid' : 'outline'}
+              leftIcon={<HamburgerIcon />}
+            >
+              List
+            </Button>
+          </ButtonGroup>
+        </HStack>
 
-      {viewMode === 'calendar' ? (
-        <CalendarDisplay
-          onDateClick={onCalendarDateClick}
-          currentUserSubmissionsMap={currentUserSubmissionsMap}
-          gameCountsByDate={gameCountsByDate}
-        />
-      ) : (
-        <VStack 
-          spacing={3} 
-          align="stretch" 
-          maxH="600px" 
-          overflowY="auto" 
-          css={{
-            '&::-webkit-scrollbar': {
-              width: '4px',
-            },
-            '&::-webkit-scrollbar-track': {
-              width: '6px',
-              background: 'rgba(0,0,0,0.1)',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(0,0,0,0.2)',
-              borderRadius: '24px',
-            },
-          }}
-          px={1}
-        >
-          {sortedDates.map(date => {
-            const isToday = new Date(date).toDateString() === new Date().toDateString();
-            const dateSubmissions = {};
-            
-            // Create a map of submissions for each user
-            scoredPlayers?.forEach(player => {
-              if (player.userId === currentUserId) {
-                // For the current user, use the currentUserSubmissionsMap
-                const submission = currentUserSubmissionsMap?.[date];
-                if (submission) {
-                  dateSubmissions[player.userId] = {
-                    playerName: submission.playerName,
-                    score: submission.score,
-                    isFuture: submission.isFuture
-                  };
+        {viewMode === 'calendar' ? (
+          <CalendarDisplay
+            onDateClick={onCalendarDateClick}
+            currentUserSubmissionsMap={currentUserSubmissionsMap}
+            gameCountsByDate={gameCountsByDate}
+            submissionsByDate={submissionsByDate}
+          />
+        ) : (
+          <VStack
+            spacing={3}
+            align="stretch"
+            maxH="600px"
+            overflowY="auto"
+            css={{
+              '&::-webkit-scrollbar': {
+                width: '4px',
+              },
+              '&::-webkit-scrollbar-track': {
+                width: '6px',
+                background: 'rgba(0,0,0,0.1)',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: '24px',
+              },
+            }}
+            px={1}
+          >
+            {sortedDates.map(date => {
+              const isToday = new Date(date).toDateString() === new Date().toDateString();
+              const dateSubmissions = {};
+
+              // Create a map of submissions for each user
+              scoredPlayers?.forEach(player => {
+                if (player.userId === currentUserId) {
+                  // For the current user, use the currentUserSubmissionsMap
+                  const submission = currentUserSubmissionsMap?.[date];
+                  if (submission) {
+                    dateSubmissions[player.userId] = {
+                      playerName: submission.playerName,
+                      score: submission.score,
+                      isFuture: submission.isFuture
+                    };
+                  }
                 }
-              }
-            });
-            
-            const playersWithSubmissions = scoredPlayers?.map(player => ({
-              userId: player.userId,
-              username: player.username,
-              submission: dateSubmissions[player.userId]
-            })) || [];
+              });
 
-            return (
-              <div key={date} ref={isToday ? todayRef : null}>
-                <DailySubmissionCard
-                  date={date}
-                  hasGames={gameCountsByDate?.[date] > 0}
-                  onClick={handleCardClick}
-                  players={playersWithSubmissions}
-                />
-              </div>
-            );
-          })}
-        </VStack>
-      )}
+              const playersWithSubmissions = scoredPlayers?.map(player => ({
+                userId: player.userId,
+                username: player.username,
+                submission: dateSubmissions[player.userId]
+              })) || [];
+
+              return (
+                <div key={date} ref={isToday ? todayRef : null}>
+                  <DailySubmissionCard
+                    date={date}
+                    hasGames={gameCountsByDate?.[date] > 0}
+                    onClick={handleCardClick}
+                    players={playersWithSubmissions}
+                  />
+                </div>
+              );
+            })}
+          </VStack>
+        )}
+      </VStack>
 
       <SubmissionModal
         isOpen={modalOpen}

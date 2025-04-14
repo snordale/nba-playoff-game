@@ -6,6 +6,7 @@ import {
   ModalBody,
   ModalCloseButton,
   ModalContent,
+  ModalFooter,
   ModalHeader,
   ModalOverlay,
   Stack,
@@ -36,7 +37,7 @@ export const CreateGroupModal = ({ variant, onClose }) => {
   const renderBody = () => {
     if (variant === "create") {
       return (
-        <Stack>
+        <Stack pb={4}>
           <Input 
             name="groupName"
             placeholder="Group Name"

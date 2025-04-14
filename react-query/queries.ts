@@ -6,6 +6,7 @@ import {
   getTodaysPlayers,
   joinGroup,
   generateInviteLink,
+  getGames,
 } from "@/services/ApiService";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
@@ -64,6 +65,14 @@ export const useGetTodaysPlayers = ({ date }) => {
   return useQuery({
     queryKey: ["getTodaysPlayers", date.toString()],
     queryFn: () => getTodaysPlayers({ date }),
+  });
+};
+
+export const useGetGames = ({ date }: { date: string }) => {
+  return useQuery({
+    queryKey: ["getGames", date],
+    queryFn: () => getGames({ date }),
+    enabled: !!date,
   });
 };
 

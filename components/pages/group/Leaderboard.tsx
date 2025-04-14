@@ -5,7 +5,7 @@ export const Leaderboard = ({ groupId }) => {
   const { data: groupData } = useGetGroup({ groupId });
 
   return (
-    <Stack pt={2} maxWidth="500px">
+    <Stack maxWidth="500px">
       <Text fontWeight="semibold">Leaderboard</Text>
       <TableContainer>
         <Table variant='simple' size='sm'>
