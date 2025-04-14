@@ -48,10 +48,10 @@ const TileContent = ({
 
   const dateKey = format(date, 'yyyy-MM-dd');
   const today = startOfDay(new Date());
-  const isDayInPast = date < today && !isToday(date);
+  const isDayInPastOrToday = date < today && !isToday(date);
   const isDayToday = isToday(date);
   const gameCount = gameCountsByDate?.[dateKey];
-  const userSubmission = currentUserSubmissionsMap?.[dateKey]; // Get user's submission for this date
+  const userSubmission = currentUserSubmissionsMap?.[dateKey]; 
 
   return (
     <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="80px"> 
@@ -63,8 +63,7 @@ const TileContent = ({
        )}
 
       {/* --- Render Past or Present Day --- */} 
-      {(isDayInPast || isDayToday) ? (
-          // Check if the current user submitted for this day
+      {(isDayInPastOrToday) ? (
           userSubmission ? (
             // User submitted: Show Player + Score
             <Tooltip label={`${userSubmission.playerName} (${userSubmission.score ?? 'N/A'} pts)`} placement="top" fontSize="xs">
@@ -147,7 +146,7 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
       `}</style>
       <Calendar
         maxDate={new Date('2025-07-01')}
-        minDate={new Date('2025-04-19')}
+        minDate={new Date('2025-04-14')}
         onClickDay={onDateClick}
         tileContent={({ date, view }) => (
           <TileContent 

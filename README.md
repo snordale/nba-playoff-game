@@ -6,6 +6,15 @@ NBA Playoff Game: Pick one player every day for the entire NBA Playoffs and maxi
 
 This is a web game that occurs during the NBA Playoffs. Make a group, invite friends, then everyone picks one player per day for the NBA playoffs. You receive scores points based on your picks' points, assists, turnovers, rebounds, blocks, and steals. You cannot pick the same player twice. Whoever has the most points at the end of the playoffs wins.
 
+## Scoring
+
+points: 1
+rebounds: 1
+assists: 2
+steals: 2
+blocks: 2
+turnovers: -2
+
 ## Tech Stack
 
 - **Frontend**: Next.js, React, Chakra UI, Radix UI
@@ -19,19 +28,19 @@ This is a web game that occurs during the NBA Playoffs. Make a group, invite fri
 ## Key Features
 
 - Real-time NBA game statistics tracking
-- Automated scoring updates using ESPN box scores
-- User prediction submissions
-- Player performance tracking (points, assists, rebounds, steals, blocks, turnovers)
-- Team-based player filtering
-- Automated daily score updates
+- User prediction submissions (one unique player pick per day)
+- Group creation and management
+- Invite friends to groups via shareable links
+- Dynamic scoring based on player performance (Points, Assists, Rebounds, Steals, Blocks, Turnovers)
+- Group leaderboard and daily results calendar
+- Google OAuth Authentication
 
 ## Project Structure
 
 ```
 ├── app/                  # Next.js application routes and pages
 ├── components/          # React components
-├── services/           # Backend services
-│   ├── ScoringService/ # Handles game scoring and statistics
+├── services/           # Backend services (API fetching, game loading)
 │   └── EspnService/    # ESPN API integration
 ├── prisma/             # Database schema and migrations
 └── scripts/            # Utility scripts for maintenance
@@ -63,6 +72,8 @@ This is a web game that occurs during the NBA Playoffs. Make a group, invite fri
    NEXTAUTH_SECRET="your-nextauth-secret" # Generate a strong secret: openssl rand -base64 32
    NEXTAUTH_URL="http://localhost:3000" # Adjust for production
    JWT_INVITE_SECRET="your-super-strong-random-secret-key-here" # Used for signing group invite links
+   GOOGLE_CLIENT_ID="your-google-client-id" # From Google Cloud Console
+   GOOGLE_CLIENT_SECRET="your-google-client-secret" # From Google Cloud Console
    ```
 
 4. **Development**
@@ -84,13 +95,13 @@ This is a web game that occurs during the NBA Playoffs. Make a group, invite fri
 - `npm run prisma:generate` - Generate Prisma client
 - `npm run prisma:migrate` - Run database migrations
 - `npm run prisma:deploy` - Deploy database migrations
-- `npm run update-scores` - Update player scores from previous day's games (uses ScoringService).
 - `npx tsx scripts/loadGames.ts [YYYY-MM-DD]` - Manually load game and player stats from ESPN for a specific date (defaults to today).
+- `npx tsx scripts/loadAllPlayoffGames.ts` - Load game and player stats from ESPN for the entire playoff date range defined in the script.
 - `npx tsx scripts/logDate.ts [YYYY-MM-DD]` - Log game and player stats from the database for a specific date (defaults to today).
 
 ## Scoring System
 
-The application automatically processes game statistics for:
+The application processes game statistics fetched from ESPN for:
 - Points
 - Assists
 - Rebounds
@@ -98,7 +109,7 @@ The application automatically processes game statistics for:
 - Blocks
 - Turnovers
 
-Data is fetched from ESPN's box scores and processed daily to update user submissions.
+Scores for user submissions are calculated dynamically when viewing group data based on the loaded player statistics.
 
 ## Contributing
 

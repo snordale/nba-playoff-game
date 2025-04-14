@@ -11,7 +11,6 @@ import { CalendarDisplay } from './CalendarDisplay';
 import { Leaderboard } from './Leaderboard';
 import { ScoringKeyButton } from './ScoringKeyButton';
 import { SubmissionModal } from "./SubmissionModal";
-import { WhoSubmitted } from './WhoSubmitted';
 import { DailyDetailsModal } from './DailyDetailsModal';
 
 export const GroupRoot = ({ params }) => {
@@ -200,10 +199,8 @@ const GroupInterface = ({
             isLoading={isGeneratingLink}
             colorScheme="orange"
           >
-            {hasCopied ? "Copied!" : "Invite Friends"}
+            {hasCopied ? "Copied!" : "Copy Invite Link"}
           </Button>
-          <ScoringKeyButton />
-          <WhoSubmitted groupId={groupId} />
         </HStack>
       </HStack>
       <Leaderboard groupId={groupId} />

@@ -3,117 +3,134 @@ import { prisma } from "@/prisma/client";
 import { format, parseISO, startOfDay } from 'date-fns'; // Import more date-fns
 import { NextRequest, NextResponse } from "next/server"; // Use NextResponse
 import { PLAYOFF_START_DATE, PLAYOFF_END_DATE } from '@/constants';
+import type { PlayerGameStats } from "@prisma/client"; // Import PlayerGameStats type
+
+// --- Define Scoring Weights ---
+const SCORE_WEIGHTS = {
+    points: 1,
+    rebounds: 1,
+    assists: 2,
+    steals: 2,
+    blocks: 2,
+    turnovers: -2,
+};
+// --- End Scoring Weights ---
+
+// --- Define Score Calculation Function ---
+function calculateScore(stats: PlayerGameStats | null | undefined): number | null {
+    if (!stats) {
+        return null; // Return null if stats are missing
+    }
+    const score =
+        (stats.points ?? 0) * SCORE_WEIGHTS.points +
+        (stats.rebounds ?? 0) * SCORE_WEIGHTS.rebounds +
+        (stats.assists ?? 0) * SCORE_WEIGHTS.assists +
+        (stats.steals ?? 0) * SCORE_WEIGHTS.steals +
+        (stats.blocks ?? 0) * SCORE_WEIGHTS.blocks +
+        (stats.turnovers ?? 0) * SCORE_WEIGHTS.turnovers;
+    return score;
+}
+// --- End Score Calculation Function ---
 
 // Handler for GET /api/groups/[groupId]
 export async function GET(req: NextRequest, { params }: { params: { groupId: string } }) {
-    const groupId = params.groupId; // Get groupId from path parameters
+    const groupId = params.groupId;
     const session = await auth();
+    const userId = session?.user?.id;
 
-    if (!session?.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = session.user.id;
-
-    if (!groupId) {
-        return NextResponse.json({ error: "Group ID missing in URL" }, { status: 400 });
-    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!groupId) return NextResponse.json({ error: "Group ID missing" }, { status: 400 });
 
     try {
-        // Fetch the specific group details
-        const group = await prisma.group.findUnique({
-            where: { id: groupId },
-        });
+        // --- Fetch Group and Auth Check Concurrently --- 
+        const [group, userInGroup] = await Promise.all([
+            prisma.group.findUnique({ where: { id: groupId } }),
+            prisma.groupUser.findFirst({ where: { groupId, userId } })
+        ]);
 
-        if (!group) {
-            return NextResponse.json({ error: "Group not found" }, { status: 404 });
-        }
+        if (!group) return NextResponse.json({ error: "Group not found" }, { status: 404 });
+        if (!userInGroup) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-        // Authorization check: Ensure the current user is part of this group
-        const userInGroup = await prisma.groupUser.findFirst({
-            where: {
-                groupId: groupId,
-                userId: userId,
+        // --- Fetch Submissions and Necessary Related Data --- 
+        const groupUsersWithData = await prisma.groupUser.findMany({
+            where: { groupId },
+            include: {
+                user: { select: { id: true, username: true } }, // Only username needed now
+                submissions: {
+                    select: { // Select only needed fields
+                        id: true, createdAt: true, gameId: true, playerId: true,
+                        game: { select: { date: true, status: true } }, 
+                        player: { select: { name: true } } 
+                    },
+                    orderBy: { game: { date: 'desc' } } 
+                },
             },
         });
-        if (!userInGroup) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
 
-        // --- Fetch necessary data concurrently --- 
+        // --- Fetch Required PlayerGameStats and Calculate Scores --- 
+        const statLookupKeys = groupUsersWithData.flatMap(gu => 
+            gu.submissions.map(sub => ({ gameId: sub.gameId, playerId: sub.playerId }))
+        ).filter((value, index, self) => 
+            index === self.findIndex((t) => (
+                t.gameId === value.gameId && t.playerId === value.playerId
+            ))
+        );
+
+        const calculatedScoresMap = new Map<string, number | null>();
+        if (statLookupKeys.length > 0) {
+            const statsData = await prisma.playerGameStats.findMany({
+                where: { OR: statLookupKeys },
+            });
+            statsData.forEach(stat => {
+                const key = `${stat.gameId}_${stat.playerId}`;
+                calculatedScoresMap.set(key, calculateScore(stat)); // Calculate score here
+            });
+        }
+        // --- End Stats Fetch and Score Calculation --- 
+
+        // --- Fetch Games for Game Counts --- 
         const playoffStartDate = startOfDay(parseISO(PLAYOFF_START_DATE));
         const playoffEndDate = startOfDay(parseISO(PLAYOFF_END_DATE));
-        console.log(`API: Querying games between ${format(playoffStartDate, 'yyyy-MM-dd')} and ${format(playoffEndDate, 'yyyy-MM-dd')}`); // Log date range
-
-        const [groupUsers, gamesInRange] = await Promise.all([
-            // Fetch all group users with ALL submissions + relations needed
-            prisma.groupUser.findMany({
-                where: { groupId },
-                include: {
-                    user: { select: { id: true, username: true, email: true } },
-                    submissions: {
-                        include: {
-                            game: { select: { id: true, date: true, status: true } },
-                            player: { select: { id: true, name: true } },
-                        },
-                    },
-                },
-            }),
-            // Fetch games in playoff range
-            prisma.game.findMany({
-                where: {
-                    date: {
-                        gte: playoffStartDate,
-                        lte: playoffEndDate,
-                    },
-                },
-                select: { date: true }
-            })
-        ]);
-        // --- End concurrent fetching ---
-
-        // --- Log fetched games --- 
-        console.log(`API: Found ${gamesInRange.length} games in range.`);
-        // --- End Log --- 
-
-        // Calculate Game Counts
+        const gamesInRange = await prisma.game.findMany({
+             where: { date: { gte: playoffStartDate, lte: playoffEndDate } },
+             select: { date: true }
+        });
         const gameCountsByDate: { [dateKey: string]: number } = {};
         gamesInRange.forEach(game => {
             const dateKey = format(startOfDay(game.date), 'yyyy-MM-dd');
             gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
         });
+        // --- End Game Counts --- 
 
-        // --- Log calculated counts --- 
-        console.log(`API: Calculated gameCountsByDate:`, gameCountsByDate);
-        // --- End Log ---
-
-        // Determine today's date (start of day UTC) for filtering submissions
         const todayUTCStart = startOfDay(new Date());
+        const currentUserSubmissionsMap: { [k: string]: { playerName: string; score: number | null; isFuture: boolean } } = {};
 
-        // --- Create Map for CURRENT User's Submissions ---
-        const currentUserSubmissionsMap: {
-            [dateKey: string]: { playerName: string; score: number | null; isFuture: boolean }
-        } = {};
-        const currentUserData = groupUsers.find(gu => gu.userId === userId);
-        currentUserData?.submissions.forEach(sub => {
-            if (!sub.game?.date || !sub.player?.name) return;
-            const gameDateStart = startOfDay(sub.game.date);
-            const dateKey = format(gameDateStart, 'yyyy-MM-dd');
-            const isFuture = gameDateStart > todayUTCStart;
-            currentUserSubmissionsMap[dateKey] = {
-                playerName: sub.player.name,
-                score: !isFuture ? (sub.calculatedScore ?? null) : null,
-                isFuture: isFuture
-            };
-        });
-        // --- End Current User Submissions Map ---
-
-        // Calculate scores
-        const scoredGroupUsers = groupUsers.map((groupUser) => {
+        // --- Process Users for Final Response --- 
+        const scoredGroupUsers = groupUsersWithData.map((groupUser) => {
             let totalScore = 0;
+
             groupUser.submissions.forEach((sub) => {
-                const gameDateStart = sub.game?.date ? startOfDay(sub.game.date) : null;
-                if (gameDateStart && gameDateStart <= todayUTCStart) {
-                    totalScore += sub.calculatedScore ?? 0;
+                if (!sub.game?.date || !sub.player?.name) return;
+
+                const gameDateStart = startOfDay(sub.game.date);
+                const isFuture = gameDateStart > todayUTCStart;
+                let submissionScore: number | null = null;
+
+                if (!isFuture) {
+                    submissionScore = calculatedScoresMap.get(`${sub.gameId}_${sub.playerId}`) ?? null;
+                    if (submissionScore !== null) {
+                        totalScore += submissionScore;
+                    }
+                }
+
+                // Populate map for the current user's calendar display
+                if (groupUser.userId === userId) {
+                    const dateKey = format(gameDateStart, 'yyyy-MM-dd');
+                    currentUserSubmissionsMap[dateKey] = {
+                        playerName: sub.player.name,
+                        score: submissionScore, // Correctly null for future
+                        isFuture: isFuture
+                    };
                 }
             });
 
@@ -123,15 +140,15 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                 username: groupUser.user.username,
                 isAdmin: groupUser.isAdmin,
                 score: totalScore,
+                // submissions array removed as it's not needed by current frontend
             };
         }).sort((a, b) => b.score - a.score);
 
-        // Return all data including game counts
         return NextResponse.json({
             group,
-            players: scoredGroupUsers,
-            currentUserSubmissionsMap,
-            gameCountsByDate,
+            players: scoredGroupUsers, 
+            currentUserSubmissionsMap, 
+            gameCountsByDate,          
         });
 
     } catch (error) {

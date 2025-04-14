@@ -75,7 +75,7 @@ model Player {
 model Game {
   id             String            @id @default(uuid())
   espnId         String            @unique
-  date           DateTime          @db.Date
+  date           DateTime          
   homeTeamId     String            @map("home_team_id")
   awayTeamId     String            @map("away_team_id")
   homeScore      Int?
@@ -121,7 +121,6 @@ model Submission {
   groupUserId     String?  @map("group_user_id")
   gameId          String   @map("game_id")
   playerId        String   @map("player_id")
-  calculatedScore Int?     @map("calculated_score")
 
   user      User       @relation(fields: [userId], references: [id])
   groupUser GroupUser? @relation(fields: [groupUserId], references: [id])

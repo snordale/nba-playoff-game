@@ -42,14 +42,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
 
-    // 4. Validate Game Date (Ensure game is today or in the future UTC)
+    // 4. Validate Game State (Ensure game hasn't started or finished)
     const now = new Date();
-    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const isScheduled = game.status === 'STATUS_SCHEDULED'; // Check for specific scheduled status
 
-    // Prisma stores `@db.Date` as a Date object at UTC midnight.
-    // We need to ensure the game date is not before today's UTC midnight.
-    if (game.date < todayUTC) {
-        return NextResponse.json({ error: "Cannot submit for past games." }, { status: 400 });
+    // Prevent submission if game status is not scheduled OR if the scheduled start time is in the past
+    if (!isScheduled || game.date <= now) { 
+        let reason = !isScheduled ? `status is ${game.status}` : `start time (${game.date.toLocaleString()}) has passed`;
+        return NextResponse.json(
+            { error: `Cannot submit for this game because its ${reason}.` }, 
+            { status: 400 } // Bad Request status
+        );
     }
     
     // It might also be useful to check game.status if available and reliable
