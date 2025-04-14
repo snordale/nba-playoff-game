@@ -25,6 +25,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async signIn({ user }) {
+      console.log("SignIn", user);
       if (!user.email) {
         console.error("SignIn callback: User email is missing.");
         return false;
@@ -37,10 +38,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           create: {
             email: user.email,
             username: user.email,
-            image: user.image,
+            image: user.image ?? null,
           },
           update: {
-            image: user.image,
+            image: user.image ?? null,
           },
         });
 

@@ -1,6 +1,7 @@
 import { prisma } from "../../prisma/client";
 import { getGamesByDate, getEventBoxScore } from "../EspnService";
 import { Game, Player, PlayerGameStats, Team } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 // Define stat indices based on expected ESPN API keys
 const STAT_INDICES = {
@@ -14,68 +15,91 @@ const STAT_INDICES = {
 };
 
 /**
- * Finds or creates a Team record based on ESPN data using upsert.
+ * Finds or creates a Team record based on ESPN data. Handles potential conflicts and TBD teams.
  */
 const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abbreviation?: string }) => {
-  const teamEspnId = teamData.id;
   const teamName = teamData.displayName;
-  const teamAbbreviation = teamData.abbreviation ?? teamName.substring(0, 3).toUpperCase();
+  const teamEspnId = teamData.id;
+  
+  // --- Handle TBD Teams --- 
+  if (teamName === "TBD") {
+      const tbdTeam = await prisma.team.findUnique({ where: { name: "TBD" } });
+      if (tbdTeam) {
+          return tbdTeam; // Return existing TBD record
+      }
+      // TBD team doesn't exist, create it (use unique name/abbr)
+      try {
+          console.log("Creating dedicated TBD team record...");
+          return await prisma.team.create({
+              data: {
+                  name: "TBD",
+                  abbreviation: "TBD",
+                  espnId: null // Or a special placeholder ID if preferred
+              }
+          });
+      } catch (error: any) {
+          // Handle potential race condition if another process created it simultaneously
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+              console.warn("Warn: Race condition creating TBD team, attempting to fetch again.");
+              return await prisma.team.findUnique({ where: { name: "TBD" } }); // Should exist now
+          }
+          console.error("CRITICAL: Failed to create or find TBD team:", error);
+          return null;
+      }
+  }
+  // --- End TBD Handling --- 
 
-  if (!teamEspnId) {
-    // Still handle the case where ESPN ID is missing - try to find by name
-    console.warn(`Warn: Missing ESPN ID for team: ${teamName}. Attempting findUnique by name.`);
-    try {
-        const existingTeam = await prisma.team.findUnique({ where: { name: teamName } });
-        if (existingTeam) {
-            console.log(`Found existing team by name: ${teamName} (ID: ${existingTeam.id})`);
-            return existingTeam;
-        }
-        // If not found by name either, we cannot reliably upsert without an ID
-        console.error(`Error: Cannot find or create team without ESPN ID and unique name not found: ${teamName}`);
-        return null;
-    } catch (error) {
-        console.error(`Error finding team by name ${teamName}:`, error);
-        return null;
-    }
+  // --- Handle Normal Teams (Existing Robust Logic) --- 
+  const teamAbbreviation = teamData.abbreviation ?? teamName.substring(0, 3).toUpperCase();
+  const updatePayload = {
+      name: teamName,
+      abbreviation: teamAbbreviation,
+      ...(teamEspnId && { espnId: teamEspnId })
+  };
+  const createPayload = {
+      espnId: teamEspnId,
+      name: teamName,
+      abbreviation: teamAbbreviation,
+  };
+
+  let team = null;
+
+  // 1. Try finding by ESPN ID if provided
+  if (teamEspnId) {
+      team = await prisma.team.findUnique({ where: { espnId: teamEspnId } });
+      if (team) {
+          try {
+              return await prisma.team.update({ where: { id: team.id }, data: updatePayload });
+          } catch (error: any) {
+              console.warn(`Warn: Failed to update team ${team.id} found by espnId ${teamEspnId} (conflict?): ${error.message}. Using existing.`);
+              return team; 
+          }
+      }
   }
 
-  // Proceed with upsert if ESPN ID exists
+  // 2. If not found by espnId, try finding by Name
+  team = await prisma.team.findUnique({ where: { name: teamName } });
+  if (team) {
+      try {
+          return await prisma.team.update({ where: { id: team.id }, data: updatePayload });
+      } catch (error: any) {
+          console.warn(`Warn: Failed to update team ${team.id} found by name ${teamName} (conflict?): ${error.message}. Using existing.`);
+          return team;
+      }
+  }
+
+  // 3. If not found by espnId or Name, try to create
   try {
-    const team = await prisma.team.upsert({
-      where: { espnId: teamEspnId }, // Use espnId as the primary lookup
-      update: {
-        name: teamName,
-        abbreviation: teamAbbreviation,
-      },
-      create: {
-        espnId: teamEspnId,
-        name: teamName,
-        abbreviation: teamAbbreviation,
-      },
-    });
-    return team;
+      return await prisma.team.create({ data: createPayload });
   } catch (error: any) {
-    // Log detailed info on failure
-    console.error(
-        `Error during prisma.team.upsert for team: ` +
-        `{ espnId: ${teamEspnId}, name: "${teamName}", abbreviation: "${teamAbbreviation}" }. ` +
-        `Error: ${error.message}`,
-        // Optionally log the full error object for more details
-        // error 
-    );
-    // Attempt to find the conflicting record(s) for better debugging (optional)
-    try {
-        const conflictByName = await prisma.team.findUnique({ where: { name: teamName }});
-        if (conflictByName && conflictByName.espnId !== teamEspnId) {
-            console.warn(`Potential conflict: Name "${teamName}" exists with espnId ${conflictByName.espnId}`);
-        }
-        const conflictByAbbr = await prisma.team.findFirst({ where: { abbreviation: teamAbbreviation }});
-         if (conflictByAbbr && conflictByAbbr.espnId !== teamEspnId) {
-            console.warn(`Potential conflict: Abbreviation "${teamAbbreviation}" exists with espnId ${conflictByAbbr.espnId}`);
-        }
-    } catch { /* Ignore errors during diagnostic lookup */ }
-    
-    return null; // Indicate failure
+       console.error(`Error: Failed to create team ${teamName} (espnId: ${teamEspnId}): ${error.message}`);
+       team = await prisma.team.findUnique({ where: { name: teamName } });
+       if(team) {
+           console.warn(`Warn: Found team ${teamName} on fallback search after create failed.`);
+           return team;
+       }
+       console.error(`CRITICAL: Could not find or create team: ${teamName}`);
+       return null;
   }
 };
 

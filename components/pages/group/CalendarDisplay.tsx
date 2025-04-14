@@ -54,7 +54,7 @@ const TileContent = ({
   const userSubmission = currentUserSubmissionsMap?.[dateKey]; 
 
   return (
-    <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="80px"> 
+    <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="110px"> 
        {/* Display Game Count */} 
        {gameCount !== undefined && gameCount > 0 && (
            <Text fontSize="9px" color="gray.500" textAlign="right" lineHeight="1" w="full">
@@ -120,14 +120,27 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
           width: 100%;
         }
         .react-calendar__tile {
-          height: 90px; /* Adjust tile height */
+          height: 140px; /* INCREASED tile height */
           display: flex;
           flex-direction: column;
           align-items: flex-start;
           padding: 4px;
+          border-radius: 4px;
+          transition: background-color 0.2s ease;
         }
+        .react-calendar__tile:enabled:hover,
+        .react-calendar__tile:enabled:focus {
+            /* Use Chakra theme color token for light orange */
+            background-color: var(--chakra-colors-orange-50); 
+        }
+        .react-calendar__tile--active { 
+             /* Style for the selected day, if needed */
+            background-color: var(--chakra-colors-orange-100) !important; 
+            color: var(--chakra-colors-orange-800); 
+         } 
          .react-calendar__tile--now {
-          background: #ffffe0 !important; /* Highlight today */
+          background: #FFF5EB !important; /* orange.50 for today */
+          font-weight: bold;
         }
         .react-calendar__month-view__days__day--neighboringMonth {
           color: #ccc; /* Dim days from other months */
