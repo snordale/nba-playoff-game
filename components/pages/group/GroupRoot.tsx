@@ -196,10 +196,15 @@ export const GroupRoot = ({ params }) => {
           };
         }
 
+        // Check if this player has already been submitted for this date
+        const dateKey = format(new Date(player.gameDate), 'yyyy-MM-dd');
+        const submission = currentUserSubmissionsMap?.[dateKey];
+        const isSubmitted = submission?.playerName === player.name;
+
         acc[player.gameId].teams[player.teamName].players.push({
           id: player.id,
           name: player.name,
-          alreadySubmitted: false
+          alreadySubmitted: isSubmitted
         });
 
         return acc;
@@ -211,7 +216,7 @@ export const GroupRoot = ({ params }) => {
       gameDate: game.gameDate,
       teams: Object.values(game.teams)
     }));
-  }, [playersForDate, search]);
+  }, [playersForDate, search, currentUserSubmissionsMap]);
 
   useEffect(() => {
     if (submitSuccess) {
@@ -343,11 +348,15 @@ const GroupInterface = ({
       
       // Add submissions for each player on this date
       scoredPlayers?.forEach(player => {
-        const submission = player.submission;
-        if (submission && format(new Date(submission.date), 'yyyy-MM-dd') === dateKey) {
+        // Find submission for this specific date
+        const submission = player.submissions?.find(sub => 
+          format(new Date(sub.date), 'yyyy-MM-dd') === dateKey
+        );
+        
+        if (submission) {
           submissionMap[dateKey].push({
             username: player.username,
-            playerName: submission.playerName,
+            playerName: submission?.playerName,
             score: submission.score
           });
         }
@@ -488,28 +497,21 @@ const GroupInterface = ({
           >
             {sortedDates.map(date => {
               const isToday = new Date(date).toDateString() === new Date().toDateString();
-              const dateSubmissions = {};
-
-              // Create a map of submissions for each user
-              scoredPlayers?.forEach(player => {
-                if (player.userId === currentUserId) {
-                  // For the current user, use the currentUserSubmissionsMap
-                  const submission = currentUserSubmissionsMap?.[date];
-                  if (submission) {
-                    dateSubmissions[player.userId] = {
-                      playerName: submission.playerName,
-                      score: submission.score,
-                      isFuture: submission.isFuture
-                    };
-                  }
-                }
-              });
-
-              const playersWithSubmissions = scoredPlayers?.map(player => ({
-                userId: player.userId,
-                username: player.username,
-                submission: dateSubmissions[player.userId]
-              })) || [];
+              
+              // Map players to include their submission details for THIS specific date
+              const playersWithSubmissionsForDate = scoredPlayers?.map(player => {
+                const submission = player.submissions?.find(sub =>
+                  format(new Date(sub.date), 'yyyy-MM-dd') === date
+                );
+                return {
+                  userId: player.userId,
+                  username: player.username,
+                  submission: submission ? {
+                    playerName: submission?.playerName,
+                    score: submission.score
+                  } : null
+                };
+              }) || [];
 
               return (
                 <div key={date} ref={isToday ? todayRef : null}>
@@ -517,7 +519,7 @@ const GroupInterface = ({
                     date={date}
                     hasGames={gameCountsByDate?.[date] > 0}
                     onClick={handleCardClick}
-                    players={playersWithSubmissions}
+                    players={playersWithSubmissionsForDate}
                   />
                 </div>
               );
@@ -540,11 +542,16 @@ const GroupInterface = ({
         isOpen={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
         selectedDate={detailsDate}
-        submissions={detailsDate && scoredPlayers ? scoredPlayers.map(player => ({
-          username: player.username,
-          playerName: player.submission?.playerName || 'No pick',
-          score: player.submission?.score || null
-        })) : []}
+        submissions={detailsDate && scoredPlayers ? scoredPlayers.map(player => {
+          const submission = player.submissions?.find(sub => 
+            format(new Date(sub.date), 'yyyy-MM-dd') === detailsDate
+          );
+          return {
+            username: player.username,
+            playerName: submission?.playerName || 'No pick',
+            score: submission?.score || null
+          };
+        }) : []}
         games={detailsGames}
       />
     </Stack>

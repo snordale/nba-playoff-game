@@ -80,13 +80,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Find the GroupUser record for this submission
+    const gameRecord = await prisma.game.findUnique({
+      where: { id: gameId }
+    });
+
+    if (!gameRecord) {
+      return NextResponse.json(
+        { error: "Game not found" },
+        { status: 404 }
+      );
+    }
+
+    // Find all groups the user is a member of
+    const groupUsers = await prisma.groupUser.findMany({
+      where: {
+        userId
+      }
+    });
+
+    if (groupUsers.length === 0) {
+      return NextResponse.json(
+        { error: "You are not a member of any groups" },
+        { status: 400 }
+      );
+    }
+
+    // For now, just use the first group user record
+    // In the future, we might want to allow specifying which group to submit for
+    const groupUser = groupUsers[0];
+
     // 7. Create Submission
     const newSubmission = await prisma.submission.create({
       data: {
         userId: userId,
         gameId: gameId,
         playerId: playerId,
-        // groupUserId might be needed if submissions are tied to groups?
+        groupUserId: groupUser.id
       },
     });
 

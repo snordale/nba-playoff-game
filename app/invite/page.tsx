@@ -68,7 +68,6 @@ async function handleInvite(token: string, userId: string | undefined) {
             isAdmin: false, // Default to non-admin
           },
         });
-        console.log(`User ${userId} successfully added to group ${groupId}.`);
       }
       // Redirect to the league page regardless of whether they were added now or already members
       redirect(`/groups/${groupId}`); // Use redirect from next/navigation

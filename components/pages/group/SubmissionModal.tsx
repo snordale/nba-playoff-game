@@ -43,7 +43,7 @@ export const SubmissionModal = ({
                   <Spinner color="orange.500" size="sm" />
                 </HStack>
               ) : games && games.length > 0 ? (
-                <Grid gap={2} gridTemplateColumns={['1fr', '1fr 1fr', '1fr 1fr', '1fr 1fr 1fr']}>
+                <Grid gap={2} gridTemplateColumns={['1fr 1fr', '1fr 1fr', '1fr 1fr 1fr']}>
                   {games.map((game) => (
                     <Box key={game.id} p={3} borderWidth="1px" borderRadius="md">
                       <HStack justify="space-between" alignItems='flex-start'>

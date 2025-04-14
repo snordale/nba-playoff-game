@@ -51,11 +51,17 @@ const TileContent = ({
 
   const dateKey = format(date, 'yyyy-MM-dd');
   const today = startOfDay(new Date());
-  const isDayInPastOrToday = date < today && !isToday(date);
+  const isDayInPastOrToday = date <= today;
   const isDayToday = isToday(date);
   const gameCount = gameCountsByDate?.[dateKey];
   const userSubmission = currentUserSubmissionsMap?.[dateKey];
   const allSubmissions = submissionsByDate?.[dateKey] || [];
+
+  console.log(`Rendering date ${dateKey}:`, {
+    isDayInPastOrToday,
+    gameCount,
+    allSubmissions
+  });
 
   return (
     <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="110px">
@@ -96,23 +102,15 @@ const TileContent = ({
         )
       ) : (
         // --- Render Future Day --- 
-        allSubmissions.length > 0 ? (
+        gameCount !== undefined && gameCount > 0 ? (
           <VStack align="stretch" spacing={0.5} mt={1}>
             {allSubmissions.map((submission, index) => (
-              <Text key={index} fontSize="9px" color="green.500" isTruncated noOfLines={1}>
-                {submission.username} ✓
+              <Text key={index} fontSize="9px" color={submission.playerName ? "green.500" : "gray.500"} isTruncated noOfLines={1}>
+                {submission.username}: {submission.playerName ? "PICK IN" : "NO PICK"}
               </Text>
             ))}
           </VStack>
-        ) : (
-          gameCount !== undefined && gameCount > 0 ? (
-            <Center h="full" w="full" pt={1}>
-              <Tooltip label="No submissions yet" placement="top">
-                <Icon as={MinusIcon} color="gray.400" boxSize={2.5} />
-              </Tooltip>
-            </Center>
-          ) : null
-        )
+        ) : null
       )}
     </VStack>
   );

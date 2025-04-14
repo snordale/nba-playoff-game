@@ -46,7 +46,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
               <AuthButton />
             </Flex>
             <Box as="main" flex={1} w="100%" overflowY='scroll'>
-              <Box minH='calc(100vh - 4rem)' pt={16} px={4}>
+              <Box minH='calc(100vh - 4rem)' py={16} px={4}>
                 {children}
               </Box>
               <Box bottom={0} py={4} borderTop='1px solid' borderColor='orange.600' px={4}>
