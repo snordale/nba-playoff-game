@@ -1,6 +1,6 @@
 import { prisma } from "../../prisma/client";
-import { getGamesByDate, getEventBoxScore } from "../EspnService";
-import { Game, Player, PlayerGameStats, Team } from '@prisma/client';
+import { getGamesByDate, getEventBoxScore, getAllTeams, getTeamRoster, ESPNApiTeam } from "../EspnService";
+import { Game, Player, PlayerGameStats, PrismaClient, Team } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 
 // Define stat indices based on expected ESPN API keys
@@ -372,61 +372,62 @@ export const loadGamesForDate = async (
             const error = `Box score not available for game ${event.id}. Skipping stats.`;
             log(error);
             errors.push(error);
-            continue;
-          }
+            // DO NOT 'continue' here, we still want to mark the game processed if possible
+            // and add it to the results, even without stats.
+          } else {
+            // --- Process Box Score Teams/Stats (using data now populated correctly by EspnService) ---
+            log(`  Processing box score stats for game ${event.id}...`);
+            for (const teamBox of boxScore.teams) {
+              const team = await getOrCreateTeam(teamBox.team);
+              if (!team) continue;
 
-          // --- Process Box Score Teams/Stats (using data now populated correctly by EspnService) ---
-          log(`  Processing box score stats for game ${event.id}...`);
-          for (const teamBox of boxScore.teams) {
-            const team = await getOrCreateTeam(teamBox.team);
-            if (!team) continue;
+              // Process each player's stats
+              for (const athlete of teamBox.athletes || []) {
+                // Skip players who didn't play or don't have stats
+                if (athlete.didNotPlay || !athlete.stats || !Array.isArray(athlete.stats) || athlete.stats.length === 0) { // Added check for empty stats array
+                  continue;
+                }
 
-            // Process each player's stats
-            for (const athlete of teamBox.athletes || []) {
-              // Skip players who didn't play or don't have stats
-              if (athlete.didNotPlay || !athlete.stats || !Array.isArray(athlete.stats) || athlete.stats.length === 0) { // Added check for empty stats array
-                continue;
-              }
+                const player = await getOrCreatePlayer(athlete.athlete, team.id);
+                if (!player) continue;
 
-              const player = await getOrCreatePlayer(athlete.athlete, team.id);
-              if (!player) continue;
+                const stats = parsePlayerStats(athlete);
 
-              const stats = parsePlayerStats(athlete);
-
-              // Create/Update PlayerGameStats
-              try {
-                await prisma.playerGameStats.upsert({
-                  where: {
-                    gameId_playerId: {
+                // Create/Update PlayerGameStats
+                try {
+                  await prisma.playerGameStats.upsert({
+                    where: {
+                      gameId_playerId: {
+                        gameId: game.id,
+                        playerId: player.id,
+                      },
+                    },
+                    update: stats,
+                    create: {
                       gameId: game.id,
                       playerId: player.id,
+                      ...stats,
                     },
-                  },
-                  update: stats,
-                  create: {
-                    gameId: game.id,
-                    playerId: player.id,
-                    ...stats,
-                  },
-                });
-              } catch (upsertError) {
-                log(`    ERROR upserting stats for ${player.name}:`, upsertError);
-                errors.push(`Error upserting stats for ${player.name} in game ${game.id}: ${upsertError.message}`);
+                  });
+                } catch (upsertError: any) { // Added : any to catch error
+                  log(`    ERROR upserting stats for ${player.name}:`, upsertError);
+                  errors.push(`Error upserting stats for ${player.name} in game ${game.id}: ${upsertError.message}`);
+                }
               }
             }
-          }
-          // --- End Box Score Stats Processing ---
+            // --- End Box Score Stats Processing ---
 
-          // Mark game as processed ONLY if box score stats were successfully processed
-          // This logic should still be valid as it checks the populated boxScore.teams[...].athletes[...].stats
-          const statsWereProcessed = boxScore.teams.some(tb => tb.athletes?.some(a => a.stats && a.stats.length > 0));
-          if (statsWereProcessed) {
-            await prisma.game.update({
-              where: { id: game.id },
-              data: { statsProcessed: true },
-            });
-            log(`  Marked game ${game.id} as statsProcessed.`);
-          }
+            // Mark game as processed ONLY if box score stats were successfully processed
+            // This logic should still be valid as it checks the populated boxScore.teams[...].athletes[...].stats
+            const statsWereProcessed = boxScore.teams.some(tb => tb.athletes?.some(a => a.stats && a.stats.length > 0));
+            if (statsWereProcessed) {
+              await prisma.game.update({
+                where: { id: game.id },
+                data: { statsProcessed: true },
+              });
+              log(`  Marked game ${game.id} as statsProcessed.`);
+            }
+          } // End else block for boxScore check
         }
 
         // Update the game object before pushing to processedGames
@@ -458,6 +459,148 @@ export const loadGamesForDate = async (
     return { gamesProcessed, gamesFailed, errors, games: processedGames };
   } catch (error: any) {
     log(`Error loading games for date ${date}:`, error);
-    return { gamesProcessed, gamesFailed, errors, games: [] };
+    errors.push(`Critical error fetching events for date ${date.toISOString()}: ${error.message}`); // Add critical error to list
+    return { gamesProcessed, gamesFailed, errors, games: [] }; // Return empty results on critical failure
+  }
+};
+
+/**
+ * Fetches all NBA teams and their rosters from the ESPN API and upserts them into the database.
+ * Processes teams in batches to manage load and concurrency.
+ */
+export async function loadTeamsAndPlayers() {
+  console.log("Starting to load teams and players from ESPN API...");
+
+  try {
+    const allApiTeams = await getAllTeams(); // Fetch all teams initially
+
+    if (!allApiTeams || allApiTeams.length === 0) {
+      console.warn("No teams fetched from ESPN API. Aborting database load.");
+      return;
+    }
+
+    console.log(`Fetched ${allApiTeams.length} teams. Processing in batches...`);
+
+    const batchSize = 6; // Define batch size
+
+    // Create chunks of teams
+    const teamChunks: ESPNApiTeam[][] = [];
+    for (let i = 0; i < allApiTeams.length; i += batchSize) {
+      teamChunks.push(allApiTeams.slice(i, i + batchSize));
+    }
+
+    // Process each chunk sequentially
+    for (let i = 0; i < teamChunks.length; i++) {
+      const chunk = teamChunks[i];
+      console.log(`--- Processing Batch ${i + 1} of ${teamChunks.length} (Teams ${i * batchSize + 1} to ${Math.min((i + 1) * batchSize, allApiTeams.length)}) ---`);
+
+      // Process teams within the current chunk in parallel
+      const batchPromises = chunk.map(async (apiTeam) => {
+        // Encapsulate the logic for processing a single team
+        if (!apiTeam.abbreviation || !apiTeam.id) {
+          console.warn(`Team with name "${apiTeam.displayName}" is missing abbreviation or ID. Skipping.`);
+          return; // Skip this team in the batch
+        }
+
+        console.log(`Processing team: ${apiTeam.displayName} (${apiTeam.abbreviation})`);
+
+        // --- Database Team Upsert ---
+        const primaryLogo = apiTeam.logos?.find(logo => logo.rel.includes("default"));
+        let upsertedTeam: Team | null = null;
+        try {
+          upsertedTeam = await prisma.team.upsert({
+            where: { espnId: apiTeam.id },
+            update: {
+              name: apiTeam.displayName,
+              abbreviation: apiTeam.abbreviation,
+              image: primaryLogo?.href,
+            },
+            create: {
+              espnId: apiTeam.id,
+              name: apiTeam.displayName,
+              abbreviation: apiTeam.abbreviation,
+              image: primaryLogo?.href,
+            },
+          });
+          console.log(`Upserted team ${upsertedTeam.abbreviation} with DB ID ${upsertedTeam.id}`);
+        } catch (dbError: any) { // Added :any
+          console.error(`Failed to upsert team ${apiTeam.abbreviation} (ESPN ID: ${apiTeam.id}) into DB:`, dbError);
+          throw new Error(`Team upsert failed for ${apiTeam.abbreviation}: ${dbError.message}`); // Re-throw to be caught by Promise.allSettled
+        }
+
+        // --- Fetch Roster ---
+        let rosterData;
+        try {
+           rosterData = await getTeamRoster(apiTeam.abbreviation);
+        } catch (fetchError: any) { // Added :any
+            console.error(`Failed to fetch roster for ${apiTeam.abbreviation}:`, fetchError);
+            throw new Error(`Roster fetch failed for ${apiTeam.abbreviation}: ${fetchError.message}`); // Re-throw
+        }
+
+
+        if (!rosterData || !rosterData.athletes || rosterData.athletes.length === 0) {
+          console.warn(`No roster data found for ${apiTeam.abbreviation}. Skipping player processing.`);
+          return; // Stop processing this team if no roster data
+        }
+
+        console.log(`Fetched ${rosterData.athletes.length} players for ${apiTeam.abbreviation}. Processing players...`);
+
+        // --- Database Player Upsert (can also be batched per team if needed, but upserting one-by-one is often fine) ---
+        for (const apiPlayer of rosterData.athletes) {
+          if (!apiPlayer.id) {
+            console.warn(`Player data missing ID for team ${apiTeam.abbreviation}. Player name: ${apiPlayer.fullName}. Skipping.`);
+            continue; // Skip this player
+          }
+
+          try {
+            // *** Adding currentTeamId to update block as discussed previously ***
+            await prisma.player.upsert({
+              where: { espnId: apiPlayer.id },
+              update: {
+                name: apiPlayer.fullName,
+                image: apiPlayer.headshot?.href,
+                currentTeamId: upsertedTeam.id, // Keep player associated with the current team
+                // Consider adding other fields here if needed (firstName, lastName, etc.)
+              },
+              create: {
+                espnId: apiPlayer.id,
+                name: apiPlayer.fullName,
+                image: apiPlayer.headshot?.href,
+                currentTeamId: upsertedTeam.id,
+                 // Consider adding other fields here if needed
+              },
+            });
+             // console.log(`Upserted player ${apiPlayer.fullName} (ESPN ID: ${apiPlayer.id}) for team ${apiTeam.abbreviation}`);
+          } catch (dbError: any) { // Added :any
+            console.error(`Failed to upsert player ${apiPlayer.fullName} (ESPN ID: ${apiPlayer.id}) for team ${apiTeam.abbreviation}:`, dbError);
+            // Log error but continue with the next player
+          }
+        }
+        console.log(`Finished processing players for ${apiTeam.abbreviation}.`);
+      }); // End of async function for map
+
+      // Wait for all promises in the current batch to settle
+      const results = await Promise.allSettled(batchPromises);
+      // Log any rejected promises within the batch
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          // Getting the team name requires the original chunk array index
+          const teamName = chunk[index]?.displayName || `Team at index ${index} in batch`;
+          console.error(`Error processing ${teamName} in batch ${i + 1}:`, result.reason);
+        }
+      });
+
+
+      console.log(`--- Finished Batch ${i + 1} ---`);
+      // Optional: Add a delay between batches if needed to further rate limit
+       // await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+    } // End of loop through chunks
+
+    console.log("Finished loading all teams and players.");
+
+  } catch (error) {
+    console.error("A critical error occurred during the overall loadTeamsAndPlayers process:", error);
+    // Depending on requirements, you might want to re-throw the error
+    // throw new Error(`Failed to complete team and player load: ${error.message}`);
   }
 };

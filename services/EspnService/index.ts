@@ -1,9 +1,17 @@
+/**
+ * Unused but found: https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams
+ * Unused but found: https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/bos
+ * Unused but found: https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/bos/roster
+ */
+
+
 // Assuming ESPN API provides these IDs - adjust if necessary
 export interface ESPNAthleteRef {
   id?: string; // Crucial if available
   uid?: string;
   guid?: string;
   displayName: string;
+  headshot?: { href: string }; // Add optional headshot
 }
 
 export interface ESPNTeamRef {
@@ -11,6 +19,7 @@ export interface ESPNTeamRef {
   uid?: string;
   abbreviation?: string;
   displayName: string;
+  logos?: Array<{ href: string }>; // Keep for compatibility or adjust
 }
 
 interface ESPNRawStats {
@@ -274,4 +283,184 @@ export const getBoxScoresByDate = async ({ date }: { date: Date }): Promise<Arra
     console.error("Error fetching multiple box scores:", error);
     throw new Error(`Failed to fetch box scores by date: ${error.message}`);
   }
+};
+
+// --- NEW API Endpoint Structures ---
+
+// Interface for a single team from the /teams endpoint (inferred structure)
+export interface ESPNApiTeam {
+    id: string;
+    uid: string;
+    slug: string;
+    abbreviation: string;
+    displayName: string;
+    shortDisplayName: string;
+    name: string;
+    nickname: string;
+    location: string;
+    color: string;
+    alternateColor: string;
+    isActive: boolean;
+    isAllStar: boolean;
+    logos: Array<{
+        href: string;
+        width: number;
+        height: number;
+        alt: string;
+        rel: string[];
+        lastUpdated?: string;
+    }>;
+    links: Array<{
+        language: string;
+        rel: string[];
+        href: string;
+        text: string;
+        shortText: string;
+        isExternal: boolean;
+        isPremium: boolean;
+    }>;
+}
+
+// Interface for the response from the /teams endpoint (inferred structure)
+interface ESPNApiTeamsResponse {
+    sports: Array<{
+        slug: string;
+        leagues: Array<{
+            slug: string;
+            teams: Array<{ team: ESPNApiTeam }>; // Assuming teams are nested like this
+        }>;
+    }>;
+}
+
+
+// Interface for a single athlete from the /teams/{abbrev}/roster endpoint
+export interface ESPNApiRosterAthlete {
+    id: string;
+    uid: string;
+    guid: string;
+    alternateIds?: { sdr?: string };
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    displayName: string;
+    shortName: string;
+    weight?: number;
+    displayWeight?: string;
+    height?: number;
+    displayHeight?: string;
+    age?: number;
+    dateOfBirth?: string;
+    debutYear?: number;
+    links?: Array<any>; // Simplified for brevity
+    birthPlace?: { city?: string; state?: string; country?: string; };
+    citizenship?: string;
+    college?: any; // Simplified for brevity
+    slug: string;
+    headshot?: { href: string; alt: string; };
+    jersey?: string;
+    position?: {
+        id?: string;
+        name?: string;
+        displayName?: string;
+        abbreviation?: string;
+        leaf?: boolean;
+        parent?: any; // Simplified
+    };
+    injuries?: Array<any>; // Simplified
+    teams?: Array<any>; // Simplified
+    contracts?: Array<any>; // Simplified
+    experience?: { years?: number };
+    contract?: any; // Simplified
+    status?: { id?: string; name?: string; type?: string; abbreviation?: string; };
+}
+
+// Interface for the response from the /teams/{abbrev}/roster endpoint
+export interface ESPNApiRosterResponse {
+    timestamp: string;
+    status: string;
+    season: { year: number; displayName: string; type: number; name: string; };
+    athletes: ESPNApiRosterAthlete[];
+    coach: Array<{ id: string; firstName: string; lastName: string; experience: number; }>;
+    team: {
+        id: string;
+        abbreviation: string;
+        location: string;
+        name: string;
+        displayName: string;
+        clubhouse: string;
+        color: string;
+        logo: string;
+        recordSummary: string;
+        standingSummary: string;
+    };
+}
+
+
+// --- NEW API Functions ---
+
+/**
+ * Fetches all NBA teams from the ESPN API.
+ * @returns Array of ESPN API Team objects.
+ */
+export const getAllTeams = async (): Promise<ESPNApiTeam[]> => {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams`;
+    console.log(`Fetching all teams from ${url}`);
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`ESPN API (teams) returned ${response.status}: ${response.statusText}`);
+        }
+        const data: ESPNApiTeamsResponse = await response.json();
+
+        // Navigate through the nested structure to get the teams array
+        const teams = data?.sports?.[0]?.leagues?.[0]?.teams?.map(t => t.team);
+
+        if (!Array.isArray(teams)) {
+            console.warn("Could not find teams array in the expected structure from ESPN API.");
+            return [];
+        }
+
+        console.log(`Found ${teams.length} teams.`);
+        return teams;
+    } catch (error) {
+        console.error("Error fetching all ESPN teams:", error);
+        throw new Error(`Failed to fetch all ESPN teams: ${error.message}`);
+    }
+};
+
+
+/**
+ * Fetches the roster for a specific team using its abbreviation.
+ * @param teamAbbreviation - The team's abbreviation (e.g., 'BOS', 'LAL').
+ * @returns The roster data or null if not found.
+ */
+export const getTeamRoster = async (teamAbbreviation: string): Promise<ESPNApiRosterResponse | null> => {
+    // Ensure abbreviation is lowercase for the URL? Testing needed, ESPN might be flexible
+    const lowerAbbrev = teamAbbreviation.toLowerCase();
+    const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${lowerAbbrev}/roster`;
+    console.log(`Fetching roster for ${teamAbbreviation} from ${url}`);
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            if (response.status === 404) {
+                 console.warn(`Roster not found for team abbreviation: ${teamAbbreviation} (404)`);
+                 return null;
+            }
+            throw new Error(`ESPN API (roster) for ${teamAbbreviation} returned ${response.status}: ${response.statusText}`);
+        }
+        const data: ESPNApiRosterResponse = await response.json();
+
+        // Basic validation
+        if (!data?.athletes || !data?.team) {
+             console.warn(`Incomplete roster data received for ${teamAbbreviation}`);
+             return null;
+        }
+
+        console.log(`Found ${data.athletes.length} athletes for ${data.team.displayName}`);
+        return data;
+    } catch (error) {
+        console.error(`Error fetching ESPN roster for ${teamAbbreviation}:`, error);
+        // Don't re-throw, return null to allow processing other teams
+        return null;
+    }
 };

@@ -1,4 +1,4 @@
-import { loadGamesForDate, logGameStats } from "../services/GameLoaderService";
+import { loadGamesForDate, logGameStats } from "../services/DataLoaderService";
 
 /**
  * Parses command line arguments for a date string.

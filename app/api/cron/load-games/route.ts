@@ -1,4 +1,4 @@
-import { loadGamesForDate } from "@/services/GameLoaderService";
+import { loadGamesForDate } from "@/services/DataLoaderService";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {

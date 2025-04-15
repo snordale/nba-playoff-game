@@ -1,7 +1,7 @@
 // scripts/loadAllGames.ts
 import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from "@/constants";
 import { addDays, differenceInDays, format } from 'date-fns';
-import { loadGamesForDate } from "../services/GameLoaderService";
+import { loadGamesForDate } from "../services/DataLoaderService";
 
 // Helper to parse YYYY-MM-DD into a Date object (start of day UTC)
 function parseDateUTC(dateString: string): Date {
