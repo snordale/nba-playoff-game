@@ -135,7 +135,7 @@ export const DayModal = ({
         if (status === 'STATUS_IN_PROGRESS') return 'orange.500';
         if (status === 'STATUS_FINAL') return 'red.500';
         return 'gray.500'; // Default
-    }
+    };
 
     const handleSubmit = async (submissionData: { gameId: string; playerId: string }) => {
         setIsSubmitting(true);
@@ -348,8 +348,6 @@ export const DayModal = ({
                                                         {/* **** Display Team Header **** */}
                                                         <Text fontWeight="semibold" fontSize="sm" color="gray.600">
                                                             {team.name}
-                                                            {/* Optional: Add game time/opponent if available on team */}
-                                                            {/* e.g., team.gameDate ? ` (${new Date(team.gameDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })})` : '' */}
                                                         </Text>
                                                         {/* **** Player list directly under team **** */}
                                                         <Stack pl={2} spacing={0.5}>
