@@ -57,17 +57,32 @@ const PublicContent = () => {
           borderRadius="xl"
           backdropFilter="blur(10px)"
           backgroundColor="rgba(255, 255, 255, 0.75)"
-          border="1px solid"
-          borderColor="gray.200"
           maxW="800px"
           w="full"
           position="relative"
           boxShadow="0 0 40px rgba(0, 0, 0, 0.05)"
+          sx={{
+            position: 'relative',
+            border: '2px solid transparent',
+            backgroundClip: 'padding-box',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 'xl',
+              padding: '2px',
+              background: 'linear-gradient(to right, var(--chakra-colors-orange-400), var(--chakra-colors-orange-500), var(--chakra-colors-orange-600))',
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+              pointerEvents: 'none'
+            }
+          }}
         >
           <Heading
             as="h1"
             size={{ base: 'xl', md: '2xl' }}
-            bgGradient="linear(to-r, #FF6B00, #FF8800)"
+            bgGradient="linear(to-r, orange.400, orange.500, orange.600)"
             bgClip="text"
             letterSpacing="-0.02em"
             fontWeight="bold"

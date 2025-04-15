@@ -103,12 +103,12 @@ turnovers: -2
 ## Scoring System
 
 The application processes game statistics fetched from ESPN for:
-- Points
-- Assists
-- Rebounds
-- Steals
-- Blocks
-- Turnovers
+- Points (1)
+- Assists (2)
+- Rebounds (1)
+- Steals (2)
+- Blocks (2)
+- Turnovers (-2)
 
 Scores for user submissions are calculated dynamically when viewing group data based on the loaded player statistics.
 

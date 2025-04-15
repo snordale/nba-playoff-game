@@ -2,6 +2,7 @@ import AuthButton from "@/components/AuthButton";
 import { Body1 } from "@/components/Body1";
 import CustomLink from "@/components/CustomLink";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Footer } from '@/components/Footer';
 import { Box, Flex } from "@chakra-ui/react";
 import type { Metadata } from 'next';
 import { fonts } from "./fonts";
@@ -52,11 +53,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
                 <Box minH='calc(100vh - 60px - 57px)'>
                   {children}
                 </Box>
-                <Box as="footer" py={4} borderTop='1px solid' borderColor='orange.600' px={{ base: 4, md: 6 }}>
-                  <Body1 fontWeight={600} color='orange.600'>
-                    NBA Playoff Game {new Date().getFullYear()}
-                  </Body1>
-                </Box>
+                <Footer />
               </Box>
             </Flex>
           </ErrorBoundary>
