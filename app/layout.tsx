@@ -49,7 +49,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
                 <AuthButton />
               </Flex>
               <Box as="main" flex={1} w="100%">
-                <Box minH='calc(100vh - 60px - 57px)' px={{ base: 4, md: 6 }}>
+                <Box minH='calc(100vh - 60px - 57px)'>
                   {children}
                 </Box>
                 <Box as="footer" py={4} borderTop='1px solid' borderColor='orange.600' px={{ base: 4, md: 6 }}>

@@ -1,20 +1,15 @@
 "use client";
 
 import AuthButton from "@/components/AuthButton";
-import WaveCanvas from "@/components/WaveCanvas";
 import {
   Box,
   Button,
   Container,
   Heading,
-  HStack,
   Text,
   VStack,
   keyframes,
-  Flex,
-  Image
 } from "@chakra-ui/react";
-import NextLink from "next/link";
 
 const gradientAnimation = keyframes`
   0% {
@@ -28,12 +23,13 @@ const gradientAnimation = keyframes`
   }
 `;
 
+// Re-add basketball texture helpers
 const basketballTextureAnimation = keyframes`
   0% { background-position: 0 0; }
-  100% { background-position: 20px 20px; }
+  100% { background-position: 20px 20px; } // Adjust size for desired speed
 `;
 
-const createBasketballTexture = (color = "rgba(255, 107, 0, 0.05)") => {
+const createBasketballTexture = (color = "rgba(255, 107, 0, 0.3)") => { // Increased dot opacity
   return `
     radial-gradient(circle at 1px 1px, ${color} 1px, transparent 0),
     radial-gradient(circle at 6px 6px, ${color} 1px, transparent 0)
@@ -76,19 +72,28 @@ const PublicContent = () => {
         }
       }}
     >
+      {/* Re-add Animated Texture Background Box */}
+      <Box
+        position="absolute"
+        inset="0"
+        zIndex={1} // Above blobs, below content container
+        backgroundImage={createBasketballTexture()}
+        backgroundSize="10px 10px" // Size of the repeating pattern unit
+        opacity={0.7} // Increased layer opacity
+        animation={`${basketballTextureAnimation} 2s linear infinite`}
+      />
+
       <Container maxW="container.xl" centerContent position="relative" zIndex={2}>
-        <Flex
-          direction={{ base: 'column', md: 'row' }}
-          align="center"
-          justify="center"
-          gap={{ base: 6, md: 10 }}
-          p={{ base: 6, md: 12 }}
+        <VStack
+          spacing={{ base: 6, md: 8 }}
+          textAlign="center"
+          p={{ base: 4, sm: 6, md: 12 }}
           borderRadius="xl"
           backdropFilter="blur(10px)"
           backgroundColor="rgba(255, 255, 255, 0.75)"
           border="1px solid"
           borderColor="gray.200"
-          maxW="960px"
+          maxW="800px"
           w="full"
           position="relative"
           boxShadow="0 0 40px rgba(0, 0, 0, 0.05)"
@@ -105,43 +110,23 @@ const PublicContent = () => {
             pointerEvents: "none",
           }}
         >
-          <VStack
-             spacing={{ base: 4, md: 6 }}
-             textAlign={{ base: 'center', md: 'left' }}
-             alignItems={{ base: 'center', md: 'flex-start'}}
-             flex="1"
-             maxW={{base: 'full', md: '500px'}}
+          <Heading
+            as="h1"
+            size={{ base: 'xl', md: '2xl' }}
+            bgGradient="linear(to-r, #FF6B00, #FF8800)"
+            bgClip="text"
+            letterSpacing="-0.02em"
+            fontWeight="bold"
           >
-            <Heading
-              as="h1"
-              size={{ base: 'xl', md: '2xl' }}
-              bgGradient="linear(to-r, #FF6B00, #FF8800)"
-              bgClip="text"
-              letterSpacing="-0.02em"
-              fontWeight="bold"
-            >
-              NBA Playoff Game
-            </Heading>
-            <Text fontSize={{ base: 'lg', md: 'xl' }} color="gray.900" lineHeight="tall">
-              Pick one player each day during the NBA Playoffs. Maximize your points based on real game stats (Points, Rebounds, Assists, Steals, Blocks, Turnovers) and compete against your friends!
-            </Text>
-            <Text fontSize="md" color="gray.600">
-              Can you pick the top performers consistently? Sign up or log in to create or join a group!
-            </Text>
-          </VStack>
-
-           <Box
-             flex="1"
-             maxW={{ base: '250px', md: '350px' }}
-             w="full"
-             aspectRatio={1}
-             borderRadius="lg"
-             overflow="hidden"
-           >
-             <WaveCanvas />
-           </Box>
-
-        </Flex>
+            NBA Playoff Game
+          </Heading>
+          <Text fontSize={{ base: 'lg', md: 'xl' }} color="gray.900" lineHeight="tall">
+            Pick one player each day during the NBA Playoffs. Maximize your points based on real game stats (Points, Rebounds, Assists, Steals, Blocks, Turnovers) and compete against your friends!
+          </Text>
+          <Text fontSize="md" color="gray.600">
+            Can you pick the top performers consistently? Sign up or log in to create or join a group!
+          </Text>
+        </VStack>
       </Container>
     </Box>
   );
