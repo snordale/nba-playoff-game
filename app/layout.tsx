@@ -25,36 +25,34 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
             <Flex
               flexDir="column"
               minHeight="100vh"
-              position="relative"
-              overflow="hidden"
               w='100%'
               mx="auto"
-              maxH="100vh"
             >
               <Flex
                 justifyContent="space-between"
                 w="100%"
-                px={4}
-                pt={4}
-                pb={2}
-                backgroundColor='transparent'
+                px={{ base: 4, md: 6 }}
+                py={3}
+                h='60px'
+                bg='white'
                 backdropFilter='blur(12px)'
-                position='absolute'
+                position='sticky'
                 top={0}
                 zIndex={10}
                 borderBottom='1px solid'
                 borderColor='orange.600'
+                alignItems='center'
               >
                 <CustomLink href="/">
                   <Body1 fontWeight={600}>NBA Playoff Game</Body1>
                 </CustomLink>
                 <AuthButton />
               </Flex>
-              <Box as="main" flex={1} w="100%" overflowY='scroll'>
-                <Box minH='calc(100vh - 4rem)' pt={16} px={4}>
+              <Box as="main" flex={1} w="100%">
+                <Box minH='calc(100vh - 60px - 57px)' px={{ base: 4, md: 6 }}>
                   {children}
                 </Box>
-                <Box bottom={0} py={4} borderTop='1px solid' borderColor='orange.600' px={4}>
+                <Box as="footer" py={4} borderTop='1px solid' borderColor='orange.600' px={{ base: 4, md: 6 }}>
                   <Body1 fontWeight={600} color='orange.600'>
                     NBA Playoff Game {new Date().getFullYear()}
                   </Body1>
