@@ -1,6 +1,7 @@
 "use client";
 
 import AuthButton from "@/components/AuthButton";
+import WaveCanvas from "@/components/WaveCanvas";
 import {
   Box,
   Button,
@@ -134,16 +135,10 @@ const PublicContent = () => {
              maxW={{ base: '250px', md: '350px' }}
              w="full"
              aspectRatio={1}
-             backgroundImage={createBasketballTexture('rgba(255, 107, 0, 0.2)')}
-             backgroundSize="10px 10px"
-             opacity={1}
-             animation={`${basketballTextureAnimation} 2s linear infinite`}
-             overflow="hidden"
              borderRadius="lg"
-             display="flex"
-             alignItems="center"
-             justifyContent="center"
+             overflow="hidden"
            >
+             <WaveCanvas />
            </Box>
 
         </Flex>
