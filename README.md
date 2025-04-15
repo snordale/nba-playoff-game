@@ -98,6 +98,7 @@ turnovers: -2
 - `npx tsx scripts/loadGames.ts [YYYY-MM-DD]` - Manually load game and player stats from ESPN for a specific date (defaults to today).
 - `npx tsx scripts/loadAllPlayoffGames.ts` - Load game and player stats from ESPN for the entire playoff date range defined in the script.
 - `npx tsx scripts/logDate.ts [YYYY-MM-DD]` - Log game and player stats from the database for a specific date (defaults to today).
+- `npx tsx scripts/loadTeamsAndPlayers.ts` - Fetch all teams and their full rosters from ESPN to populate/update the main Team and Player database tables. Should be run periodically (e.g., once before playoffs, occasionally if trades happen).
 
 ## Scoring System
 
@@ -113,7 +114,9 @@ Scores for user submissions are calculated dynamically when viewing group data b
 
 ## Core Game Mechanics Verification
 
-- **Data Loading:** Daily stats are fetched via ESPN API and stored using `scripts/loadGames.ts`. Requires external scheduler (e.g., cron) for automation.
+- **Data Loading:** The application uses two main data loading processes:
+  - **Daily Game/Stat Loading:** Game schedules and detailed player performance stats for a specific date are fetched via `scripts/loadGames.ts` (using `loadGamesForDate` internally). This needs to be run regularly (e.g., daily via cron) during the playoffs to update scores. Game dates are stored in the 'America/New_York' timezone.
+  - **Full Roster Loading:** The master list of all teams and players (including names, images, current team) is populated/updated using `scripts/loadTeamsAndPlayers.ts` (using `loadTeamsAndPlayers` internally). This should be run initially and periodically as needed.
 - **Data Integrity:** Fetched data (games, players, stats) is correctly stored in the Prisma database.
 - **Data Retrieval:** Group data, including dynamically calculated scores, is correctly pulled by the frontend.
 - **Submissions:** Users can create and update one submission per day before the game locks.

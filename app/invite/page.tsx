@@ -12,10 +12,18 @@ interface InviteTokenPayload {
   exp?: number; // Expiration time (standard JWT claim)
 }
 
-// Define the expected digest code for redirects
-const REDIRECT_ERROR_CODE = "NEXT_REDIRECT";
+// Define possible return types for handleInvite
+type HandleInviteResult =
+  | { success: true; redirectPath: string }
+  | { error: string; groupName?: string }
+  | { needsLogin: true; groupName: string; token: string };
 
-async function handleInvite(token: string, userId: string | undefined) {
+
+// Define the expected digest code for redirects
+// NOTE: No longer needed here as redirect is moved
+// const REDIRECT_ERROR_CODE = "NEXT_REDIRECT";
+
+async function handleInvite(token: string, userId: string | undefined): Promise<HandleInviteResult> {
   const jwtSecret = process.env.JWT_INVITE_SECRET;
   if (!jwtSecret) {
     console.error("JWT_INVITE_SECRET missing");
@@ -24,7 +32,6 @@ async function handleInvite(token: string, userId: string | undefined) {
 
   let payload: InviteTokenPayload;
   try {
-    // Verify the token and decode payload
     payload = jwt.verify(token, jwtSecret) as InviteTokenPayload;
     if (!payload.groupId) {
       throw new Error("Invalid token payload: missing groupId");
@@ -42,11 +49,17 @@ async function handleInvite(token: string, userId: string | undefined) {
 
   const { groupId } = payload;
 
-  // Fetch group details to show the name
-  const group = await prisma.group.findUnique({
-    where: { id: groupId },
-    select: { id: true, name: true }
-  });
+  let group: { id: string; name: string } | null;
+  try {
+      group = await prisma.group.findUnique({
+          where: { id: groupId },
+          select: { id: true, name: true }
+      });
+  } catch (dbError) {
+      console.error("Error fetching group details:", dbError);
+      return { error: "Could not retrieve group information." };
+  }
+
 
   if (!group) {
     return { error: "The invited group no longer exists." };
@@ -55,42 +68,35 @@ async function handleInvite(token: string, userId: string | undefined) {
   // If user is logged in, attempt to add them directly
   if (userId) {
     try {
-      // Check if user is already a member
       const existingMembership = await prisma.groupUser.findFirst({
         where: { userId, groupId },
       });
 
       if (existingMembership) {
-        console.log(`User ${userId} already in group ${groupId}. Redirecting.`);
+        console.log(`User ${userId} already in group ${groupId}. Preparing redirect.`);
       } else {
-        // Add user to the group
         await prisma.groupUser.create({
           data: {
             userId: userId,
             groupId: groupId,
-            isAdmin: false, // Default to non-admin
+            isAdmin: false,
           },
         });
-        console.log(`User ${userId} successfully added to group ${groupId}.`);
+        console.log(`User ${userId} successfully added to group ${groupId}. Preparing redirect.`);
       }
-      redirect(`/groups/${groupId}`);
+      // ** Return success instead of redirecting here **
+      return { success: true, redirectPath: `/groups/${groupId}` };
 
     } catch (error: any) {
-        // Check if the error is a redirect error by its digest code
-        if (error?.digest === REDIRECT_ERROR_CODE) {
-            throw error; // Re-throw the redirect error
-        }
-        // Handle other actual errors
+        // Handle *only database/unexpected* errors here
         console.error(`Error adding user ${userId} to group ${groupId}:`, error);
-        return { 
-            error: "Could not join the group due to an unexpected error. Please try again or contact the group admin.", 
-            groupName: group.name, 
-            token, 
-            needsLogin: true // Still might need login if DB failed transiently
+        return {
+            error: "Could not join the group due to an unexpected error.",
+            groupName: group.name // Return groupName for context if needed
         };
     }
   } else {
-    // User is not logged in - prompt them
+    // User is not logged in
     return { needsLogin: true, groupName: group.name, token };
   }
 }
@@ -98,10 +104,10 @@ async function handleInvite(token: string, userId: string | undefined) {
 
 // This Server Component handles the initial logic
 export default async function InvitePage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
-  // Ensure searchParams exists and token is a string
   const token = typeof searchParams?.token === 'string' ? searchParams.token : undefined;
 
   if (!token) {
+    // Render client page with error if no token
     return <InviteClientPage error="No invite token provided." />;
   }
 
@@ -110,6 +116,20 @@ export default async function InvitePage({ searchParams }: { searchParams?: { [k
 
   const result = await handleInvite(token, userId);
 
-  // Pass the result to a Client Component to handle UI (buttons, messages)
-  return <InviteClientPage {...result} />;
+  // ** Check result and redirect directly if successful **
+  if ('success' in result && result.success) {
+    redirect(result.redirectPath); // Perform server-side redirect
+  }
+
+  // Otherwise, pass the error or needsLogin state explicitly to the Client Component
+  // based on the narrowed type of 'result'.
+  if ('error' in result) {
+      return <InviteClientPage error={result.error} groupName={result.groupName} />;
+  } else if ('needsLogin' in result && result.needsLogin) { // Explicitly check for needsLogin
+      return <InviteClientPage needsLogin={true} groupName={result.groupName} token={result.token} />;
+  } else {
+      // Fallback or handle unexpected state if necessary
+      console.error("Unexpected result state in InvitePage:", result);
+      return <InviteClientPage error="An unexpected error occurred processing the invite." />;
+  }
 }

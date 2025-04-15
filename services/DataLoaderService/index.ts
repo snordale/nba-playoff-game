@@ -481,7 +481,7 @@ export async function loadTeamsAndPlayers() {
 
     console.log(`Fetched ${allApiTeams.length} teams. Processing in batches...`);
 
-    const batchSize = 6; // Define batch size
+    const batchSize = 10; // Define batch size
 
     // Create chunks of teams
     const teamChunks: ESPNApiTeam[][] = [];
