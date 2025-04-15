@@ -29,6 +29,7 @@ interface PlayerForSelection {
     id: string;
     name: string;
     alreadySubmitted: boolean; // Has the current user already picked this player on a *previous* day?
+    gameId: string; // **** ADDED gameId ****
 }
 
 // Define structure for team data needed for selection
@@ -37,13 +38,8 @@ interface TeamForSelection {
     name: string;
     abbreviation: string;
     players: PlayerForSelection[];
-}
-
-// Define structure for game data needed for selection
-interface GameForSelection {
-    gameId: string;
-    gameDate: Date;
-    teams: TeamForSelection[];
+    // Optional: Add game time/details if needed and available from player data
+    // gameDate?: Date; 
 }
 
 // Updated Props Interface
@@ -92,40 +88,44 @@ export const DayModal = ({
     const filteredPlayersByTeam = useMemo(() => {
         if (isLocked || !playersForSelectionData) return [];
 
-        // Process playersForSelectionData (assuming it's similar to the old playersForDate structure)
-        // Group by game, then team, filtering by search
-        const playersByGame = (playersForSelectionData as any[]) // Cast as any or define proper type
+        // Process playersForSelectionData, group by TEAM
+        const playersByTeam = (playersForSelectionData as any[]) // Cast or use proper type from API
             .filter(player => player.name.toLowerCase().includes(search.toLowerCase()))
-            .reduce<Record<string, GameForSelection>>((acc, player) => {
-                if (!acc[player.gameId]) {
-                    acc[player.gameId] = {
-                        gameId: player.gameId,
-                        gameDate: player.gameDate, // Keep gameDate if needed for display
-                        teams: []
-                    };
-                }
-                let teamObj = acc[player.gameId].teams.find(t => t.teamId === player.currentTeamId); // Use currentTeamId or similar
-                if (!teamObj) {
-                    teamObj = {
-                        teamId: player.currentTeamId,
-                        name: player.teamName, // Assuming teamName exists
-                        abbreviation: player.teamAbbreviation, // Assuming abbreviation exists
+            .reduce<Record<string, TeamForSelection>>((acc, player) => {
+                // **** Use a fallback for missing teamId ****
+                const teamId = player.currentTeamId ?? 'UNKNOWN_TEAM'; 
+                const teamName = player.teamName ?? 'Unknown Team';
+                const teamAbbreviation = player.teamAbbreviation ?? 'UNK';
+
+                if (!acc[teamId]) {
+                    acc[teamId] = {
+                        teamId: teamId,
+                        name: teamName,
+                        abbreviation: teamAbbreviation,
                         players: []
                     };
-                    acc[player.gameId].teams.push(teamObj);
                 }
 
-                teamObj.players.push({
+                if (!player.gameId) {
+                    // Decide how to handle: skip player? assign default gameId?
+                    // Skipping for now:
+                     return acc; 
+                }
+
+                acc[teamId].players.push({
                     id: player.id,
                     name: player.name,
-                    // 'alreadySubmitted' here means "used on a previous day"
-                    alreadySubmitted: previouslySubmittedPlayerIds?.includes(player.id) ?? false
+                    alreadySubmitted: previouslySubmittedPlayerIds?.includes(player.id) ?? false,
+                    gameId: player.gameId 
                 });
+
+                acc[teamId].players.sort((a, b) => a.name.localeCompare(b.name));
 
                 return acc;
             }, {});
+            
+        return Object.values(playersByTeam).sort((a, b) => a.name.localeCompare(b.name));
 
-        return Object.values(playersByGame);
     }, [playersForSelectionData, search, previouslySubmittedPlayerIds, isLocked]);
 
 
@@ -140,16 +140,17 @@ export const DayModal = ({
     const handleSubmit = async (submissionData: { gameId: string; playerId: string }) => {
         setIsSubmitting(true);
         try {
-            await onSubmit(submissionData); // Call the passed onSubmit
+            await onSubmit(submissionData);
 
-            // Find player name for toast (consider getting this from onSubmit's return if possible)
             let playerName = 'Player';
-            filteredPlayersByTeam?.forEach(game => {
-                game.teams?.forEach(team => {
-                    const player = team.players?.find(p => p.id === submissionData.playerId);
-                    if (player) playerName = player.name;
-                });
-            });
+            // Find player name in the new team-based structure
+            for (const team of filteredPlayersByTeam) {
+                const player = team.players.find(p => p.id === submissionData.playerId);
+                if (player) {
+                    playerName = player.name;
+                    break;
+                }
+            }
 
             toast({
                 title: 'Submission Successful',
@@ -158,7 +159,7 @@ export const DayModal = ({
                 duration: 3000,
                 isClosable: true,
             });
-            onClose(true); // Close modal and indicate refresh needed
+            onClose(true);
         } catch (error: any) {
             console.error("Submission failed:", error);
             toast({
@@ -188,15 +189,12 @@ export const DayModal = ({
     // Find team abbreviation for the current user's pick for display below search bar
     let currentPickTeamAbbreviation = '';
     if (!isLocked && currentSubmissionForUser && filteredPlayersByTeam) {
-        for (const game of filteredPlayersByTeam) {
-            for (const team of game.teams ?? []) {
-                const player = team.players?.find(p => p.id === currentSubmissionForUser.playerId || p.name === currentSubmissionForUser.playerName);
-                if (player) {
-                    currentPickTeamAbbreviation = team.abbreviation;
-                    break;
-                }
+        for (const team of filteredPlayersByTeam) { // Loop through teams directly
+            const player = team.players?.find(p => p.id === currentSubmissionForUser.playerId || p.name === currentSubmissionForUser.playerName);
+            if (player) {
+                currentPickTeamAbbreviation = team.abbreviation;
+                break; // Found the player, stop searching teams
             }
-            if (currentPickTeamAbbreviation) break;
         }
     }
 
@@ -204,7 +202,7 @@ export const DayModal = ({
         <Modal isOpen={isOpen} onClose={() => onClose(false)} size="xl" scrollBehavior="inside">
             <ModalOverlay />
             <ModalContent>
-                <ModalHeader>{displayDate}</ModalHeader>
+                <ModalHeader borderBottomWidth={1} borderColor="orange.600">{displayDate}</ModalHeader>
                 <ModalCloseButton onClick={() => onClose(false)} />
                 <ModalBody pb={6}>
                     <Stack gap={4}>
@@ -218,7 +216,7 @@ export const DayModal = ({
                                     {games.map((game) => (
                                         <Box key={game.id} p={1} borderWidth="1px" borderRadius="md">
                                             <HStack justify="space-between" alignItems='flex-start'>
-                                                <VStack alignItems='flex-start'>
+                                                <VStack alignItems='flex-start' gap={0}>
                                                     <Text fontSize="2xs" color="gray.600">{game.homeTeam.abbreviation} {game.homeScore !== null ? `- ${game.homeScore}` : ''}</Text>
                                                     <Text fontSize="2xs" color="gray.600">{game.awayTeam.abbreviation} {game.awayScore !== null ? `- ${game.awayScore}` : ''}</Text>
                                                 </VStack>
@@ -320,6 +318,14 @@ export const DayModal = ({
                                         placeholder="Search players..."
                                         onChange={e => onSearchChange(e.target.value)}
                                     />
+                                    {/* Optional: Display current pick below search */}
+                                    {currentSubmissionForUser && (
+                                        <Text
+                                            fontSize="sm"
+                                            fontWeight="semibold" color="orange.600" textAlign="center" p={1} borderWidth={1} borderRadius="md" borderColor="orange.200" bg="orange.50">
+                                            Current Pick: {currentSubmissionForUser.playerName} {currentPickTeamAbbreviation ? `(${currentPickTeamAbbreviation})` : ''}
+                                        </Text>
+                                     )}
                                 </Stack>
                                 <Stack
                                     position='relative'
@@ -334,56 +340,58 @@ export const DayModal = ({
                                         <HStack py={8} justifyContent='center'><Spinner color="orange.500" /></HStack>
                                     ) : (
                                         <>
+                                            {/* **** UPDATED Player List Rendering **** */}
                                             {filteredPlayersByTeam && filteredPlayersByTeam.length > 0 ? (
-                                                filteredPlayersByTeam.map((game) => (
-                                                    <Stack key={game.gameId} pl={2} mb={2} spacing={1}>
-                                                        {/* Optional: Display game header if needed */}
+                                                // **** Loop through teams ****
+                                                filteredPlayersByTeam.map((team) => (
+                                                    <Stack key={team.teamId} pl={2} mb={2} spacing={1}>
+                                                        {/* **** Display Team Header **** */}
                                                         <Text fontWeight="semibold" fontSize="sm" color="gray.600">
-                                                            {game.teams?.[0]?.name ?? 'Team A'} vs {game.teams?.[1]?.name ?? 'Team B'}
-                                                            &nbsp;({new Date(game.gameDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })})
+                                                            {team.name}
+                                                            {/* Optional: Add game time/opponent if available on team */}
+                                                            {/* e.g., team.gameDate ? ` (${new Date(team.gameDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })})` : '' */}
                                                         </Text>
-                                                        {game.teams?.map((team) => (
-                                                            <Stack key={team.teamId} pl={2} spacing={0.5}>
-                                                                {team.players?.map((player) => {
-                                                                    const isCurrentPick = currentSubmissionForUser?.playerId === player.id;
-                                                                    // 'previouslySubmitted' means used on *another* day
-                                                                    const isPreviouslySubmitted = previouslySubmittedPlayerIds?.includes(player.id) && !isCurrentPick;
+                                                        {/* **** Player list directly under team **** */}
+                                                        <Stack pl={2} spacing={0.5}>
+                                                            {team.players?.map((player) => {
+                                                                const isCurrentPick = currentSubmissionForUser?.playerId === player.id;
+                                                                const isPreviouslySubmitted = previouslySubmittedPlayerIds?.includes(player.id) && !isCurrentPick;
 
-                                                                    return (
-                                                                        <Button
-                                                                            size='sm'
-                                                                            variant={isCurrentPick ? 'solid' : 'ghost'}
-                                                                            colorScheme='orange'
-                                                                            flexShrink={0}
-                                                                            key={player.id}
-                                                                            // Disable if used on another day OR if submitting
-                                                                            isDisabled={isPreviouslySubmitted || isSubmitting}
-                                                                            // Show loading specific to this button if it's the one being submitted
-                                                                            isLoading={isSubmitting && currentSubmissionForUser?.playerId === player.id}
-                                                                            onClick={() => handleSubmit({ gameId: game.gameId, playerId: player.id })}
-                                                                            justifyContent='space-between'
-                                                                            gap={2}
-                                                                            fontWeight="normal"
-                                                                            _disabled={{
-                                                                                opacity: isPreviouslySubmitted ? 0.5 : 1,
-                                                                                cursor: isPreviouslySubmitted ? 'not-allowed' : 'default',
-                                                                                textDecoration: isPreviouslySubmitted ? 'line-through' : 'none'
-                                                                            }}
-                                                                        >
-                                                                            <Text>{player.name} – {team.abbreviation}</Text>
-                                                                            <HStack spacing={2}>
-                                                                                {isPreviouslySubmitted &&
-                                                                                    <Text as="span" fontSize="xs" color="gray.500">(Used)</Text>
-                                                                                }
-                                                                                {isCurrentPick && (
-                                                                                    <CheckCircleIcon color="white" boxSize={4} />
-                                                                                )}
-                                                                            </HStack>
-                                                                        </Button>
-                                                                    );
-                                                                })}
-                                                            </Stack>
-                                                        ))}
+                                                                return (
+                                                                    <Button
+                                                                        size='sm'
+                                                                        variant={isCurrentPick ? 'solid' : 'ghost'}
+                                                                        colorScheme='orange'
+                                                                        flexShrink={0}
+                                                                        key={player.id}
+                                                                        // Disable if used on another day OR if submitting OR if missing gameId
+                                                                        isDisabled={!player.gameId || isPreviouslySubmitted || isSubmitting}
+                                                                        // Show loading specific to this button if it's the one being submitted
+                                                                        isLoading={isSubmitting && currentSubmissionForUser?.playerId === player.id}
+                                                                        // **** Use player.gameId ****
+                                                                        onClick={() => player.gameId && handleSubmit({ gameId: player.gameId, playerId: player.id })}
+                                                                        justifyContent='space-between'
+                                                                        gap={2}
+                                                                        fontWeight="normal"
+                                                                        _disabled={{
+                                                                            opacity: isPreviouslySubmitted || !player.gameId ? 0.5 : 1,
+                                                                            cursor: isPreviouslySubmitted || !player.gameId ? 'not-allowed' : 'default',
+                                                                            textDecoration: isPreviouslySubmitted ? 'line-through' : 'none'
+                                                                        }}
+                                                                    >
+                                                                        <Text>{player.name} – {team.abbreviation}</Text>
+                                                                        <HStack spacing={2}>
+                                                                            {isPreviouslySubmitted &&
+                                                                                <Text as="span" fontSize="xs" color="gray.500">(Used)</Text>
+                                                                            }
+                                                                            {isCurrentPick && (
+                                                                                <CheckCircleIcon color={isCurrentPick ? 'white' : 'orange.500'} boxSize={4} />
+                                                                            )}
+                                                                        </HStack>
+                                                                    </Button>
+                                                                );
+                                                            })}
+                                                        </Stack>
                                                     </Stack>
                                                 ))
                                             ) : (

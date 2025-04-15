@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
         .map(p => ({
           id: p.id,
           name: p.name,
+          currentTeamId: p.currentTeamId,
           teamName: game.homeTeam.name,
           teamAbbreviation: game.homeTeam.abbreviation,
           gameId: game.id,
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest) {
         .map(p => ({
           id: p.id,
           name: p.name,
+          currentTeamId: p.currentTeamId,
           teamName: game.awayTeam.name,
           teamAbbreviation: game.awayTeam.abbreviation,
           gameId: game.id,
