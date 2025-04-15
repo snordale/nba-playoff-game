@@ -1,12 +1,12 @@
 // Assuming ESPN API provides these IDs - adjust if necessary
-interface ESPNAthleteRef {
+export interface ESPNAthleteRef {
   id?: string; // Crucial if available
   uid?: string;
   guid?: string;
   displayName: string;
 }
 
-interface ESPNTeamRef {
+export interface ESPNTeamRef {
   id?: string; // Crucial if available
   uid?: string;
   abbreviation?: string;

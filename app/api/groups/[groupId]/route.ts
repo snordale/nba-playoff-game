@@ -132,92 +132,101 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
 
         // --- Process Users for Final Response --- 
         const scoredGroupUsers = groupUsersWithData.map((groupUser) => {
-            let totalScore = 0;
+            // Determine if the user being processed is the requesting user
+            const isOwnUser = groupUser.userId === userId; 
+            
             const submissions = groupUser.submissions.map(sub => {
                 if (!sub.game || !sub.player) return null;
 
                 const gameDate = new Date(sub.game.date);
                 const isPickLocked = sub.game.status !== 'STATUS_SCHEDULED' || gameDate <= now;
+                const canShowDetails = isPickLocked || isOwnUser; // Show if locked OR it's the requester's pick
 
-                const score = isPickLocked ? (calculatedScoresMap.get(`${sub.gameId}_${sub.playerId}`) ?? null) : null;
-                const stats = isPickLocked ? (statsMap.get(`${sub.gameId}_${sub.playerId}`) ?? null) : null;
+                // Get score/stats only if needed (locked)
+                const rawScore = isPickLocked ? (calculatedScoresMap.get(`${sub.gameId}_${sub.playerId}`) ?? null) : null;
+                const rawStats = isPickLocked ? (statsMap.get(`${sub.gameId}_${sub.playerId}`) ?? null) : null;
                 
-                if (score !== null) {
-                    totalScore += score;
-                }
-
                 return {
-                    date: format(gameDate, 'yyyy-MM-dd'),
+                    date: format(gameDate, 'yyyy-MM-dd'), 
                     gameId: sub.gameId,
                     playerId: sub.playerId,
-                    playerName: sub.player.name,
-                    score: score,
-                    stats: stats,
-                    gameStatus: sub.game.status,
-                    gameDate: sub.game.date,
+                    // Conditionally return sensitive data
+                    playerName: canShowDetails ? sub.player.name : null, 
+                    score: canShowDetails ? rawScore : null, 
+                    stats: canShowDetails ? rawStats : null, 
+                    // Always include game details
+                    gameStatus: sub.game.status, 
+                    gameDate: sub.game.date, 
                 };
-            }).filter(sub => sub !== null);
+            }).filter(sub => sub !== null); 
 
-            totalScore = submissions.reduce((acc, cur) => acc + (cur?.score ?? 0), 0);
+            // Recalculate total score based only on locked picks (rawScore is null if not locked)
+            const totalScore = submissions.reduce((acc, cur) => {
+                // Need to recalculate the rawScore here based on lock status for summation
+                 const gameDate = cur?.gameDate ? new Date(cur.gameDate) : null;
+                 const isPickLocked = cur?.gameStatus !== 'STATUS_SCHEDULED' || (gameDate && gameDate <= now);
+                 const score = isPickLocked ? (calculatedScoresMap.get(`${cur!.gameId}_${cur!.playerId}`) ?? null) : null;
+                 return acc + (score ?? 0);
+            }, 0);
 
             return {
                 groupUserId: groupUser.id,
                 userId: groupUser.userId,
                 username: groupUser.user.username,
                 isAdmin: groupUser.isAdmin,
-                score: totalScore,
-                submissions: submissions as any
+                score: totalScore, // Total score based on locked picks
+                submissions: submissions as any 
             };
         }).sort((a, b) => b.score - a.score);
 
-        // Convert submissions to the format needed by CalendarDisplay
+        // --- Regenerate submissionsByDate using the filtered scoredGroupUsers data --- 
         const submissionsByDate: { [dateKey: string]: { username: string; playerName: string | null; score: number | null; }[] } = {};
-        
-        // Iterate through each date in the gameCountsByDate
         Object.keys(gameCountsByDate || {}).forEach(dateKey => {
           const dateStart = startOfDay(parseISO(dateKey));
-          const isFutureDate = dateStart > todayUTCStart;
+          const isFutureDate = dateStart > todayUTCStart; // Or maybe use !isLocked check?
           submissionsByDate[dateKey] = [];
           
-          // Add submissions for each player on this date
           scoredGroupUsers.forEach(player => {
-            // Find submission for this specific date
+            // Find the submission *with potentially hidden data* for this player/date
             const submission = player.submissions.find(sub => sub.date === dateKey);
             
-            // For future dates, always add an entry for the player
             if (isFutureDate) {
+              // For future dates, show username but hide pick details (already done by submission mapping)
               submissionsByDate[dateKey].push({
                 username: player.username,
-                playerName: submission?.playerName || null,
+                playerName: submission?.playerName || null, // Will be null if hidden
                 score: null
               });
             } else if (submission) {
-              // For past dates, only add if there was a submission
+              // For past dates, use the data as is (playerName/score might be null if hidden)
               submissionsByDate[dateKey].push({
                 username: player.username,
-                playerName: submission.playerName,
-                score: submission.score
+                playerName: submission.playerName, // Already potentially nulled
+                score: submission.score // Already potentially nulled
               });
-            }
+            } 
+            // Implicitly don't add if no submission existed for a past date
           });
         });
 
-        console.log('Submissions by date:', submissionsByDate);
-
-        const currentUserSubmissionsMap: { [k: string]: { playerName: string | null; score: number | null; isFuture: boolean; playerId?: string } } = {};
-        
-        scoredGroupUsers.find(p => p.userId === userId)?.submissions.forEach(sub => {
-            if (!sub) return;
-            const gameDateStart = startOfDay(new Date(sub.gameDate));
-            const isFuture = gameDateStart > todayUTCStart;
-            const dateKey = format(gameDateStart, 'yyyy-MM-dd');
-             currentUserSubmissionsMap[dateKey] = {
-                 playerName: sub.playerName,
-                 score: sub.score,
-                 isFuture: isFuture,
-                 playerId: sub.playerId
-             };
-        });
+        // --- Regenerate currentUserSubmissionsMap using the filtered scoredGroupUsers data --- 
+        const currentUserSubmissionsMap: { [k: string]: { playerName: string | null; score: number | null; isFuture: boolean; playerId?: string } } = {}; 
+         scoredGroupUsers.find(p => p.userId === userId)?.submissions.forEach(sub => {
+             if (!sub) return;
+             const gameDate = new Date(sub.gameDate);
+             const gameDateStart = startOfDay(gameDate);
+             // Determine lock status for *this specific pick* for the map
+             const isPickLocked = sub.gameStatus !== 'STATUS_SCHEDULED' || gameDate <= now;
+             const dateKey = format(gameDateStart, 'yyyy-MM-dd');
+              currentUserSubmissionsMap[dateKey] = {
+                  // Use the potentially nulled playerName from the submission object
+                  playerName: sub.playerName, 
+                  score: sub.score, // Use potentially nulled score
+                  // 'isFuture' might be less relevant now, consider using !isPickLocked?
+                  isFuture: gameDateStart > todayUTCStart, 
+                  playerId: sub.playerId
+              };
+         });
 
         return NextResponse.json({
             group,

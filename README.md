@@ -122,8 +122,8 @@ Scores for user submissions are calculated dynamically when viewing group data b
 - **Account Creation:** Uses NextAuth.js with Google OAuth.
 - **Group Management:** Users can create groups and invite others.
 - **Submission Visibility:**
-    - Past/locked submissions are visible to all group members (List & Calendar).
-    - Future/unlocked submissions are hidden (List View). **Note:** Calendar view (`CalendarDisplay.tsx`) might need adjustment to hide future player names.
+    - Past/locked submissions: Player names and scores are visible to all group members (List & Calendar).
+    - Future/unlocked submissions: Player *names* are hidden until the game locks (List & Calendar View). The Calendar view shows all members' usernames, colored green if they have submitted for that future date and orange if they haven't.
 - **Leaderboard Accuracy:** Scores are calculated based on defined rules and fetched stats, providing an accurate leaderboard.
 
 ## Pre-Launch Checklist (Simplified for Friends & Family)

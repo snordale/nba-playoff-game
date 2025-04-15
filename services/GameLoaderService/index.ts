@@ -114,7 +114,7 @@ const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abb
 /**
  * Finds or creates a Player record based on ESPN data.
  */
-const getOrCreatePlayer = async (playerData: { id?: string; displayName: string; headshot?: { href: string } }, teamId: string | null) => {
+export const getOrCreatePlayer = async (playerData: { id?: string; displayName: string; headshot?: { href: string } }, teamId: string | null) => {
   if (!playerData.id) {
     console.warn(`Missing ESPN ID for player: ${playerData.displayName}. Skipping upsert based on ID.`);
     console.error(`Could not find or create player without ESPN ID: ${playerData.displayName}`);

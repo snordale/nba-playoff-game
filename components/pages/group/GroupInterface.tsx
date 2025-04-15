@@ -10,6 +10,7 @@ import { CalendarDisplay } from './CalendarDisplay';
 import { DailySubmissionCard } from './DailySubmissionCard';
 import { DayModal } from "./DayModal";
 import { Leaderboard } from './Leaderboard';
+import { GroupMember } from './CalendarDisplay'; // Import GroupMember
 
 // Define necessary interfaces reused or passed down
 interface PlayerStats {
@@ -75,6 +76,7 @@ interface GroupInterfaceProps {
     currentUserSubmissionsMap: CurrentUserSubmissionsMap | undefined;
     gameCountsByDate: GameCountsByDateMap | undefined;
     submissionsByDate: { [dateKey: string]: { username: string; playerName: string | null; score: number | null; }[] } | undefined; // Keep for CalendarDisplay
+    groupMembers: GroupMember[]; // Add groupMembers prop
     viewMode: 'calendar' | 'list';
     setViewMode: (mode: 'calendar' | 'list') => void;
     scoredPlayers: ScoredPlayer[] | undefined;
@@ -99,6 +101,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
     currentUserSubmissionsMap,
     gameCountsByDate,
     submissionsByDate,
+    groupMembers, // Destructure groupMembers
     viewMode,
     setViewMode,
     scoredPlayers,
@@ -237,6 +240,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                         currentUserSubmissionsMap={currentUserSubmissionsMap}
                         gameCountsByDate={gameCountsByDate}
                         submissionsByDate={submissionsByDate}
+                        groupMembers={groupMembers} // Pass groupMembers down
                     />
                 ) : (
                     <VStack

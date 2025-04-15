@@ -6,6 +6,12 @@ import React from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css'; // Default styling
 
+// Define structure for group members
+export interface GroupMember {
+  username: string;
+  // Add other relevant member details if needed, e.g., id
+}
+
 // Define structure for submissions data passed as props
 interface SubmissionForDate {
   username: string;
@@ -31,6 +37,17 @@ interface CalendarDisplayProps {
   currentUserSubmissionsMap?: CurrentUserSubmissionsMap;
   gameCountsByDate?: { [dateKey: string]: number };
   submissionsByDate?: SubmissionsByDateMap;
+  groupMembers: GroupMember[]; // Add group members prop
+}
+
+// Updated TileContent helper props
+interface TileContentProps {
+  date: Date;
+  view: string;
+  currentUserSubmissionsMap?: CurrentUserSubmissionsMap;
+  gameCountsByDate?: { [dateKey: string]: number };
+  submissionsByDate?: SubmissionsByDateMap;
+  groupMembers: GroupMember[]; // Add group members prop
 }
 
 // Updated TileContent helper
@@ -39,14 +56,9 @@ const TileContent = ({
   view,
   currentUserSubmissionsMap,
   gameCountsByDate,
-  submissionsByDate
-}: {
-  date: Date;
-  view: string;
-  currentUserSubmissionsMap?: CurrentUserSubmissionsMap;
-  gameCountsByDate?: { [dateKey: string]: number };
-  submissionsByDate?: SubmissionsByDateMap;
-}) => {
+  submissionsByDate,
+  groupMembers // Destructure groupMembers
+}: TileContentProps) => { // Use the interface
   if (view !== 'month') return null;
 
   const dateKey = format(date, 'yyyy-MM-dd');
@@ -57,17 +69,23 @@ const TileContent = ({
   const userSubmission = currentUserSubmissionsMap?.[dateKey];
   const allSubmissions = submissionsByDate?.[dateKey] || [];
 
-  console.log(`Rendering date ${dateKey}:`, {
-    isDayInPastOrToday,
-    gameCount,
-    allSubmissions
+  // Create a map for quick lookup of submission status by username for the current date
+  // A user is considered to have submitted if they appear in allSubmissions AND have a truthy playerName
+  const submissionStatusMap = new Map<string, boolean>();
+  allSubmissions.forEach(sub => {
+    if (sub.playerName) { // Check if playerName is truthy (not null, undefined, or empty string)
+      submissionStatusMap.set(sub.username, true);
+    }
+    // If playerName is falsy, we don't explicitly set to false,
+    // because the default lookup later will be false anyway.
+    // We only care about positively identifying who *has* submitted.
   });
 
   return (
-    <VStack spacing={0.5} align="stretch" mt={1} overflow="hidden" maxHeight="110px">
+    <VStack spacing={0.5} align="stretch" mt={1} width='100%' overflow="hidden" maxHeight="110px">
       {/* Display Game Count */}
       {gameCount !== undefined && gameCount > 0 && (
-        <Text fontSize="9px" color="gray.500" textAlign="right" lineHeight="1" w="full">
+        <Text fontSize='2xs'>
           {gameCount} Game{gameCount > 1 ? 's' : ''}
         </Text>
       )}
@@ -85,12 +103,9 @@ const TileContent = ({
                 fontSize="xs"
               >
                 <VStack align="stretch" spacing={0}>
-                  <Text fontSize="9px" color="gray.600" isTruncated noOfLines={1}>
-                    {submission.username}: {submission.playerName}
+                  <Text fontSize="2xs" color="gray.600" isTruncated noOfLines={1}>
+                    {submission.username}: {submission ? submission.score : 'N/A'}
                   </Text>
-                  <Badge alignSelf="flex-end" colorScheme={submission.score === null ? 'gray' : 'orange'} fontSize="8px" px={1}>
-                    {submission.score ?? 'N/A'} pts
-                  </Badge>
                 </VStack>
               </Tooltip>
             ))}
@@ -101,14 +116,25 @@ const TileContent = ({
             <Text fontSize="xx-small" color="gray.400" mt={1}>No Submissions</Text> : null
         )
       ) : (
-        // --- Render Future Day --- 
+        // --- Render Future Day ---
         gameCount !== undefined && gameCount > 0 ? (
           <VStack align="stretch" spacing={0.5} mt={1}>
-            {allSubmissions.map((submission, index) => (
-              <Text key={index} fontSize="9px" color={submission.playerName ? "green.500" : "gray.500"} isTruncated noOfLines={1}>
-                {submission.username}: {submission.playerName ? "PICK IN" : "NO PICK"}
-              </Text>
-            ))}
+            {/* Iterate over all group members */}
+            {groupMembers.map((member, index) => {
+              // Check if this member has made a valid submission for this date
+              const hasSubmitted = submissionStatusMap.get(member.username) ?? false;
+              return (
+                <Text
+                  key={index}
+                  fontSize="2xs"
+                  color={hasSubmitted ? "green.500" : "orange.500"} // Green if submitted, orange if not
+                  isTruncated
+                  noOfLines={1}
+                >
+                  {member.username}
+                </Text>
+              );
+            })}
           </VStack>
         ) : null
       )}
@@ -120,8 +146,12 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
   onDateClick,
   currentUserSubmissionsMap,
   gameCountsByDate,
-  submissionsByDate
+  submissionsByDate,
+  groupMembers // Accept groupMembers prop
 }) => {
+  // Ensure groupMembers is always an array, even if undefined is passed.
+  const safeGroupMembers = groupMembers || [];
+
   return (
     <Box width="100%">
       <style>{`
@@ -134,7 +164,7 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
         }
         .react-calendar__tile {
           /* Default desktop height */
-          height: 120px; 
+          height: 120px;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
@@ -146,21 +176,21 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
         }
         .react-calendar__tile:enabled:hover,
         .react-calendar__tile:enabled:focus {
-            background-color: var(--chakra-colors-orange-50); 
+            background-color: var(--chakra-colors-orange-50);
         }
-        .react-calendar__tile--active { 
-            background-color: var(--chakra-colors-orange-100) !important; 
-            color: var(--chakra-colors-orange-800); 
-         } 
+        .react-calendar__tile--active {
+            background-color: var(--chakra-colors-orange-100) !important;
+            color: var(--chakra-colors-orange-800);
+         }
          .react-calendar__tile--now {
           background: #FFF5EB !important; /* orange.50 for today */
           font-weight: bold;
         }
         .react-calendar__month-view__days__day--neighboringMonth {
-          color: #ccc; 
+          color: #ccc;
         }
         .react-calendar__navigation button {
-            color: #e67e22; 
+            color: #e67e22;
             min-width: 44px;
             background: none;
             font-size: 16px;
@@ -183,10 +213,10 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
              overflow: visible; /* Allow content to slightly overflow if needed */
           }
           /* Optional: Adjust font sizes within tiles for mobile if needed */
-          .react-calendar__tile .chakra-text, 
+          .react-calendar__tile .chakra-text,
           .react-calendar__tile .chakra-badge {
              /* Example: Slightly larger fonts for mobile */
-             /* font-size: 10px; */ 
+             /* font-size: 10px; */
           }
         }
       `}</style>
@@ -202,6 +232,7 @@ export const CalendarDisplay: React.FC<CalendarDisplayProps> = ({
             currentUserSubmissionsMap={currentUserSubmissionsMap}
             gameCountsByDate={gameCountsByDate}
             submissionsByDate={submissionsByDate}
+            groupMembers={safeGroupMembers} // Pass safe groupMembers down
           />
         )}
       />

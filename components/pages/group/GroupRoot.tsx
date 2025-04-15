@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { queryClient, useCreateSubmission, useGenerateInviteLink, useGetGroup } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
 import { GroupInterface } from './GroupInterface';
+import { GroupMember } from './CalendarDisplay';
 
 interface Player {
   id: string;
@@ -143,6 +144,10 @@ export const GroupRoot = ({ params }) => {
   const gameCountsByDate = groupData?.gameCountsByDate;
   const submissionsByDate = groupData?.submissionsByDate;
 
+  const groupMembers: GroupMember[] = useMemo(() => {
+    return scoredPlayers?.map(player => ({ username: player.username })) || [];
+  }, [scoredPlayers]);
+
   const userInGroup = scoredPlayers?.some(p => p.userId === currentUserId);
 
   if (isLoadingGroup) {
@@ -177,6 +182,7 @@ export const GroupRoot = ({ params }) => {
       currentUserSubmissionsMap={currentUserSubmissionsMap}
       gameCountsByDate={gameCountsByDate}
       submissionsByDate={submissionsByDate}
+      groupMembers={groupMembers}
       viewMode={viewMode}
       setViewMode={setViewMode}
       scoredPlayers={scoredPlayers}
