@@ -155,6 +155,7 @@ export const getGamesByDate = async ({ date }: { date: Date }): Promise<ESPNEven
 
 /**
  * Fetches detailed box score data for a specific ESPN game event.
+ * Games in future will not contain players array.
  * @param eventId - ESPN game event ID (espnId in our schema).
  * @returns Detailed box score data.
  */
@@ -173,9 +174,7 @@ export const getEventBoxScore = async ({ eventId }: { eventId: string }): Promis
     }
 
     const data = await response.json();
-    // Remove diagnostic logs
-    // if (data.boxscore?.players) { ... }
-    
+
     // Check for the necessary structure
     if (!data.boxscore?.players || !Array.isArray(data.boxscore.players)) {
       console.warn(`No boxscore.players array found in ESPN API response for event ${eventId}`);

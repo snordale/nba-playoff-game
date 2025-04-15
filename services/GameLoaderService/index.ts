@@ -28,86 +28,86 @@ const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abb
   const teamName = teamData.displayName;
   const teamEspnId = teamData.id;
   const teamImage = teamData.logos?.[0]?.href;
-  
+
   // --- Handle TBD Teams --- 
   if (teamName === "TBD") {
-      const tbdTeam = await prisma.team.findUnique({ where: { name: "TBD" } });
-      if (tbdTeam) {
-          return tbdTeam;
+    const tbdTeam = await prisma.team.findUnique({ where: { name: "TBD" } });
+    if (tbdTeam) {
+      return tbdTeam;
+    }
+    try {
+      return await prisma.team.create({
+        data: {
+          name: "TBD",
+          abbreviation: "TBD",
+          espnId: null,
+          image: null
+        }
+      });
+    } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        console.warn("Warn: Race condition creating TBD team, attempting to fetch again.");
+        return await prisma.team.findUnique({ where: { name: "TBD" } });
       }
-      try {
-          return await prisma.team.create({
-              data: {
-                  name: "TBD",
-                  abbreviation: "TBD",
-                  espnId: null,
-                  image: null
-              }
-          });
-      } catch (error: any) {
-          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-              console.warn("Warn: Race condition creating TBD team, attempting to fetch again.");
-              return await prisma.team.findUnique({ where: { name: "TBD" } });
-          }
-          console.error("CRITICAL: Failed to create or find TBD team:", error);
-          return null;
-      }
+      console.error("CRITICAL: Failed to create or find TBD team:", error);
+      return null;
+    }
   }
   // --- End TBD Handling --- 
 
   // --- Handle Normal Teams (Existing Robust Logic) --- 
   const teamAbbreviation = teamData.abbreviation ?? teamName.substring(0, 3).toUpperCase();
   const updatePayload = {
-      name: teamName,
-      abbreviation: teamAbbreviation,
-      ...(teamEspnId && { espnId: teamEspnId }),
-      ...(teamImage && { image: teamImage })
+    name: teamName,
+    abbreviation: teamAbbreviation,
+    ...(teamEspnId && { espnId: teamEspnId }),
+    ...(teamImage && { image: teamImage })
   };
   const createPayload = {
-      espnId: teamEspnId,
-      name: teamName,
-      abbreviation: teamAbbreviation,
-      image: teamImage
+    espnId: teamEspnId,
+    name: teamName,
+    abbreviation: teamAbbreviation,
+    image: teamImage
   };
 
   let team = null;
 
   // 1. Try finding by ESPN ID if provided
   if (teamEspnId) {
-      team = await prisma.team.findUnique({ where: { espnId: teamEspnId } });
-      if (team) {
-          try {
-              return await prisma.team.update({ where: { id: team.id }, data: updatePayload });
-          } catch (error: any) {
-              console.warn(`Warn: Failed to update team ${team.id} found by espnId ${teamEspnId} (conflict?): ${error.message}. Using existing.`);
-              return team; 
-          }
+    team = await prisma.team.findUnique({ where: { espnId: teamEspnId } });
+    if (team) {
+      try {
+        return await prisma.team.update({ where: { id: team.id }, data: updatePayload });
+      } catch (error: any) {
+        console.warn(`Warn: Failed to update team ${team.id} found by espnId ${teamEspnId} (conflict?): ${error.message}. Using existing.`);
+        return team;
       }
+    }
   }
 
   // 2. If not found by espnId, try finding by Name
   team = await prisma.team.findUnique({ where: { name: teamName } });
   if (team) {
-      try {
-          return await prisma.team.update({ where: { id: team.id }, data: updatePayload });
-      } catch (error: any) {
-          console.warn(`Warn: Failed to update team ${team.id} found by name ${teamName} (conflict?): ${error.message}. Using existing.`);
-          return team;
-      }
+    try {
+      return await prisma.team.update({ where: { id: team.id }, data: updatePayload });
+    } catch (error: any) {
+      console.warn(`Warn: Failed to update team ${team.id} found by name ${teamName} (conflict?): ${error.message}. Using existing.`);
+      return team;
+    }
   }
 
   // 3. If not found by espnId or Name, try to create
   try {
-      return await prisma.team.create({ data: createPayload });
+    return await prisma.team.create({ data: createPayload });
   } catch (error: any) {
-       console.error(`Error: Failed to create team ${teamName} (espnId: ${teamEspnId}): ${error.message}`);
-       team = await prisma.team.findUnique({ where: { name: teamName } });
-       if(team) {
-           console.warn(`Warn: Found team ${teamName} on fallback search after create failed.`);
-           return team;
-       }
-       console.error(`CRITICAL: Could not find or create team: ${teamName}`);
-       return null;
+    console.error(`Error: Failed to create team ${teamName} (espnId: ${teamEspnId}): ${error.message}`);
+    team = await prisma.team.findUnique({ where: { name: teamName } });
+    if (team) {
+      console.warn(`Warn: Found team ${teamName} on fallback search after create failed.`);
+      return team;
+    }
+    console.error(`CRITICAL: Could not find or create team: ${teamName}`);
+    return null;
   }
 };
 
@@ -260,7 +260,7 @@ export const loadGamesForDate = async (
   } = {}
 ): Promise<LoadGamesResult> => {
   const { verbose = false } = options;
-  const log = verbose ? console.log : () => {};
+  const log = verbose ? console.log : () => { };
   const errors: string[] = [];
   let gamesProcessed = 0;
   let gamesFailed = 0;
@@ -269,7 +269,7 @@ export const loadGamesForDate = async (
   try {
     // 1. Fetch games for the date
     const events = await getGamesByDate({ date });
-    
+
     if (events.length === 0) {
       log("No ESPN events found for the specified date.");
       return { gamesProcessed, gamesFailed, errors, games: [] };
@@ -340,7 +340,7 @@ export const loadGamesForDate = async (
         const gameDate = new Date(event.date);
         // Convert date to New York time
         const newYorkDate = new Date(gameDate.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-        
+
         const game = await prisma.game.upsert({
           where: { espnId: event.id },
           update: {
@@ -367,7 +367,7 @@ export const loadGamesForDate = async (
         if (event.status.type && (event.status.type as any).state !== 'pre') {
           log(`Fetching box score for game ${event.id} because status state is '${(event.status.type as any).state}'...`);
           const boxScore = await getEventBoxScore({ eventId: event.id });
-          
+
           if (!boxScore) {
             const error = `Box score not available for game ${event.id}. Skipping stats.`;
             log(error);
