@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "NBA Playoff Game",
   description:
     "Compete with your friends over the course of the playoffs. Pick a player each day and get points for their performance.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: React.PropsWithChildren) {
