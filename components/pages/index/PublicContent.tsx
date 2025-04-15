@@ -1,43 +1,25 @@
 "use client";
 
-import AuthButton from "@/components/AuthButton";
-import ThreeWaveBackground from "@/components/ThreeWaveBackground";
 import {
   Box,
-  Button,
   Container,
   Heading,
   Text,
   VStack,
-  keyframes,
+  keyframes
 } from "@chakra-ui/react";
 
-const gradientAnimation = keyframes`
-  0% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(-25%, 25%);
-  }
-  100% {
-    transform: translate(0, 0);
-  }
-`;
-
-// Re-add basketball texture helpers
-/*
 const basketballTextureAnimation = keyframes`
   0% { background-position: 0 0; }
   100% { background-position: 20px 20px; } // Adjust size for desired speed
 `;
 
-const createBasketballTexture = (color = "rgba(255, 107, 0, 0.3)") => { // Increased dot opacity
+const createBasketballTexture = (color = "rgba(255, 107, 0, 0.4)") => { // Increased dot opacity
   return `
     radial-gradient(circle at 1px 1px, ${color} 1px, transparent 0),
     radial-gradient(circle at 6px 6px, ${color} 1px, transparent 0)
   `;
 };
-*/
 
 const PublicContent = () => {
   return (
@@ -49,34 +31,24 @@ const PublicContent = () => {
       position="relative"
       overflow="hidden"
       bg="white"
-      sx={{
-        "&::before, &::after": {
-          content: '""',
-          position: "absolute",
-          width: "800px",
-          height: "800px",
-          borderRadius: "50%",
-          filter: "blur(100px)",
-          opacity: "0.05",
-          animation: `${gradientAnimation} 15s ease-in-out infinite`,
-          zIndex: 0,
-        },
-        "&::before": {
-          background: "linear-gradient(to right, #FF6B00, #FF8800)",
-          top: "-400px",
-          left: "-200px",
-        },
-        "&::after": {
-          background: "linear-gradient(to right, #FF3D00, #FF6B00)",
-          bottom: "-400px",
-          right: "-200px",
-          animationDelay: "-7.5s",
-        }
-      }}
     >
-      {/* Replace CSS Background Box with Three.js Component */}
-      <ThreeWaveBackground />
-
+      <Box
+        position="absolute"
+        inset={0}
+        sx={{
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            backgroundImage: createBasketballTexture(),
+            backgroundSize: "12px 12px",
+            animation: `${basketballTextureAnimation} 3s linear infinite`,
+            opacity: "1.0",
+            zIndex: 1,
+            pointerEvents: "none",
+          }
+        }}
+      />
       <Container maxW="container.xl" centerContent position="relative" zIndex={2} px={{ base: 4, md: 6 }}>
         <VStack
           spacing={{ base: 6, md: 8 }}
@@ -91,18 +63,6 @@ const PublicContent = () => {
           w="full"
           position="relative"
           boxShadow="0 0 40px rgba(0, 0, 0, 0.05)"
-          _before={{
-            content: '""',
-            position: "absolute",
-            inset: "-1px",
-            borderRadius: "xl",
-            padding: "1px",
-            background: "linear-gradient(45deg, rgba(255, 107, 0, 0.2), rgba(255, 136, 0, 0.2))",
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
-            pointerEvents: "none",
-          }}
         >
           <Heading
             as="h1"
