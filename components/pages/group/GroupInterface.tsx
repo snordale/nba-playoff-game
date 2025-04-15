@@ -3,7 +3,7 @@ import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useClipboard, useToast, VStack } from "@chakra-ui/react";
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries"; // Assuming queryClient is exported or accessible
 import { Body1 } from "../../Body1";
 import { CalendarDisplay } from './CalendarDisplay';
@@ -116,21 +116,17 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
     const toast = useToast();
     const todayRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    // State to hold the link to be copied
+    const [inviteLinkToCopy, setInviteLinkToCopy] = useState<string | null>(null);
 
     const handleGenerateInvite = () => {
+        // Only trigger the mutation here
         generateLink({ groupId }, {
             onSuccess: (data) => {
-                setValue(data.inviteUrl);
-                onCopy();
-                toast({
-                    title: "Invite link copied!",
-                    description: "Share the link with your friends.",
-                    status: "success",
-                    duration: 3000,
-                    isClosable: true,
-                });
+                // Set the state when data is received
+                setInviteLinkToCopy(data.inviteUrl);
             },
-            onError: (error: any) => { // Add type annotation for error
+            onError: (error: any) => { 
                 toast({
                     title: "Error generating link",
                     description: error.message || "Could not generate invite link.",
@@ -141,6 +137,22 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
             }
         });
     };
+
+    // useEffect to handle the actual copying when inviteLinkToCopy changes
+    useEffect(() => {
+        if (inviteLinkToCopy) {
+            setValue(inviteLinkToCopy); // Set the value for useClipboard
+            onCopy();                 // Now trigger the copy
+            toast({                   // Show the toast
+                title: "Invite link copied!",
+                description: "Share the link with your friends.",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+            setInviteLinkToCopy(null); // Reset the state so effect doesn't re-run immediately
+        }
+    }, [inviteLinkToCopy, setValue, onCopy, toast]); // Dependencies
 
     const sortedDates = useMemo(() => {
         const startDate = parseISO(PLAYOFF_START_DATE);
@@ -201,7 +213,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                     isLoading={isGeneratingLink}
                     colorScheme="orange"
                 >
-                    {hasCopied ? "Copied!" : "Copy Invite Link"}
+                    {hasCopied && !inviteLinkToCopy ? "Copied!" : "Copy Invite Link"}
                 </Button>
             </HStack>
 
