@@ -1,6 +1,6 @@
 'use client';
 
-import { useClipboard, useToast } from "@chakra-ui/react";
+import { Container, useClipboard, useToast } from "@chakra-ui/react";
 import { startOfDay as dateFnsStartOfDay, format, isBefore, parseISO } from 'date-fns';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -168,29 +168,31 @@ export const GroupRoot = ({ params }) => {
   }
 
   return (
-    <GroupInterface
-      group={group}
-      groupId={groupId}
-      onSubmit={onSubmit}
-      selectedDate={selectedDate}
-      setSelectedDate={setSelectedDate}
-      search={search}
-      onSearchChange={setSearch}
-      onCalendarDateClick={handleDayClick}
-      isDayModalOpen={isDayModalOpen}
-      setIsDayModalOpen={setIsDayModalOpen}
-      currentUserSubmissionsMap={currentUserSubmissionsMap}
-      gameCountsByDate={gameCountsByDate}
-      submissionsByDate={submissionsByDate}
-      groupMembers={groupMembers}
-      viewMode={viewMode}
-      setViewMode={setViewMode}
-      scoredPlayers={scoredPlayers}
-      currentUserId={currentUserId}
-      currentUserUsername={currentUserUsername}
-      allSubmissionsForSelectedDate={allSubmissionsForSelectedDate}
-      currentSubmissionForSelectedDate={currentSubmissionForSelectedDate}
-      previouslySubmittedPlayerIds={previouslySubmittedPlayerIds}
-    />
+    <Container maxW="container.xl" p={{ base: 4, md: 6 }}>
+      <GroupInterface
+        group={group}
+        groupId={groupId}
+        onSubmit={onSubmit}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        search={search}
+        onSearchChange={setSearch}
+        onCalendarDateClick={handleDayClick}
+        isDayModalOpen={isDayModalOpen}
+        setIsDayModalOpen={setIsDayModalOpen}
+        currentUserSubmissionsMap={currentUserSubmissionsMap}
+        gameCountsByDate={gameCountsByDate}
+        submissionsByDate={submissionsByDate}
+        groupMembers={groupMembers}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        scoredPlayers={scoredPlayers}
+        currentUserId={currentUserId}
+        currentUserUsername={currentUserUsername}
+        allSubmissionsForSelectedDate={allSubmissionsForSelectedDate}
+        currentSubmissionForSelectedDate={currentSubmissionForSelectedDate}
+        previouslySubmittedPlayerIds={previouslySubmittedPlayerIds}
+      />
+    </Container>
   );
 };

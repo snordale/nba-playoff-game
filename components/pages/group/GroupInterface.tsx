@@ -6,11 +6,10 @@ import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries"; // Assuming queryClient is exported or accessible
 import { Body1 } from "../../Body1";
-import { CalendarDisplay } from './CalendarDisplay';
+import { CalendarDisplay, GroupMember } from './CalendarDisplay';
 import { DailySubmissionCard } from './DailySubmissionCard';
 import { DayModal } from "./DayModal";
 import { Leaderboard } from './Leaderboard';
-import { GroupMember } from './CalendarDisplay'; // Import GroupMember
 
 // Define necessary interfaces reused or passed down
 interface PlayerStats {
@@ -28,7 +27,7 @@ interface Submission {
     score: number | null;
     stats: PlayerStats | null;
     playerId?: string; // Optional player ID needed for some calculations
-    gameStatus?: string; 
+    gameStatus?: string;
     gameDate?: string | Date; // Expecting ISO string or Date object from API
 }
 
@@ -126,7 +125,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                 // Set the state when data is received
                 setInviteLinkToCopy(data.inviteUrl);
             },
-            onError: (error: any) => { 
+            onError: (error: any) => {
                 toast({
                     title: "Error generating link",
                     description: error.message || "Could not generate invite link.",
@@ -179,7 +178,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
             const elementTopRelativeToContainer = element.offsetTop - container.offsetTop;
             const containerHeight = container.clientHeight;
             const elementHeight = element.offsetHeight;
-            
+
             // Calculate the scroll position to center the element
             const scrollTo = elementTopRelativeToContainer - (containerHeight / 2) + (elementHeight / 2);
 
@@ -188,7 +187,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                 top: scrollTo,
                 behavior: 'smooth'
             });
-            
+
             // Fallback or alternative: direct scroll
             // container.scrollTop = scrollTo; 
         }
@@ -200,7 +199,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
     };
 
     return (
-        <Stack gap={8}>
+        <Stack gap={6}>
             {/* Header */}
             <HStack justifyContent='space-between'>
                 <Body1 fontWeight="semibold" fontSize="2xl">
@@ -230,7 +229,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                             colorScheme="orange"
                             variant={viewMode === 'list' ? 'solid' : 'outline'}
                             leftIcon={<HamburgerIcon />}
-                            // zIndex={1}
+                        // zIndex={1}
                         >
                             List
                         </Button>
@@ -280,7 +279,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                                 return {
                                     userId: player.userId,
                                     username: player.username,
-                                    submission: submission ? { 
+                                    submission: submission ? {
                                         playerName: submission.playerName ?? 'Error',
                                         score: submission.score,
                                         stats: submission.stats,

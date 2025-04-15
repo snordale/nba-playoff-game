@@ -1,6 +1,7 @@
 "use client";
 
 import AuthButton from "@/components/AuthButton";
+import ThreeWaveBackground from "@/components/ThreeWaveBackground";
 import {
   Box,
   Button,
@@ -24,6 +25,7 @@ const gradientAnimation = keyframes`
 `;
 
 // Re-add basketball texture helpers
+/*
 const basketballTextureAnimation = keyframes`
   0% { background-position: 0 0; }
   100% { background-position: 20px 20px; } // Adjust size for desired speed
@@ -35,6 +37,7 @@ const createBasketballTexture = (color = "rgba(255, 107, 0, 0.3)") => { // Incre
     radial-gradient(circle at 6px 6px, ${color} 1px, transparent 0)
   `;
 };
+*/
 
 const PublicContent = () => {
   return (
@@ -43,7 +46,6 @@ const PublicContent = () => {
       display="flex"
       alignItems="center"
       justifyContent="center"
-      p={{ base: 4, md: 6 }}
       position="relative"
       overflow="hidden"
       bg="white"
@@ -72,18 +74,10 @@ const PublicContent = () => {
         }
       }}
     >
-      {/* Re-add Animated Texture Background Box */}
-      <Box
-        position="absolute"
-        inset="0"
-        zIndex={1} // Above blobs, below content container
-        backgroundImage={createBasketballTexture()}
-        backgroundSize="10px 10px" // Size of the repeating pattern unit
-        opacity={0.7} // Increased layer opacity
-        animation={`${basketballTextureAnimation} 2s linear infinite`}
-      />
+      {/* Replace CSS Background Box with Three.js Component */}
+      <ThreeWaveBackground />
 
-      <Container maxW="container.xl" centerContent position="relative" zIndex={2}>
+      <Container maxW="container.xl" centerContent position="relative" zIndex={2} px={{ base: 4, md: 6 }}>
         <VStack
           spacing={{ base: 6, md: 8 }}
           textAlign="center"
