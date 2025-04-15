@@ -14,7 +14,7 @@ const AuthButton = () => {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
-    return <Button isLoading leftIcon={<Spinner size="sm" />}>Loading...</Button>;
+    return <Button isLoading  h="2rem" leftIcon={<Spinner size="xs" />}>Loading...</Button>;
   }
 
   if (status === "authenticated" && session?.user) {
