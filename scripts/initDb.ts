@@ -28,7 +28,7 @@ async function initializeDatabase() {
 
         try {
             const games: ESPNEvent[] = await getGamesByDate({ date }); 
-            console.log(`Found ${games.length} games.`);
+            console.log(`Found ${games.length} games`);
 
             for (const gameData of games) {
                 console.log(`Processing Game ID: ${gameData.id} (${gameData.shortName})`);
