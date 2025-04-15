@@ -163,8 +163,8 @@ export const GroupRoot = ({ params }) => {
   }
 
   if (!sessionData?.user) {
-    router.replace('/api/auth/signin');
-    return <Body1>Redirecting to login...</Body1>;
+    router.replace('/');
+    return <Body1>Redirecting to homepage...</Body1>;
   }
 
   return (
