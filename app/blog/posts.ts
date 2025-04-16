@@ -10,7 +10,7 @@ export const posts: Post[] = [
     {
         slug: 'how-to-play',
         title: 'How to Play NBA Playoff Game: A Complete Guide',
-        date: '2025-04-15',
+        date: '2025-04-01',
         excerpt: 'Learn the basics of NBA Playoff Game, from creating your first group to making daily player picks and scoring points.',
         content: `
 # How to Play NBA Playoff Game: A Complete Guide
@@ -93,7 +93,7 @@ Points are awarded based on your player's performance across six key statistics:
     {
         slug: 'scoring-system',
         title: 'Understanding the NBA Playoff Game Scoring System',
-        date: '2025-04-16',
+        date: '2025-04-02',
         excerpt: 'Deep dive into how points are calculated in NBA Playoff Game, with examples and strategies for maximizing your score.',
         content: `
 # Understanding the NBA Playoff Game Scoring System
@@ -189,7 +189,7 @@ Each statistical category is weighted to reflect both its difficulty and impact 
     {
         slug: 'strategy-guide',
         title: 'Advanced Strategy Guide for NBA Playoff Game',
-        date: '2024-04-17',
+        date: '2025-04-03',
         excerpt: 'Master the art of player selection with our comprehensive strategy guide for NBA Playoff Game.',
         content: `
 # Advanced Strategy Guide for NBA Playoff Game
@@ -349,7 +349,7 @@ Remember that consistency of process trumps individual results—maintain discip
     {
         slug: 'playoff-matchups',
         title: 'Analyzing NBA Playoff Matchups for Better Picks',
-        date: '2024-04-18',
+        date: '2025-04-04',
         excerpt: 'Learn how to analyze playoff matchups and make smarter daily picks in NBA Playoff Game.',
         content: `
 # Analyzing NBA Playoff Matchups for Better Picks
@@ -535,7 +535,7 @@ Remember that data should inform your process, not dictate it—combine these tr
     {
         slug: 'playoff-trends',
         title: 'NBA Playoff Trends: Making Data-Driven Picks',
-        date: '2024-04-19',
+        date: '2025-04-05',
         excerpt: 'Explore historical NBA playoff trends and learn how to use data to make better picks in NBA Playoff Game.',
         content: `
 # NBA Playoff Trends: Making Data-Driven Picks
@@ -703,7 +703,7 @@ Remember that data should inform your process, not dictate it—combine these tr
     {
         slug: 'rookie-playoff-impact',
         title: 'The Untapped Potential: Rookie Performances in the Playoffs',
-        date: '2025-04-20',
+        date: '2025-04-06',
         excerpt: 'Discover why rookies can be secret weapons in your NBA Playoff Game strategy and which ones to watch this postseason.',
         content: `
 # The Untapped Potential: Rookie Performances in the Playoffs
@@ -816,7 +816,7 @@ Remember the golden rule of rookie selection: look for players who contribute in
     {
         slug: 'psychological-edge',
         title: 'The Psychology of Winning: Mental Strategies for NBA Playoff Game',
-        date: '2025-04-21',
+        date: '2025-04-06',
         excerpt: 'Learn the psychological principles that separate champions from competitors in fantasy basketball.',
         content: `
 # The Psychology of Winning: Mental Strategies for NBA Playoff Game
@@ -946,7 +946,7 @@ Remember that fantasy basketball is a game of skill, luck, and psychology—mast
     {
         slug: 'advanced-metrics',
         title: 'Beyond Box Scores: Advanced Metrics for NBA Playoff Game Domination',
-        date: '2025-04-22',
+        date: '2025-04-08',
         excerpt: 'Learn how to leverage advanced basketball analytics to make smarter picks that your competition is overlooking.',
         content: `
 # Beyond Box Scores: Advanced Metrics for NBA Playoff Game Domination
@@ -1084,7 +1084,7 @@ The key is balancing analytical insights with basketball context—numbers shoul
     {
         slug: 'series-management',
         title: 'Series Management: Optimizing Player Selection Across Playoff Rounds',
-        date: '2025-04-23',
+        date: '2025-04-09',
         excerpt: 'Master the art of managing your player selections throughout a full playoff series to maximize your total points.',
         content: `
 # Series Management: Optimizing Player Selection Across Playoff Rounds
@@ -1285,7 +1285,7 @@ The most successful players combine basketball knowledge, analytical thinking, a
     {
         slug: 'historic-upsets',
         title: 'Lessons from History: What Playoff Upsets Teach Us About Player Selection',
-        date: '2025-04-24',
+        date: '2025-04-10',
         excerpt: 'Learn how historic playoff upsets can inform your NBA Playoff Game strategy and help you identify overlooked players with upset potential.',
         content: `
 # Lessons from History: What Playoff Upsets Teach Us About Player Selection
@@ -1451,7 +1451,7 @@ Remember that while stars generally provide the highest fantasy production, the 
     {
         slug: 'playoff-fatigue-management',
         title: 'The Fatigue Factor: Managing Player Workload in Playoff Fantasy Basketball',
-        date: '2025-05-25',
+        date: '2025-04-11',
         excerpt: 'Learn how playoff minutes, recovery patterns, and accumulated fatigue impact player performance, with strategies to exploit this often-overlooked fantasy edge.',
         content: `
 # The Fatigue Factor: Managing Player Workload in Playoff Fantasy Basketball
@@ -1887,7 +1887,7 @@ The ability to accurately project fatigue impact—and to identify players who w
     {
         slug: 'playoff-schedule-advantage',
         title: 'Schedule Analysis: Leveraging the NBA Playoff Calendar for Fantasy Edge',
-        date: '2025-05-10',
+        date: '2025-04-12',
         excerpt: 'Master the hidden edges in the NBA playoff schedule to optimize your player selections and gain a strategic advantage in fantasy competitions.',
         content: `
 # Schedule Analysis: Leveraging the NBA Playoff Calendar for Fantasy Edge
@@ -2159,7 +2159,7 @@ While player talent remains the primary selection factor, schedule analysis prov
     {
         slug: 'elimination-fantasy-impact',
         title: 'Elimination Factor: How Team Survival Impacts Fantasy Production',
-        date: '2025-05-18',
+        date: '2025-04-13',
         excerpt: 'Discover how team elimination scenarios dramatically shift player value and performance in playoff fantasy basketball, with strategic tips for maximizing returns.',
         content: `
 # Elimination Factor: How Team Survival Impacts Fantasy Production
@@ -2534,7 +2534,7 @@ Most fantasy competitors make selections based on season-long or series-long dat
     {
         slug: 'positional-playoff-strategy',
         title: 'Positional Strategy: Optimizing Your NBA Playoff Game Roster by Position',
-        date: '2025-05-02',
+        date: '2025-04-14',
         excerpt: 'Maximize your fantasy success with position-specific strategies for the NBA playoffs that account for matchups, role changes, and historical positional trends.',
         content: `
 # Positional Strategy: Optimizing Your NBA Playoff Game Roster by Position
