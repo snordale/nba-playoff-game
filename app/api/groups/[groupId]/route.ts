@@ -9,11 +9,12 @@ import {
 } from '@/utils/submission-utils';
 import type { PlayerGameStats } from "@prisma/client";
 import { format, parseISO, startOfDay } from 'date-fns';
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-// Handler for GET /api/groups/[groupId]
-export async function GET(req: NextRequest, params: { groupId: string }) {
-    const { groupId } = await params;
+type Params = Promise<{ groupId: string }>
+
+export async function GET(request: Request, segmentData: { params: Params }) {
+    const { groupId } = await segmentData.params
     const session = await auth();
     const userId = session?.user?.id;
 
