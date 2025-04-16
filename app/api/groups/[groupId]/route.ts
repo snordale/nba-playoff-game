@@ -13,8 +13,8 @@ import { NextResponse } from "next/server";
 
 type Params = Promise<{ groupId: string }>
 
-export async function GET(request: Request, segmentData: { params: Params }) {
-    const { groupId } = await segmentData.params
+export async function GET(request: Request, { params }: { params: Params }) {
+    const { groupId } = await params;
     const session = await auth();
     const userId = session?.user?.id;
 
