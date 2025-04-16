@@ -21,7 +21,7 @@ export const Footer = async () => {
             <CustomLink href="/" color="gray.600" fontSize="sm">Home</CustomLink>
             <CustomLink href="/blog" color="gray.600" fontSize="sm">Blog</CustomLink>
             {session && (
-              <CustomLink href="/groups" color="gray.600" fontSize="sm">My Groups</CustomLink>
+              <CustomLink href="/" color="gray.600" fontSize="sm">My Groups</CustomLink>
             )}
           </Stack>
 
