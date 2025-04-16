@@ -1,18 +1,21 @@
+// "use client";
+
 import { Container, Heading, SimpleGrid, Box } from "@chakra-ui/react";
 import { BlogCard } from "./BlogCard";
 import { BasketballBackground } from "@/components/BasketballBackground";
-import { getAllPosts } from "./posts";
+import { prisma } from "@/prisma/client";
 
 export const metadata = {
     title: "Blog | NBA Playoff Game",
     description: "Learn about NBA playoff strategies, scoring systems, and get the most out of your NBA Playoff Game experience.",
-    icons: {
-        icon: "/favicon.ico",
-    }
 };
 
 export default async function BlogPage() {
-    const posts = await getAllPosts();
+    const posts = await prisma.blogPost.findMany({
+        orderBy: {
+            publishedAt: 'desc'
+        }
+    });
 
     return (
         <BasketballBackground>

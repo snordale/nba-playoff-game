@@ -133,3 +133,16 @@ model Submission {
   @@unique([userId, gameId, playerId])
   @@map("submissions")
 }
+
+model BlogPost {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  slug        String   @unique
+  title       String
+  publishedAt DateTime
+  excerpt     String
+  content     String   @db.Text
+
+  @@map("blog_posts")
+}

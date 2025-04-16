@@ -2,12 +2,14 @@ import {
   createGroup,
   createSubmission,
   generateInviteLink,
+  getBlogPosts,
   getGames,
   getGroup,
   getGroups,
   getPlayers,
   joinGroup
 } from "@/services/ApiService";
+import type { BlogPost } from "@prisma/client";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 export const queryClient = new QueryClient();
@@ -76,6 +78,33 @@ export const useGetGames = ({ date }: { date: string }) => {
     enabled: !!date,
   });
 };
+
+// Hook for fetching blog posts
+export const useGetBlogPosts = () => {
+  return useQuery<BlogPost[], Error>({
+    queryKey: ["getBlogPosts"],
+    queryFn: () => getBlogPosts(),
+  });
+};
+
+// Hook for fetching a single blog post by slug
+export const useGetBlogPost = (slug: string | null | undefined) => {
+  return useQuery<BlogPost, Error>({
+    queryKey: ["getBlogPost", slug],
+    queryFn: async () => {
+      if (!slug) throw new Error("Slug is required to fetch blog post");
+      const response = await fetch(`/api/blog/posts/${slug}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Blog post not found');
+        }
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    },
+    enabled: !!slug, // Only run the query if slug is provided
+  });
+}
 
 // Hook for generating a group invite link
 export const useGenerateInviteLink = () =>

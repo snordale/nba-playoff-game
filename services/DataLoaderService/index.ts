@@ -30,7 +30,7 @@ const getOrCreateTeam = async (teamData: { id?: string; displayName: string; abb
   const teamImage = teamData.logos?.[0]?.href;
 
   // --- Handle TBD Teams --- 
-  if (teamName === "TBD") {
+  if (teamName === "TBD" || teamName.includes('/')) {
     const tbdTeam = await prisma.team.findUnique({ where: { name: "TBD" } });
     if (tbdTeam) {
       return tbdTeam;

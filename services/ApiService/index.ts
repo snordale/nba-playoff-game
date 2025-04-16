@@ -36,6 +36,11 @@ export const getGames = async ({ date }: { date: string }) => {
   return res.data;
 };
 
+export const getBlogPosts = async () => {
+  const res = await apiService.get("/blog/posts");
+  return res.data;
+};
+
 // Function to call the generate invite link endpoint
 export const generateInviteLink = async ({ groupId }: { groupId: string }): Promise<{ inviteUrl: string }> => {
   const res = await apiService.post(`/groups/${groupId}/invites`); // POST request

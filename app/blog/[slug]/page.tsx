@@ -1,10 +1,14 @@
+// "use client";
+
+import { BasketballBackground } from "@/components/BasketballBackground";
 import CustomLink from "@/components/CustomLink";
+import { prisma } from "@/prisma/client"; // Import Prisma client
+// import { Spinner, Center } from "@chakra-ui/react";
 import { Box, Container, Heading, Text } from "@chakra-ui/react";
-import { notFound } from "next/navigation";
+import { notFound } from "next/navigation"; // Import notFound for 404 handling
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
-import { BasketballBackground } from "@/components/BasketballBackground";
-import { getPostBySlug } from "../posts";
+// import { useGetBlogPost } from "@/react-query/queries";
 
 interface Props {
     params: {
@@ -12,22 +16,38 @@ interface Props {
     };
 }
 
+// Make component async and fetch data directly
 export default async function BlogPost({ params }: Props) {
-    const post = await getPostBySlug(params.slug);
+    const { slug } = params;
+    
+    // Fetch post directly using Prisma
+    const post = await prisma.blogPost.findUnique({
+        where: {
+            slug: slug,
+        },
+    });
 
+    // Handle not found case for server components
     if (!post) {
         notFound();
     }
 
+    // Remove client-side loading/error/!post states
+    /*
+    if (isLoading) { ... }
+    if (isError) { ... }
+    if (!post) { ... } // Handled by notFound() above
+    */
+
     return (
         <BasketballBackground>
-            <Container 
-                maxW="container.xl" 
-                py={8} 
+            <Container
+                maxW="container.xl"
+                py={8}
                 px={{ base: 4, md: 6 }}
             >
-                <Box 
-                    maxW="3xl" 
+                <Box
+                    maxW="3xl"
                     mx="auto"
                     bg="rgba(255, 255, 255, 0.9)"
                     backdropFilter="blur(8px)"
@@ -41,7 +61,7 @@ export default async function BlogPost({ params }: Props) {
                     </CustomLink>
 
                     <Text fontSize="sm" color="orange.600" mb={2} mt={6}>
-                        {new Date(post.date).toLocaleDateString('en-US', {
+                        {new Date(post.publishedAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
@@ -153,4 +173,17 @@ export default async function BlogPost({ params }: Props) {
             </Container>
         </BasketballBackground>
     );
-} 
+}
+
+// Re-add generateStaticParams for SSG
+export async function generateStaticParams() {
+    // Fetch all slugs from the database
+    const posts = await prisma.blogPost.findMany({
+        select: { slug: true }, // Only select the slug field
+    });
+    
+    // Return the format Next.js expects: { slug: string }[]
+    return posts.map((post) => ({
+        slug: post.slug,
+    }));
+}

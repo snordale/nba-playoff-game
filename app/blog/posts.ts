@@ -6,7 +6,7 @@ export interface Post {
     content: string;
 }
 
-const posts: Post[] = [
+export const posts: Post[] = [
     {
         slug: 'how-to-play',
         title: 'How to Play NBA Playoff Game: A Complete Guide',
@@ -2854,11 +2854,3 @@ This positional lens provides another powerful dimension to your NBA Playoff Gam
     `
     },
 ];
-
-export async function getAllPosts(): Promise<Post[]> {
-    return posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
-
-export async function getPostBySlug(slug: string): Promise<Post | undefined> {
-    return posts.find(post => post.slug === slug);
-} 

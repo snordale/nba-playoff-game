@@ -1,9 +1,9 @@
 import CustomLink from "@/components/CustomLink";
 import { Card, CardBody, Heading, Text } from "@chakra-ui/react";
-import { Post } from "./posts";
+import type { BlogPost } from "@prisma/client";
 
 interface BlogCardProps {
-    post: Post;
+    post: BlogPost;
 }
 
 export const BlogCard = ({ post }: BlogCardProps) => {
@@ -21,7 +21,7 @@ export const BlogCard = ({ post }: BlogCardProps) => {
             >
                 <CardBody>
                     <Text fontSize="sm" color="orange.600" mb={2}>
-                        {new Date(post.date).toLocaleDateString('en-US', {
+                        {new Date(post.publishedAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
