@@ -92,6 +92,7 @@ model Game {
   playerStats    PlayerGameStats[]
   submissions    Submission[]
 
+  @@index([date])
   @@map("games")
 }
 
@@ -121,16 +122,19 @@ model Submission {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   userId      String   @map("user_id")
-  groupUserId String?  @map("group_user_id")
+  groupUserId String   @map("group_user_id")
   gameId      String   @map("game_id")
   playerId    String   @map("player_id")
 
-  user      User       @relation(fields: [userId], references: [id])
-  groupUser GroupUser? @relation(fields: [groupUserId], references: [id])
-  game      Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  player    Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+  groupUser GroupUser @relation(fields: [groupUserId], references: [id])
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player    Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, gameId, playerId])
+  @@unique([groupUserId, playerId])
+  @@index([groupUserId])
+  @@index([gameId])
+  @@index([userId])
   @@map("submissions")
 }
 

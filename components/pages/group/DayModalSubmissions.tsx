@@ -1,5 +1,5 @@
 import { Badge, Box, HStack, Heading, Spinner, Stack, Text, VStack } from '@chakra-ui/react';
-import { type SubmissionView } from '@/utils/submission-utils';
+import { type SubmissionView, isPickLocked } from '@/utils/submission-utils';
 
 interface DayModalSubmissionsProps {
     submissions: {
@@ -20,8 +20,6 @@ export const DayModalSubmissions = ({
     currentUserUsername,
     currentUserId,
 }: DayModalSubmissionsProps) => {
-    const now = new Date(); // Keep 'now' calculation here for checking lock status
-
     return (
         <Stack spacing={3}>
             <Heading size="sm" color="gray.700">Player Picks</Heading>
@@ -34,8 +32,8 @@ export const DayModalSubmissions = ({
                     {submissions.map((user, index) => {
                         const submission = user.submission;
                         const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
-                        const isPickLocked = submission?.gameStatus !== 'STATUS_SCHEDULED' || (gameStartsAt && gameStartsAt <= now);
-                        const canShowPick = isPickLocked || user.userId === currentUserId;
+                        const pickIsLocked = isPickLocked(submission?.gameStatus ?? '', gameStartsAt);
+                        const canShowPick = pickIsLocked || user.userId === currentUserId;
 
                         return (
                             <Box

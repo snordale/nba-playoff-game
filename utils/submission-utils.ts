@@ -1,15 +1,5 @@
-import { format, startOfDay } from 'date-fns';
 import type { PlayerGameStats } from "@prisma/client";
-
-// --- Define Scoring Weights ---
-export const SCORE_WEIGHTS = {
-    points: 1,
-    rebounds: 1,
-    assists: 2,
-    steals: 2,
-    blocks: 2,
-    turnovers: -2,
-};
+import { format, startOfDay } from 'date-fns';
 
 // --- Canonical Submission Types ---
 export interface ProcessedSubmission {
@@ -53,19 +43,6 @@ export interface UserSubmissionMap {
     };
 }
 
-// --- Score Calculation Function ---
-export function calculateScore(stats: PlayerGameStats | null | undefined): number | null {
-    if (!stats) {
-        return null;
-    }
-    return (stats.points ?? 0) * SCORE_WEIGHTS.points +
-           (stats.rebounds ?? 0) * SCORE_WEIGHTS.rebounds +
-           (stats.assists ?? 0) * SCORE_WEIGHTS.assists +
-           (stats.steals ?? 0) * SCORE_WEIGHTS.steals +
-           (stats.blocks ?? 0) * SCORE_WEIGHTS.blocks +
-           (stats.turnovers ?? 0) * SCORE_WEIGHTS.turnovers;
-}
-
 export function isPickLocked(gameStatus: string, gameStartsAt: Date | string | null): boolean {
     const now = new Date();
     return gameStatus !== 'STATUS_SCHEDULED' || (gameStartsAt && new Date(gameStartsAt) <= now);
@@ -102,7 +79,7 @@ export function createSubmissionsByDate(
     todayStart: Date
 ): { [key: string]: SubmissionView[] } {
     const submissionsByDate: { [key: string]: SubmissionView[] } = {};
-    
+
     Object.keys(gameCountsByDate).forEach(dateKey => {
         const dateStart = startOfDay(new Date(dateKey));
         const isFutureDate = dateStart > todayStart;
@@ -132,11 +109,11 @@ export function createUserSubmissionsMap(
     todayStart: Date
 ): UserSubmissionMap {
     const map: UserSubmissionMap = {};
-    
+
     submissions.forEach(sub => {
         const gameDateStart = startOfDay(sub.gameDate);
         const dateKey = format(gameDateStart, 'yyyy-MM-dd');
-        
+
         map[dateKey] = {
             playerName: sub.playerName,
             score: sub.score,

@@ -1,5 +1,5 @@
 // components/pages/group/DailySubmissionCard.tsx
-import { type SubmissionView } from '@/utils/submission-utils';
+import { type SubmissionView, isPickLocked } from '@/utils/submission-utils';
 import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
 import { startOfDay as dateFnsStartOfDay, format, isBefore, parseISO } from 'date-fns';
 import { useSession } from 'next-auth/react';
@@ -56,7 +56,6 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     const formattedDate = format(parseISO(date), 'MMM d, yyyy');
     const isToday = new Date(date).toDateString() === new Date().toDateString();
     const isDayLocked = isBefore(dateFnsStartOfDay(new Date(date)), dateFnsStartOfDay(new Date()));
-    const now = new Date();
 
     return (
         <Card
@@ -99,8 +98,8 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                             {users.map((user) => {
                                 const submission = user.submission;
                                 const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
-                                const isPickLocked = submission?.gameStatus !== 'STATUS_SCHEDULED' || (gameStartsAt && gameStartsAt <= now);
-                                const canShowPick = isPickLocked || user.userId === currentUserId;
+                                const pickIsLocked = isPickLocked(submission?.gameStatus ?? '', gameStartsAt);
+                                const canShowPick = pickIsLocked || user.userId === currentUserId;
 
                                 return (
                                     <VStack key={user.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
