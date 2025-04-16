@@ -43,19 +43,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
 
-    // 4. Validate Game State (Ensure game hasn't started or finished)
-    // Allow submission only if game status is scheduled AND game date is today or in the future
-    // AND the exact game time hasn't passed yet.
+    // 4. Validate Game State
     const isScheduled = game.status === 'STATUS_SCHEDULED';
-    const gameTimeHasPassed = game.startsAt <= new Date();
-    
-    // Allow submission if game is scheduled and time has not passed
-    if (!isScheduled || gameTimeHasPassed) {
-      let reason = gameTimeHasPassed ? `start time (${game.startsAt.toLocaleString()}) has passed` : `status is ${game.status}`;
-      console.error(`Cannot submit for this game because its ${reason}.`);
+    if (!isScheduled) {
       return NextResponse.json(
-        { error: `Cannot submit for this game because its ${reason}.` },
-        { status: 400 } 
+        { error: `Cannot submit for this game because its status is ${game.status}.` },
+        { status: 400 }
+      );
+    }
+
+    // Ensure game has a start time
+    if (!game.startsAt) {
+      return NextResponse.json(
+        { error: "Cannot submit for this game because its start time is not set." },
+        { status: 400 }
+      );
+    }
+
+    // Check if game time has passed (game.startsAt is stored in America/New_York timezone)
+    const now = new Date();
+    const gameStart = new Date(game.startsAt);
+    if (gameStart <= now) {
+      return NextResponse.json(
+        { error: `Cannot submit for this game because its start time (${gameStart.toLocaleString('en-US', { timeZone: 'America/New_York' })}) has passed.` },
+        { status: 400 }
       );
     }
 
