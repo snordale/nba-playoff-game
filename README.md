@@ -42,7 +42,11 @@ turnovers: -2
 ├── components/          # React components
 ├── services/           # Backend services (API fetching, game loading)
 │   └── EspnService/    # ESPN API integration
+|   |-- ApiService/     # API service for fetching data
+|   |-- DataLoaderService/    # Data loading
+|   |-- ScoringService/     # Scoring service for calculating scores
 ├── prisma/             # Database schema and migrations
+├── react-query/        # Request hooks for frontend
 └── scripts/            # Utility scripts for maintenance
 ```
 
@@ -95,6 +99,7 @@ turnovers: -2
 - `npm run prisma:generate` - Generate Prisma client
 - `npm run prisma:migrate` - Run database migrations
 - `npm run prisma:deploy` - Deploy database migrations
+- `npm run update-scores` - Fetch game and player stats from ESPN for today (equivalent to `npx tsx scripts/loadGames.ts`).
 - `npx tsx scripts/loadGames.ts [YYYY-MM-DD]` - Manually load game and player stats from ESPN for a specific date (defaults to today).
 - `npx tsx scripts/loadAllPlayoffGames.ts` - Load game and player stats from ESPN for the entire playoff date range defined in the script.
 - `npx tsx scripts/logDate.ts [YYYY-MM-DD]` - Log game and player stats from the database for a specific date (defaults to today).
@@ -111,6 +116,18 @@ The application processes game statistics fetched from ESPN for:
 - Turnovers (-2)
 
 Scores for user submissions are calculated dynamically when viewing group data based on the loaded player statistics.
+
+## Requirements
+- Users login with Google
+- Users create groups
+- Users invite people to groups
+- Users pick one player for a each day that a game occurs during NBA playoffs
+- Users cannot pick the same player twice for a given group
+- Users receive points based on the players' stats for the day on which they are picked
+- Users can update their pick until the game of their current pick starts
+- Users can view a live leaderboard with total score of each user's picks
+- Users can view a list or calendar of all days during NBA playoffs so they can see the record of who picked what and the score of each pick.
+- Users cannot see pending picks of other users ie picks whose game has not started yet.
 
 ## Core Game Mechanics Verification
 

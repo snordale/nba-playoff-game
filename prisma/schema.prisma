@@ -76,16 +76,17 @@ model Player {
 
 model Game {
   id             String            @id @default(uuid())
-  espnId         String            @unique
-  date           DateTime          @db.Date
-  homeTeamId     String            @map("home_team_id")
-  awayTeamId     String            @map("away_team_id")
-  homeScore      Int?
-  awayScore      Int?
-  status         String
-  statsProcessed Boolean           @default(false) @map("stats_processed")
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
+  espnId         String            @unique
+  date           DateTime          @db.Date
+  startsAt       DateTime?         @map("starts_at")
+  homeTeamId     String            @map("home_team_id")
+  awayTeamId     String            @map("away_team_id")
+  homeScore      Int?              @map("home_score")
+  awayScore      Int?              @map("away_score")
+  status         String
+  statsProcessed Boolean           @default(false) @map("stats_processed")
   homeTeam       Team              @relation("HomeTeamGames", fields: [homeTeamId], references: [id])
   awayTeam       Team              @relation("AwayTeamGames", fields: [awayTeamId], references: [id])
   playerStats    PlayerGameStats[]

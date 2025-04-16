@@ -290,10 +290,6 @@ export const loadGamesForDate = async (
           continue;
         }
 
-        // Log competition structure to understand available player data
-        log('\nCompetition data structure:');
-        log(JSON.stringify(competition, null, 2));
-
         const homeComp = competition.competitors.find(c => c.homeAway === 'home');
         const awayComp = competition.competitors.find(c => c.homeAway === 'away');
 
@@ -310,6 +306,9 @@ export const loadGamesForDate = async (
         log(JSON.stringify(homeComp, null, 2));
         log('\nAway competitor data:');
         log(JSON.stringify(awayComp, null, 2));
+        // Log status object to check for TBD indicators
+        log('\nEvent Status:');
+        log(JSON.stringify(event.status, null, 2));
 
         // 3. Create/Update Teams
         const homeTeam = await getOrCreateTeam(homeComp.team);
@@ -323,28 +322,43 @@ export const loadGamesForDate = async (
           continue;
         }
 
-        // Initialize players from competition data if available
-        if (competition.competitors) {
-          for (const competitor of competition.competitors as ESPNCompetitor[]) {
-            const team = competitor.homeAway === 'home' ? homeTeam : awayTeam;
-            if (competitor.athletes) {
-              log(`Processing ${competitor.homeAway} team athletes for ${team.name}...`);
-              for (const athlete of competitor.athletes) {
-                await getOrCreatePlayer(athlete, team.id);
-              }
-            }
-          }
-        }
-
         // 4. Create/Update Game
-        const gameDate = new Date(event.date);
-        // Convert date to New York time
-        const newYorkDate = new Date(gameDate.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+        const gameDate = new Date(event.date); // This is the full timestamp, likely UTC
+
+        // --- Determine Date and Start Time --- 
+
+        // Calculate the date string specifically for the New York timezone
+        const nyDateString = gameDate.toLocaleDateString('en-CA', {
+          timeZone: 'America/New_York',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }); // Format: YYYY-MM-DD
+
+        // Create a Date object representing midnight UTC on the calculated New York date
+        // This ensures the correct DATE is stored by Prisma's @db.Date
+        const dbDateForNY = new Date(nyDateString + 'T00:00:00.000Z');
+
+        // Check the status details for TBD using type assertion for missing properties
+        const statusType = event.status?.type as any; // Assert type here
+        const isTBD = statusType?.detail?.toUpperCase().includes('TBD') || 
+                      statusType?.shortDetail?.toUpperCase().includes('TBD') ||
+                      false; // Default to false if no TBD found
+                      
+        const startsAtValue = isTBD ? null : gameDate;
+
+        // Log date values for debugging
+        log(`  [Date Debug] Event ID: ${event.id}`);
+        log(`    Raw event.date: ${event.date}`);
+        log(`    isTBD flag: ${isTBD}`);
+        log(`    Final dbDateForNY obj for DB 'date': ${dbDateForNY.toISOString()}`);
+        log(`    Final startsAtValue for DB 'startsAt': ${startsAtValue?.toISOString() ?? 'null'}`);
 
         const game = await prisma.game.upsert({
           where: { espnId: event.id },
           update: {
-            date: newYorkDate,
+            date: dbDateForNY,
+            startsAt: startsAtValue,
             status: event.status.type.name,
             homeTeamId: homeTeam.id,
             awayTeamId: awayTeam.id,
@@ -353,7 +367,8 @@ export const loadGamesForDate = async (
           },
           create: {
             espnId: event.id,
-            date: newYorkDate,
+            date: dbDateForNY,
+            startsAt: startsAtValue,
             status: event.status.type.name,
             homeTeamId: homeTeam.id,
             awayTeamId: awayTeam.id,
@@ -531,10 +546,10 @@ export async function loadTeamsAndPlayers() {
         // --- Fetch Roster ---
         let rosterData;
         try {
-           rosterData = await getTeamRoster(apiTeam.abbreviation);
+          rosterData = await getTeamRoster(apiTeam.abbreviation);
         } catch (fetchError: any) { // Added :any
-            console.error(`Failed to fetch roster for ${apiTeam.abbreviation}:`, fetchError);
-            throw new Error(`Roster fetch failed for ${apiTeam.abbreviation}: ${fetchError.message}`); // Re-throw
+          console.error(`Failed to fetch roster for ${apiTeam.abbreviation}:`, fetchError);
+          throw new Error(`Roster fetch failed for ${apiTeam.abbreviation}: ${fetchError.message}`); // Re-throw
         }
 
 
@@ -567,10 +582,10 @@ export async function loadTeamsAndPlayers() {
                 name: apiPlayer.fullName,
                 image: apiPlayer.headshot?.href,
                 currentTeamId: upsertedTeam.id,
-                 // Consider adding other fields here if needed
+                // Consider adding other fields here if needed
               },
             });
-             // console.log(`Upserted player ${apiPlayer.fullName} (ESPN ID: ${apiPlayer.id}) for team ${apiTeam.abbreviation}`);
+            // console.log(`Upserted player ${apiPlayer.fullName} (ESPN ID: ${apiPlayer.id}) for team ${apiTeam.abbreviation}`);
           } catch (dbError: any) { // Added :any
             console.error(`Failed to upsert player ${apiPlayer.fullName} (ESPN ID: ${apiPlayer.id}) for team ${apiTeam.abbreviation}:`, dbError);
             // Log error but continue with the next player
@@ -593,7 +608,7 @@ export async function loadTeamsAndPlayers() {
 
       console.log(`--- Finished Batch ${i + 1} ---`);
       // Optional: Add a delay between batches if needed to further rate limit
-       // await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+      // await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
     } // End of loop through chunks
 
     console.log("Finished loading all teams and players.");

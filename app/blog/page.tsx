@@ -6,6 +6,9 @@ import { getAllPosts } from "./posts";
 export const metadata = {
     title: "Blog | NBA Playoff Game",
     description: "Learn about NBA playoff strategies, scoring systems, and get the most out of your NBA Playoff Game experience.",
+    icons: {
+        icon: "/favicon.ico",
+    }
 };
 
 export default async function BlogPage() {

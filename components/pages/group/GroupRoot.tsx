@@ -150,25 +150,25 @@ export const GroupRoot = ({ params }) => {
 
   const userInGroup = scoredPlayers?.some(p => p.userId === currentUserId);
 
-  if (isLoadingGroup) {
-    return <Body1>Loading Group...</Body1>;
-  }
+  function renderContent() {
+    if (isLoadingGroup) {
+      return <Body1>Loading Group...</Body1>;
+    }
 
-  if (!group) {
-    return <Body1>Group not found.</Body1>;
-  }
+    if (!group) {
+      return <Body1>Group not found.</Body1>;
+    }
 
-  if (!userInGroup && !isLoadingGroup) {
-    return <Body1>Access denied. You are not a member of this group.</Body1>;
-  }
+    if (!userInGroup && !isLoadingGroup) {
+      return <Body1>Access denied. You are not a member of this group.</Body1>;
+    }
 
-  if (!sessionData?.user) {
-    router.replace('/');
-    return <Body1>Redirecting to homepage...</Body1>;
-  }
+    if (!sessionData?.user) {
+      router.replace('/');
+      return <Body1>Redirecting to homepage...</Body1>;
+    }
 
-  return (
-    <Container maxW="container.xl" p={{ base: 4, md: 6 }}>
+    return (
       <GroupInterface
         group={group}
         groupId={groupId}
@@ -193,6 +193,12 @@ export const GroupRoot = ({ params }) => {
         currentSubmissionForSelectedDate={currentSubmissionForSelectedDate}
         previouslySubmittedPlayerIds={previouslySubmittedPlayerIds}
       />
+    )
+  }
+
+  return (
+    <Container maxW="container.xl" p={{ base: 4, md: 6 }}>
+      {renderContent()}
     </Container>
   );
 };

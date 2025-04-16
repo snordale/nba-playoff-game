@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
       id: game.id,
       date: dateString,
       status: game.status,
+      starts_at: game.startsAt,
       homeTeam: {
         id: game.homeTeam.id,
         name: game.homeTeam.name,

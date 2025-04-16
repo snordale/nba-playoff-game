@@ -222,7 +222,8 @@ export const DayModal = ({
                                                 </VStack>
                                                 <VStack alignItems='flex-end' spacing={0}>
                                                     <Text fontSize="2xs" color={getStatusColor(game.status)}>
-                                                        {format(parseISO(game.date), 'h:mm a')} {/* Ensure date is parsed */}
+                                                        {/* Use starts_at if available, otherwise maybe fallback or hide */}
+                                                        {game.starts_at ? format(parseISO(game.starts_at), 'h:mm a') : 'TBD'}
                                                     </Text>
                                                     <Text fontSize="2xs" color={getStatusColor(game.status)}>
                                                         {game.status.replace('STATUS_', '').replace('_', ' ')}

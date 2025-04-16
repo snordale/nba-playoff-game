@@ -1,0 +1,14 @@
+# .github/workflows/daily-update.yml
+name: Daily Update
+
+on:
+  schedule:
+    - cron: '*/20 16-23 * * *'  # 9:00 AM – 3:59 PM PT
+    - cron: '*/20 0-8 * * *'    # 4:00 PM – 1:59 AM PT
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Load Games API
+        run: curl -X POST -H "Authorization: Bearer playdefense007" https://nbaplayoffgame.com/api/cron/load-games
