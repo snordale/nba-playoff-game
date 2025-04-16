@@ -30,7 +30,7 @@ export const DayModalSubmissions = ({
             ) : submissions.length === 0 ? (
                 <Text color="gray.500">No submissions yet for this day.</Text>
             ) : (
-                <Stack spacing={3} maxH="250px" overflowY="auto" pr={2}>
+                <Stack spacing={3} pr={2}>
                     {submissions.map((user, index) => {
                         const submission = user.submission;
                         const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
@@ -43,8 +43,7 @@ export const DayModalSubmissions = ({
                                 p={3}
                                 borderWidth="1px"
                                 borderRadius="md"
-                                bg={isLocked ? (index === 0 ? 'orange.50' : 'transparent') : (user.username === currentUserUsername ? 'blue.50' : 'transparent')}
-                                borderColor={isLocked ? (index === 0 ? 'orange.200' : 'gray.200') : (user.username === currentUserUsername ? 'blue.200' : 'gray.200')}
+                                borderColor='gray.200'
                             >
                                 <HStack justify="space-between" align="flex-start">
                                     <VStack align="start" spacing={1} flex={1} mr={2}>

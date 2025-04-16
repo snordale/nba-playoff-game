@@ -111,13 +111,6 @@ export const DayModal = ({
 
     }, [playersForSelectionData, search, previouslySubmittedPlayerIds, isLocked]);
 
-    function getStatusColor(status: string) {
-        if (status === 'STATUS_SCHEDULED') return 'green.600';
-        if (status === 'STATUS_IN_PROGRESS') return 'orange.500';
-        if (status === 'STATUS_FINAL') return 'red.500';
-        return 'gray.500'; // Default
-    }
-
     const handleSubmit = async (submissionData: { gameId: string; playerId: string }) => {
         setIsSubmitting(true);
         try {
@@ -182,10 +175,10 @@ export const DayModal = ({
     return (
         <Modal isOpen={isOpen} onClose={() => onClose(false)} size="xl" scrollBehavior="inside">
             <ModalOverlay />
-            <ModalContent>
+            <ModalContent maxH="90vh">
                 <ModalHeader borderBottomWidth={1} borderColor="orange.600">{displayDate}</ModalHeader>
                 <ModalCloseButton onClick={() => onClose(false)} />
-                <ModalBody pb={6}>
+                <ModalBody pb={6} overflowY="auto">
                     <Stack gap={4}>
                         {/* Games Section */}
                         <DayModalGames games={games} isLoading={loadingGames} />

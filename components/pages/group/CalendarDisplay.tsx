@@ -23,7 +23,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
 
   const dateKey = format(date, 'yyyy-MM-dd');
   const today = startOfDay(new Date());
-  const isPastOrToday = date <= today;
+  const isPast = date < today;
   const gameCount = gameCountsByDate?.[dateKey] ?? 0;
   const submissionsForThisDate = submissionsByDate?.[dateKey] ?? [];
 
@@ -37,10 +37,10 @@ const TileContent = ({ date, view }: TileContentProps) => {
       </Text>
 
       {/* Submissions */}
-      {isPastOrToday ? (
+      {isPast ? (
         // Past or Today: Show scores
         submissionsForThisDate.map((sub, i) => (
-          <Text key={i} fontSize="2xs" color="gray.600" isTruncated>
+          <Text key={i} fontSize="2xs" color="green.600" isTruncated>
             {sub.username}: {sub.score ?? 'N/A'}
           </Text>
         ))
