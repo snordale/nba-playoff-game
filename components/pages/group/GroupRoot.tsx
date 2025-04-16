@@ -166,6 +166,25 @@ export const GroupRoot = ({ params }) => {
       return <Body1>Redirecting to homepage...</Body1>;
     }
 
+    const usersWithSubmissionsForSelectedDate = scoredPlayers?.map(user => {
+      const submission = user.submissions?.find(sub =>
+        format(new Date(sub.date), 'yyyy-MM-dd') === selectedDate
+      );
+      return {
+        userId: user.userId,
+        username: user.username,
+        submission: submission ? {
+          username: user.username,
+          playerName: submission.playerName,
+          score: submission.score,
+          stats: submission.stats,
+          gameStatus: submission.gameStatus,
+          gameDate: submission.gameDate,
+          gameStartsAt: submission.gameStartsAt
+        } : null
+      };
+    }) || [];
+
     return (
       <GroupInterface
         group={group}
@@ -185,9 +204,8 @@ export const GroupRoot = ({ params }) => {
         viewMode={viewMode}
         setViewMode={setViewMode}
         scoredPlayers={scoredPlayers}
-        currentUserId={currentUserId}
         currentUserUsername={currentUserUsername}
-        allSubmissionsForSelectedDate={allSubmissionsForSelectedDate}
+        usersWithSubmissionsForSelectedDate={usersWithSubmissionsForSelectedDate}
         currentSubmissionForSelectedDate={currentSubmissionForSelectedDate}
         previouslySubmittedPlayerIds={previouslySubmittedPlayerIds}
       />

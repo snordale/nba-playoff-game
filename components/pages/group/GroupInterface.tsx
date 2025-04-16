@@ -1,8 +1,12 @@
 // components/pages/group/GroupInterface.tsx
+'use client';
+
 import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
+import { type SubmissionView } from '@/utils/submission-utils';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { useSession } from 'next-auth/react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries"; // Assuming queryClient is exported or accessible
 import { Body1 } from "../../Body1";
@@ -37,7 +41,17 @@ interface ScoredPlayer {
     userId: string;
     username: string;
     score: number;
-    submissions: Submission[];
+    submissions: {
+        date: string;
+        gameId: string;
+        playerId: string;
+        playerName: string | null;
+        score: number | null;
+        stats: any | null;
+        gameStatus?: string;
+        gameDate: Date | null;
+        gameStartsAt: string | null;
+    }[];
     // Add other fields if needed, e.g., isAdmin
 }
 
@@ -68,7 +82,7 @@ interface GroupInterfaceProps {
     groupId: string;
     onSubmit: (data: { gameId: string; playerId: string }) => Promise<void>;
     selectedDate: string;
-    setSelectedDate: (date: string) => void; // Keep if DayModal needs to change date
+    setSelectedDate: (date: string) => void;
     search: string;
     onSearchChange: (value: string) => void;
     onCalendarDateClick: (date: Date | string) => void;
@@ -76,15 +90,18 @@ interface GroupInterfaceProps {
     setIsDayModalOpen: (isOpen: boolean) => void;
     currentUserSubmissionsMap: CurrentUserSubmissionsMap | undefined;
     gameCountsByDate: GameCountsByDateMap | undefined;
-    submissionsByDate: { [dateKey: string]: { username: string; playerName: string | null; score: number | null; }[] } | undefined; // Keep for CalendarDisplay
-    groupMembers: GroupMember[]; // Add groupMembers prop
+    submissionsByDate: { [dateKey: string]: SubmissionView[] } | undefined;
+    groupMembers: GroupMember[];
     viewMode: 'calendar' | 'list';
     setViewMode: (mode: 'calendar' | 'list') => void;
     scoredPlayers: ScoredPlayer[] | undefined;
-    currentUserId: string | undefined;
     currentUserUsername: string | undefined;
-    allSubmissionsForSelectedDate: { username: string; playerName: string | null; score: number | null; stats: PlayerStats | null; }[];
-    currentSubmissionForSelectedDate: { playerName: string; playerId: string | undefined; } | null | undefined;
+    usersWithSubmissionsForSelectedDate: {
+        userId: string;
+        username: string;
+        submission: SubmissionView | null;
+    }[];
+    currentSubmissionForSelectedDate: { playerName: string; playerId: string; } | null | undefined;
     previouslySubmittedPlayerIds: string[];
 }
 
@@ -102,16 +119,17 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
     currentUserSubmissionsMap,
     gameCountsByDate,
     submissionsByDate,
-    groupMembers, // Destructure groupMembers
+    groupMembers,
     viewMode,
     setViewMode,
     scoredPlayers,
-    currentUserId,
     currentUserUsername,
-    allSubmissionsForSelectedDate,
+    usersWithSubmissionsForSelectedDate,
     currentSubmissionForSelectedDate,
     previouslySubmittedPlayerIds
 }) => {
+    const { data: sessionData } = useSession();
+    const currentUserId = sessionData?.user?.id;
     const { mutateAsync: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
     const toast = useToast();
     const todayRef = useRef<HTMLDivElement>(null);
@@ -291,7 +309,8 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                                     userId: user.userId,
                                     username: user.username,
                                     submission: submission ? {
-                                        playerName: submission.playerName ?? 'Error',
+                                        username: user.username,
+                                        playerName: submission.playerName,
                                         score: submission.score,
                                         stats: submission.stats,
                                         gameStatus: submission.gameStatus,
@@ -306,9 +325,9 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                                     <DailySubmissionCard
                                         date={date}
                                         hasGames={(gameCountsByDate?.[date] ?? 0) > 0}
+                                        gameCount={gameCountsByDate?.[date] ?? 0}
                                         onClick={handleCardClick}
                                         users={usersWithSubmissionsForDate}
-                                        currentUserId={currentUserId}
                                     />
                                 </div>
                             );
@@ -328,15 +347,14 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                         }
                     }}
                     selectedDate={selectedDate}
-                    allSubmissionsForDate={allSubmissionsForSelectedDate}
-                    loadingSubmissions={false} // Pass actual loading state if available
+                    loadingSubmissions={false}
                     onSubmit={onSubmit}
                     search={search}
                     onSearchChange={onSearchChange}
                     currentSubmissionForUser={currentSubmissionForSelectedDate}
                     previouslySubmittedPlayerIds={previouslySubmittedPlayerIds}
-                    currentUserId={currentUserId}
                     currentUserUsername={currentUserUsername}
+                    usersWithSubmissionsForDate={usersWithSubmissionsForSelectedDate}
                 />
             )}
         </Stack>

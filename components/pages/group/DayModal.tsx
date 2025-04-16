@@ -1,35 +1,35 @@
-import { useGetGames, useGetPlayers } from '@/react-query/queries'; // Assuming useGetTodaysPlayers exists
+import { useGetGames, useGetPlayers } from '@/react-query/queries';
+import { type SubmissionView } from '@/utils/submission-utils';
 import { CheckCircleIcon } from '@chakra-ui/icons';
-import { Badge, Box, Button, Divider, Grid, HStack, Heading, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, VStack, useToast } from '@chakra-ui/react'; // Added Badge, Divider, Heading
-import { format, isBefore, parseISO, startOfDay } from 'date-fns'; // Added isBefore, startOfDay
-import { useMemo, useState } from 'react'; // Added useMemo
+import { Badge, Box, Button, Divider, Grid, HStack, Heading, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, VStack, useToast } from '@chakra-ui/react';
+import { format, isBefore, parseISO, startOfDay } from 'date-fns';
+import { useSession } from 'next-auth/react';
+import { useMemo, useState } from 'react';
 
-// Define PlayerStats interface (if not already defined/imported)
-interface PlayerStats {
-    points: number | null;
-    rebounds: number | null;
-    assists: number | null;
-    steals: number | null;
-    blocks: number | null;
-    turnovers: number | null;
-}
-
-// Define structure for submission data passed in props
-interface SubmissionDetailForModal {
-    username: string;
-    playerName: string | null; // Can be null if no pick yet
-    score: number | null;
-    stats: PlayerStats | null;
-    gameStatus?: string;
-    gameDate?: string | Date;
+interface DayModalProps {
+    isOpen: boolean;
+    onClose: (refresh?: boolean) => void;
+    selectedDate: string; // YYYY-MM-DD format
+    loadingSubmissions: boolean;
+    onSubmit: (submissionData: { gameId: string; playerId: string }) => Promise<void>;
+    search: string;
+    onSearchChange: (value: string) => void;
+    currentSubmissionForUser: { playerName: string; playerId: string; } | undefined | null;
+    previouslySubmittedPlayerIds: string[];
+    currentUserUsername: string;
+    usersWithSubmissionsForDate: {
+        userId: string;
+        username: string;
+        submission: SubmissionView | null;
+    }[];
 }
 
 // Define structure for player data needed for selection
 interface PlayerForSelection {
     id: string;
     name: string;
-    alreadySubmitted: boolean; // Has the current user already picked this player on a *previous* day?
-    gameId: string; // **** ADDED gameId ****
+    alreadySubmitted: boolean;
+    gameId: string;
 }
 
 // Define structure for team data needed for selection
@@ -38,46 +38,29 @@ interface TeamForSelection {
     name: string;
     abbreviation: string;
     players: PlayerForSelection[];
-    // Optional: Add game time/details if needed and available from player data
-    // gameDate?: Date; 
-}
-
-// Updated Props Interface
-interface DayModalProps {
-    isOpen: boolean;
-    onClose: (refresh?: boolean) => void; // Allow forcing refresh on close after submission
-    selectedDate: string; // YYYY-MM-DD format
-    allSubmissionsForDate: SubmissionDetailForModal[] | undefined; // All user picks for this date
-    loadingSubmissions: boolean; // Indicate if submission data is loading
-    onSubmit: (submissionData: { gameId: string; playerId: string }) => Promise<void>; // Keep the submission function
-    search: string;
-    onSearchChange: (value: string) => void;
-    currentSubmissionForUser: { playerId: string; playerName: string; } | undefined | null; // Current user's pick specifically for this date
-    previouslySubmittedPlayerIds: string[] | undefined; // All player IDs picked by current user on OTHER days
-    currentUserId: string; // ID of the logged-in user
-    currentUserUsername: string; // Pass username for highlighting
 }
 
 export const DayModal = ({
     isOpen,
     onClose,
     selectedDate,
-    allSubmissionsForDate,
     loadingSubmissions,
     onSubmit,
     search,
     onSearchChange,
     currentSubmissionForUser,
     previouslySubmittedPlayerIds,
-    currentUserId,
-    currentUserUsername, // Destructure username
+    currentUserUsername,
+    usersWithSubmissionsForDate,
 }: DayModalProps) => {
+    const { data: sessionData } = useSession();
+    const currentUserId = sessionData?.user?.id;
     const displayDate = selectedDate ? format(parseISO(selectedDate), 'MMMM d, yyyy') : 'Selected Date';
     const { data: games, isLoading: loadingGames } = useGetGames({ date: selectedDate });
     const toast = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const now = new Date(); // Get current time for comparisons
-    const isLocked = isBefore(startOfDay(parseISO(selectedDate)), startOfDay(new Date())); // Day locked check
+    const now = new Date();
+    const isLocked = isBefore(startOfDay(parseISO(selectedDate)), startOfDay(new Date()));
 
     // Fetch players available for selection ONLY if the date is not locked
     const { data: playersForSelectionData, isLoading: loadingPlayers } = useGetPlayers({
@@ -89,11 +72,10 @@ export const DayModal = ({
         if (isLocked || !playersForSelectionData) return [];
 
         // Process playersForSelectionData, group by TEAM
-        const playersByTeam = (playersForSelectionData as any[]) // Cast or use proper type from API
+        const playersByTeam = (playersForSelectionData as any[])
             .filter(player => player.name.toLowerCase().includes(search.toLowerCase()))
             .reduce<Record<string, TeamForSelection>>((acc, player) => {
-                // **** Use a fallback for missing teamId ****
-                const teamId = player.currentTeamId ?? 'UNKNOWN_TEAM'; 
+                const teamId = player.currentTeamId ?? 'UNKNOWN_TEAM';
                 const teamName = player.teamName ?? 'Unknown Team';
                 const teamAbbreviation = player.teamAbbreviation ?? 'UNK';
 
@@ -107,35 +89,31 @@ export const DayModal = ({
                 }
 
                 if (!player.gameId) {
-                    // Decide how to handle: skip player? assign default gameId?
-                    // Skipping for now:
-                     return acc; 
+                    return acc;
                 }
 
                 acc[teamId].players.push({
                     id: player.id,
                     name: player.name,
                     alreadySubmitted: previouslySubmittedPlayerIds?.includes(player.id) ?? false,
-                    gameId: player.gameId 
+                    gameId: player.gameId
                 });
 
                 acc[teamId].players.sort((a, b) => a.name.localeCompare(b.name));
 
                 return acc;
             }, {});
-            
+
         return Object.values(playersByTeam).sort((a, b) => a.name.localeCompare(b.name));
 
     }, [playersForSelectionData, search, previouslySubmittedPlayerIds, isLocked]);
 
-
     function getStatusColor(status: string) {
-        // ... (keep existing function)
         if (status === 'STATUS_SCHEDULED') return 'green.600';
         if (status === 'STATUS_IN_PROGRESS') return 'orange.500';
         if (status === 'STATUS_FINAL') return 'red.500';
         return 'gray.500'; // Default
-    };
+    }
 
     const handleSubmit = async (submissionData: { gameId: string; playerId: string }) => {
         setIsSubmitting(true);
@@ -143,7 +121,6 @@ export const DayModal = ({
             await onSubmit(submissionData);
 
             let playerName = 'Player';
-            // Find player name in the new team-based structure
             for (const team of filteredPlayersByTeam) {
                 const player = team.players.find(p => p.id === submissionData.playerId);
                 if (player) {
@@ -175,26 +152,26 @@ export const DayModal = ({
         }
     };
 
-    // Sort submissions for display (e.g., by score desc for past, maybe alpha by user for future)
+    // Sort submissions for display
     const sortedSubmissions = useMemo(() => {
-        if (!allSubmissionsForDate) return [];
+        if (!usersWithSubmissionsForDate) return [];
         if (isLocked) {
             // Sort by score descending for past dates
-            return [...allSubmissionsForDate].sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity));
+            return [...usersWithSubmissionsForDate].sort((a, b) => ((b.submission?.score ?? -Infinity) - (a.submission?.score ?? -Infinity)));
         } else {
             // Sort alphabetically by username for future/current dates
-            return [...allSubmissionsForDate].sort((a, b) => a.username.localeCompare(b.username));
+            return [...usersWithSubmissionsForDate].sort((a, b) => a.username.localeCompare(b.username));
         }
-    }, [allSubmissionsForDate, isLocked]);
+    }, [usersWithSubmissionsForDate, isLocked]);
 
-    // Find team abbreviation for the current user's pick for display below search bar
+    // Find team abbreviation for the current user's pick
     let currentPickTeamAbbreviation = '';
     if (!isLocked && currentSubmissionForUser && filteredPlayersByTeam) {
-        for (const team of filteredPlayersByTeam) { // Loop through teams directly
-            const player = team.players?.find(p => p.id === currentSubmissionForUser.playerId || p.name === currentSubmissionForUser.playerName);
+        for (const team of filteredPlayersByTeam) {
+            const player = team.players?.find(p => p.id === currentSubmissionForUser.playerId);
             if (player) {
                 currentPickTeamAbbreviation = team.abbreviation;
-                break; // Found the player, stop searching teams
+                break;
             }
         }
     }
@@ -207,7 +184,7 @@ export const DayModal = ({
                 <ModalCloseButton onClick={() => onClose(false)} />
                 <ModalBody pb={6}>
                     <Stack gap={4}>
-                        {/* Games Section (Same as before) */}
+                        {/* Games Section */}
                         <Stack gap={2}>
                             <Heading size="sm" color="gray.700">Games</Heading>
                             {loadingGames ? (
@@ -223,7 +200,6 @@ export const DayModal = ({
                                                 </VStack>
                                                 <VStack alignItems='flex-end' spacing={0}>
                                                     <Text fontSize="2xs" color={getStatusColor(game.status)}>
-                                                        {/* Use starts_at if available, otherwise maybe fallback or hide */}
                                                         {game.starts_at ? format(parseISO(game.starts_at), 'h:mm a') : 'TBD'}
                                                     </Text>
                                                     <Text fontSize="2xs" color={getStatusColor(game.status)}>
@@ -250,56 +226,51 @@ export const DayModal = ({
                                 <Text color="gray.500">No submissions yet for this day.</Text>
                             ) : (
                                 <Stack spacing={3} maxH="250px" overflowY="auto" pr={2}>
-                                    {sortedSubmissions.map((sub, index) => {
-                                        // Determine if this specific pick is locked
-                                        const gameDate = sub?.gameDate ? new Date(sub.gameDate) : null;
-                                        const isPickLocked = sub?.gameStatus !== 'STATUS_SCHEDULED' || (gameDate && gameDate <= now);
-                                        const canShowPick = isPickLocked || sub.username === currentUserUsername; // Show if locked or it's your pick
+                                    {sortedSubmissions.map((user, index) => {
+                                        const submission = user.submission;
+                                        const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
+                                        const isPickLocked = submission?.gameStatus !== 'STATUS_SCHEDULED' || (gameStartsAt && gameStartsAt <= now);
+                                        const canShowPick = isPickLocked || user.userId === currentUserId;
 
                                         return (
                                             <Box
-                                                key={sub.username + index} 
+                                                key={user.username + index}
                                                 p={3}
                                                 borderWidth="1px"
                                                 borderRadius="md"
-                                                bg={isLocked ? (index === 0 ? 'orange.50' : 'transparent') : (sub.username === currentUserUsername ? 'blue.50' : 'transparent')}
-                                                borderColor={isLocked ? (index === 0 ? 'orange.200' : 'gray.200') : (sub.username === currentUserUsername ? 'blue.200' : 'gray.200')}
+                                                bg={isLocked ? (index === 0 ? 'orange.50' : 'transparent') : (user.username === currentUserUsername ? 'blue.50' : 'transparent')}
+                                                borderColor={isLocked ? (index === 0 ? 'orange.200' : 'gray.200') : (user.username === currentUserUsername ? 'blue.200' : 'gray.200')}
                                             >
                                                 <HStack justify="space-between" align="flex-start">
                                                     <VStack align="start" spacing={1} flex={1} mr={2}>
-                                                        <Text fontWeight="bold">{isLocked ? `${index + 1}. ` : ''}{sub.username}</Text>
-                                                        {/* Conditional Player Name */}
-                                                        <Text fontSize="sm" color="gray.600" noOfLines={1}>
-                                                            {canShowPick ? (sub.playerName ?? 'No Pick') : (sub.playerName ? "Pick Hidden" : "No Pick Yet")}
+                                                        <Text fontWeight="bold">{isLocked ? `${index + 1}. ` : ''}{user.username}</Text>
+                                                        <Text fontSize="sm" color={submission ? "green.500" : "orange.500"} noOfLines={1}>
+                                                            {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
                                                         </Text>
-                                                        {/* Conditional Stats Grid */}
-                                                        {canShowPick && sub.stats && (
+                                                        {canShowPick && submission?.stats && (
                                                             <HStack gap={2} pt={1} width="100%">
-                                                                <Text fontSize="xs" color="gray.600">PTS: {sub.stats.points ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">REB: {sub.stats.rebounds ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">AST: {sub.stats.assists ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">STL: {sub.stats.steals ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">BLK: {sub.stats.blocks ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">TO: {sub.stats.turnovers ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">PTS: {submission.stats.points ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">REB: {submission.stats.rebounds ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">AST: {submission.stats.assists ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">STL: {submission.stats.steals ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">BLK: {submission.stats.blocks ?? '-'}</Text>
+                                                                <Text fontSize="xs" color="gray.600">TO: {submission.stats.turnovers ?? '-'}</Text>
                                                             </HStack>
                                                         )}
                                                     </VStack>
-                                                    {/* Score Badge / Status Badge - Conditionally Visible */}
                                                     {isLocked ? (
                                                         <Badge
                                                             fontSize="md"
-                                                            colorScheme={sub.score === null && sub.playerName ? 'gray' : 'orange'}
+                                                            colorScheme={submission?.score === null && submission?.playerName ? 'gray' : 'orange'}
                                                             px={3} py={1} borderRadius="full"
-                                                            // Show badge only if pick is shown and player name exists
-                                                            visibility={canShowPick && sub.playerName ? 'visible' : 'hidden'}
+                                                            visibility={canShowPick && submission?.playerName ? 'visible' : 'hidden'}
                                                         >
-                                                            {sub.score ?? 'N/A'} pts
+                                                            {submission?.score ?? 'N/A'} pts
                                                         </Badge>
                                                     ) : (
-                                                        // Show status based on whether a pick exists, not if it's revealed
-                                                        sub.playerName ?
-                                                            <Badge colorScheme='green' variant='subtle'>Pick In</Badge> :
-                                                            <Badge colorScheme='gray' variant='subtle'>No Pick</Badge>
+                                                        <Badge colorScheme={submission?.playerName ? 'green' : 'gray'} variant='subtle'>
+                                                            {submission?.playerName ? 'Pick In' : 'No Pick'}
+                                                        </Badge>
                                                     )}
                                                 </HStack>
                                             </Box>
@@ -320,19 +291,18 @@ export const DayModal = ({
                                         placeholder="Search players..."
                                         onChange={e => onSearchChange(e.target.value)}
                                     />
-                                    {/* Optional: Display current pick below search */}
                                     {currentSubmissionForUser && (
                                         <Text
                                             fontSize="sm"
                                             fontWeight="semibold" color="orange.600" textAlign="center" p={1} borderWidth={1} borderRadius="md" borderColor="orange.200" bg="orange.50">
                                             Current Pick: {currentSubmissionForUser.playerName} {currentPickTeamAbbreviation ? `(${currentPickTeamAbbreviation})` : ''}
                                         </Text>
-                                     )}
+                                    )}
                                 </Stack>
                                 <Stack
                                     position='relative'
                                     overflowY='auto'
-                                    maxH='300px' // Adjust height as needed
+                                    maxH='300px'
                                     borderWidth={1}
                                     borderColor="gray.200"
                                     borderRadius="md"
@@ -342,16 +312,12 @@ export const DayModal = ({
                                         <HStack py={8} justifyContent='center'><Spinner color="orange.500" /></HStack>
                                     ) : (
                                         <>
-                                            {/* **** UPDATED Player List Rendering **** */}
                                             {filteredPlayersByTeam && filteredPlayersByTeam.length > 0 ? (
-                                                // **** Loop through teams ****
                                                 filteredPlayersByTeam.map((team) => (
                                                     <Stack key={team.teamId} pl={2} mb={2} spacing={1}>
-                                                        {/* **** Display Team Header **** */}
                                                         <Text fontWeight="semibold" fontSize="sm" color="gray.600">
                                                             {team.name}
                                                         </Text>
-                                                        {/* **** Player list directly under team **** */}
                                                         <Stack pl={2} spacing={0.5}>
                                                             {team.players?.map((player) => {
                                                                 const isCurrentPick = currentSubmissionForUser?.playerId === player.id;
@@ -364,11 +330,8 @@ export const DayModal = ({
                                                                         colorScheme='orange'
                                                                         flexShrink={0}
                                                                         key={player.id}
-                                                                        // Disable if used on another day OR if submitting OR if missing gameId
                                                                         isDisabled={!player.gameId || isPreviouslySubmitted || isSubmitting}
-                                                                        // Show loading specific to this button if it's the one being submitted
                                                                         isLoading={isSubmitting && currentSubmissionForUser?.playerId === player.id}
-                                                                        // **** Use player.gameId ****
                                                                         onClick={() => player.gameId && handleSubmit({ gameId: player.gameId, playerId: player.id })}
                                                                         justifyContent='space-between'
                                                                         gap={2}

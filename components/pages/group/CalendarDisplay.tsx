@@ -5,6 +5,7 @@ import { format, isToday, startOfDay } from 'date-fns';
 import React from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css'; // Default styling
+import { type SubmissionView, type UserSubmissionMap } from '@/utils/submission-utils';
 
 // Define structure for group members
 export interface GroupMember {
@@ -12,31 +13,11 @@ export interface GroupMember {
   // Add other relevant member details if needed, e.g., id
 }
 
-// Define structure for submissions data passed as props
-interface SubmissionForDate {
-  username: string;
-  playerName: string;
-  score: number | null;
-}
-interface SubmissionsByDateMap {
-  [dateKey: string]: SubmissionForDate[];
-}
-
-// Define structure for the user submission map
-interface CurrentUserSubmission {
-  playerName: string;
-  score: number | null;
-  isFuture: boolean;
-}
-interface CurrentUserSubmissionsMap {
-  [dateKey: string]: CurrentUserSubmission;
-}
-
 interface CalendarDisplayProps {
   onDateClick: (date: Date) => void;
-  currentUserSubmissionsMap?: CurrentUserSubmissionsMap;
+  currentUserSubmissionsMap?: UserSubmissionMap;
   gameCountsByDate?: { [dateKey: string]: number };
-  submissionsByDate?: SubmissionsByDateMap;
+  submissionsByDate?: { [dateKey: string]: SubmissionView[] };
   groupMembers: GroupMember[]; // Add group members prop
 }
 
@@ -44,9 +25,9 @@ interface CalendarDisplayProps {
 interface TileContentProps {
   date: Date;
   view: string;
-  currentUserSubmissionsMap?: CurrentUserSubmissionsMap;
+  currentUserSubmissionsMap?: UserSubmissionMap;
   gameCountsByDate?: { [dateKey: string]: number };
-  submissionsByDate?: SubmissionsByDateMap;
+  submissionsByDate?: { [dateKey: string]: SubmissionView[] };
   groupMembers: GroupMember[]; // Add group members prop
 }
 

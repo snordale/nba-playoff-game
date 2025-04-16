@@ -1,0 +1,147 @@
+import { format, startOfDay } from 'date-fns';
+import type { PlayerGameStats } from "@prisma/client";
+
+// --- Define Scoring Weights ---
+export const SCORE_WEIGHTS = {
+    points: 1,
+    rebounds: 1,
+    assists: 2,
+    steals: 2,
+    blocks: 2,
+    turnovers: -2,
+};
+
+// --- Canonical Submission Types ---
+export interface ProcessedSubmission {
+    date: string;
+    gameId: string;
+    playerId: string;
+    playerName: string | null;
+    score: number | null;
+    stats: PlayerGameStats | null;
+    gameStatus: string;
+    gameDate: Date;
+    gameStartsAt: string | null;
+}
+
+export interface ScoredGroupUser {
+    groupUserId: string;
+    userId: string;
+    username: string;
+    isAdmin: boolean;
+    score: number;
+    submissions: ProcessedSubmission[];
+}
+
+export interface SubmissionView {
+    username: string;
+    playerName: string | null;
+    score: number | null;
+    stats: PlayerGameStats | null;
+    gameStatus?: string;
+    gameDate?: Date;
+    gameStartsAt?: string | null;
+}
+
+export interface UserSubmissionMap {
+    [dateKey: string]: {
+        playerName: string | null;
+        score: number | null;
+        isFuture: boolean;
+        playerId?: string;
+    };
+}
+
+// --- Score Calculation Function ---
+export function calculateScore(stats: PlayerGameStats | null | undefined): number | null {
+    if (!stats) {
+        return null;
+    }
+    return (stats.points ?? 0) * SCORE_WEIGHTS.points +
+           (stats.rebounds ?? 0) * SCORE_WEIGHTS.rebounds +
+           (stats.assists ?? 0) * SCORE_WEIGHTS.assists +
+           (stats.steals ?? 0) * SCORE_WEIGHTS.steals +
+           (stats.blocks ?? 0) * SCORE_WEIGHTS.blocks +
+           (stats.turnovers ?? 0) * SCORE_WEIGHTS.turnovers;
+}
+
+export function isPickLocked(gameStatus: string, gameStartsAt: Date | string | null): boolean {
+    const now = new Date();
+    return gameStatus !== 'STATUS_SCHEDULED' || (gameStartsAt && new Date(gameStartsAt) <= now);
+}
+
+export function processSubmission(
+    submission: any,
+    stats: PlayerGameStats | null,
+    score: number | null,
+    isOwnUser: boolean
+): ProcessedSubmission | null {
+    if (!submission.game || !submission.player) return null;
+
+    const gameDate = new Date(submission.game.date);
+    const locked = isPickLocked(submission.game.status, submission.game.startsAt);
+    const canShowDetails = locked || isOwnUser;
+
+    return {
+        date: format(gameDate, 'yyyy-MM-dd'),
+        gameId: submission.gameId,
+        playerId: submission.playerId,
+        playerName: canShowDetails ? submission.player.name : null,
+        score: canShowDetails ? score : null,
+        stats: canShowDetails ? stats : null,
+        gameStatus: submission.game.status,
+        gameDate: submission.game.date,
+        gameStartsAt: submission.game.startsAt,
+    };
+}
+
+export function createSubmissionsByDate(
+    scoredUsers: ScoredGroupUser[],
+    gameCountsByDate: { [key: string]: number },
+    todayStart: Date
+): { [key: string]: SubmissionView[] } {
+    const submissionsByDate: { [key: string]: SubmissionView[] } = {};
+    
+    Object.keys(gameCountsByDate).forEach(dateKey => {
+        const dateStart = startOfDay(new Date(dateKey));
+        const isFutureDate = dateStart > todayStart;
+        submissionsByDate[dateKey] = [];
+
+        scoredUsers.forEach(player => {
+            const submission = player.submissions.find(sub => sub.date === dateKey);
+
+            submissionsByDate[dateKey].push({
+                username: player.username,
+                playerName: isFutureDate ? null : submission?.playerName || null,
+                score: isFutureDate ? null : submission?.score || null,
+                stats: isFutureDate ? null : submission?.stats || null,
+                gameStatus: submission?.gameStatus,
+                gameDate: submission?.gameDate,
+                gameStartsAt: submission?.gameStartsAt
+            });
+        });
+    });
+
+    return submissionsByDate;
+}
+
+export function createUserSubmissionsMap(
+    submissions: ProcessedSubmission[],
+    todayStart: Date
+): UserSubmissionMap {
+    const map: UserSubmissionMap = {};
+    
+    submissions.forEach(sub => {
+        const gameDateStart = startOfDay(sub.gameDate);
+        const dateKey = format(gameDateStart, 'yyyy-MM-dd');
+        
+        map[dateKey] = {
+            playerName: sub.playerName,
+            score: sub.score,
+            isFuture: gameDateStart > todayStart,
+            playerId: sub.playerId
+        };
+    });
+
+    return map;
+} 
