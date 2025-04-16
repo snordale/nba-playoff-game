@@ -107,5 +107,7 @@ export const useGetBlogPost = (slug: string | null | undefined) => {
 export const useGenerateInviteLink = () =>
   useMutation<GenerateInviteResponse, Error, GenerateInviteVariables>({
     mutationFn: generateInviteLink,
-    // Optional: onSuccess/onError handling if needed
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["getGroup"] });
+    },
   });

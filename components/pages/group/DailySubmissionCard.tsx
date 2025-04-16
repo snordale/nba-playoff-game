@@ -14,16 +14,17 @@ interface PlayerStats {
 }
 
 // Define the structure for a player's submission within the card props
-interface PlayerSubmission {
+type PlayerSubmission = {
     playerName: string | null; // Can be null
     score: number | null;
     stats: PlayerStats | null;
     gameStatus?: string;
     gameDate?: string | Date;
+    gameStartsAt?: string;
 }
 
 // Define the structure for each player object in the players array
-interface PlayerForCard {
+type UserForCard = {
     userId: string;
     username: string;
     submission: PlayerSubmission | null;
@@ -33,11 +34,11 @@ interface DailySubmissionCardProps {
     date: string; // YYYY-MM-DD
     hasGames: boolean;
     onClick: (date: string) => void;
-    players: PlayerForCard[];
+    users: UserForCard[];
     currentUserId: string | undefined; // Add currentUserId prop
 }
 
-export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({ date, hasGames, onClick, players, currentUserId }) => {
+export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({ date, hasGames, onClick, users, currentUserId }) => {
     const formattedDate = format(parseISO(date), 'MMM d, yyyy');
     const isToday = new Date(date).toDateString() === new Date().toDateString();
     const isDayLocked = isBefore(dateFnsStartOfDay(new Date(date)), dateFnsStartOfDay(new Date()));
@@ -74,17 +75,17 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({ date, 
                     {/* Body: Player Submissions */}
                     {hasGames ? (
                         <VStack align="stretch" width="100%" spacing={1}>
-                            {players.map((player) => {
-                                const submission = player.submission;
-                                const gameDate = submission?.gameDate ? new Date(submission.gameDate) : null;
-                                const isPickLocked = submission?.gameStatus !== 'STATUS_SCHEDULED' || (gameDate && gameDate <= now);
-                                const canShowPick = isPickLocked || player.userId === currentUserId;
+                            {users.map((user) => {
+                                const submission = user.submission;
+                                const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
+                                const isPickLocked = submission?.gameStatus !== 'STATUS_SCHEDULED' || (gameStartsAt && gameStartsAt <= now);
+                                const canShowPick = isPickLocked || user.userId === currentUserId;
 
                                 return (
-                                    <VStack key={player.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
+                                    <VStack key={user.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
                                         {/* Username and Score/Status */}
                                         <HStack justify="space-between" width="100%">
-                                            <Text fontSize="xs" fontWeight="medium">{player.username}</Text>
+                                            <Text fontSize="xs" fontWeight="medium">{user.username}</Text>
                                             {isDayLocked ? (
                                                 submission ? (
                                                     <HStack>

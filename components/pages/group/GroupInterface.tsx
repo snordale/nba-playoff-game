@@ -1,7 +1,7 @@
 // components/pages/group/GroupInterface.tsx
 import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
-import { Button, ButtonGroup, HStack, Stack, useClipboard, useToast, VStack } from "@chakra-ui/react";
+import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries"; // Assuming queryClient is exported or accessible
@@ -22,13 +22,15 @@ interface PlayerStats {
 }
 
 interface Submission {
-    date: string; // Assuming date is string 'yyyy-MM-dd'
-    playerName: string | null;
+    date: string;
+    gameId: string;
+    playerId: string;
+    playerName: string | null; // Can be null
     score: number | null;
     stats: PlayerStats | null;
-    playerId?: string; // Optional player ID needed for some calculations
     gameStatus?: string;
-    gameDate?: string | Date; // Expecting ISO string or Date object from API
+    gameDate: Date | null;
+    gameStartsAt: string | null;
 }
 
 interface ScoredPlayer {
@@ -110,48 +112,57 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
     currentSubmissionForSelectedDate,
     previouslySubmittedPlayerIds
 }) => {
-    const { mutate: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
-    const { onCopy, setValue, hasCopied } = useClipboard("");
+    const { mutateAsync: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
     const toast = useToast();
     const todayRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    // State to hold the link to be copied
-    const [inviteLinkToCopy, setInviteLinkToCopy] = useState<string | null>(null);
+    const [didCopy, setDidCopy] = useState(false);
 
-    const handleGenerateInvite = () => {
-        // Only trigger the mutation here
-        generateLink({ groupId }, {
-            onSuccess: (data) => {
-                // Set the state when data is received
-                setInviteLinkToCopy(data.inviteUrl);
-            },
-            onError: (error: any) => {
+    async function handleGenerateInvite() {
+        setDidCopy(false);
+        try {
+            const response = await generateLink({ groupId });
+            if (response.inviteUrl) {
+                const urlToCopy = response.inviteUrl;
+                navigator.clipboard.writeText(urlToCopy).then(() => {
+                    setDidCopy(true);
+                    toast({
+                        title: "Invite link copied!",
+                        description: "Share the link with your friends.",
+                        status: "success",
+                        duration: 3000,
+                        isClosable: true,
+                    });
+                    setTimeout(() => setDidCopy(false), 3000);
+                }).catch(err => {
+                    console.error('Failed to copy link: ', err);
+                    toast({
+                        title: "Auto-copy failed",
+                        description: "Could not copy the link automatically. You may need to copy it manually.",
+                        status: "error",
+                        duration: 5000,
+                        isClosable: true,
+                    });
+                });
+            } else {
                 toast({
                     title: "Error generating link",
-                    description: error.message || "Could not generate invite link.",
+                    description: "Could not retrieve invite link.",
                     status: "error",
                     duration: 5000,
                     isClosable: true,
                 });
             }
-        });
-    };
-
-    // useEffect to handle the actual copying when inviteLinkToCopy changes
-    useEffect(() => {
-        if (inviteLinkToCopy) {
-            setValue(inviteLinkToCopy); // Set the value for useClipboard
-            onCopy();                 // Now trigger the copy
-            toast({                   // Show the toast
-                title: "Invite link copied!",
-                description: "Share the link with your friends.",
-                status: "success",
-                duration: 3000,
+        } catch (error: any) {
+            toast({
+                title: "Error generating link",
+                description: error.message || "An unexpected error occurred.",
+                status: "error",
+                duration: 5000,
                 isClosable: true,
             });
-            setInviteLinkToCopy(null); // Reset the state so effect doesn't re-run immediately
         }
-    }, [inviteLinkToCopy, setValue, onCopy, toast]); // Dependencies
+    };
 
     const sortedDates = useMemo(() => {
         const startDate = parseISO(PLAYOFF_START_DATE);
@@ -212,7 +223,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                     isLoading={isGeneratingLink}
                     colorScheme="orange"
                 >
-                    {hasCopied && !inviteLinkToCopy ? "Copied!" : "Copy Invite Link"}
+                    {didCopy ? "Copied!" : "Copy Invite Link"}
                 </Button>
             </HStack>
 
@@ -272,19 +283,20 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                     >
                         {sortedDates.map(date => {
                             const isToday = new Date(date).toDateString() === new Date().toDateString();
-                            const playersWithSubmissionsForDate = scoredPlayers?.map(player => {
-                                const submission = player.submissions?.find(sub =>
+                            const usersWithSubmissionsForDate = scoredPlayers?.map(user => {
+                                const submission = user.submissions?.find(sub =>
                                     format(new Date(sub.date), 'yyyy-MM-dd') === date
                                 );
                                 return {
-                                    userId: player.userId,
-                                    username: player.username,
+                                    userId: user.userId,
+                                    username: user.username,
                                     submission: submission ? {
                                         playerName: submission.playerName ?? 'Error',
                                         score: submission.score,
                                         stats: submission.stats,
                                         gameStatus: submission.gameStatus,
-                                        gameDate: submission.gameDate
+                                        gameDate: submission.gameDate,
+                                        gameStartsAt: submission.gameStartsAt
                                     } : null
                                 };
                             }) || [];
@@ -295,7 +307,7 @@ export const GroupInterface: React.FC<GroupInterfaceProps> = ({
                                         date={date}
                                         hasGames={(gameCountsByDate?.[date] ?? 0) > 0}
                                         onClick={handleCardClick}
-                                        players={playersWithSubmissionsForDate}
+                                        users={usersWithSubmissionsForDate}
                                         currentUserId={currentUserId}
                                     />
                                 </div>

@@ -1,6 +1,11 @@
 'use client';
 
+import AuthButton from "@/components/AuthButton";
 import {
+    Alert,
+    AlertDescription,
+    AlertIcon,
+    AlertTitle,
     Box,
     Button,
     Container,
@@ -9,14 +14,21 @@ import {
     Spinner,
     Text,
     VStack,
-    Alert,
-    AlertIcon,
-    AlertTitle,
-    AlertDescription,
+    keyframes,
 } from "@chakra-ui/react";
 import NextLink from "next/link";
-import { signIn } from "next-auth/react"; // Import signIn
-import React from "react";
+
+const basketballTextureAnimation = keyframes`
+  0% { background-position: 0 0; }
+  100% { background-position: 20px 20px; }
+`;
+
+const createBasketballTexture = (color = "rgba(255, 107, 0, 0.4)") => {
+  return `
+    radial-gradient(circle at 1px 1px, ${color} 1px, transparent 0),
+    radial-gradient(circle at 6px 6px, ${color} 1px, transparent 0)
+  `;
+};
 
 interface InviteClientPageProps {
     error?: string;
@@ -32,25 +44,62 @@ export default function InviteClientPage({
     groupName,
     token,
 }: InviteClientPageProps) {
-
-    // Construct callback URL to return to this page after login/signup
-    const callbackUrl = token ? `/invite?token=${token}` : '/';
-
-    const handleSignIn = () => {
-        signIn(undefined, { callbackUrl }); // Redirects to sign-in, then back here
-    };
-
     return (
         <Box
             minH="calc(100vh - 80px)"
             display="flex"
             alignItems="center"
             justifyContent="center"
-            bgGradient="linear(to-br, orange.50, yellow.50)"
-            p={6}
+            position="relative"
+            overflow="hidden"
+            bg="white"
         >
-            <Container maxW="container.md" centerContent>
-                <VStack spacing={6} textAlign="center" bg="white" p={10} borderRadius="lg" boxShadow="md">
+            <Box
+                position="absolute"
+                inset={0}
+                sx={{
+                    "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        inset: 0,
+                        backgroundImage: createBasketballTexture(),
+                        backgroundSize: "12px 12px",
+                        animation: `${basketballTextureAnimation} 3s linear infinite`,
+                        opacity: "1.0",
+                        zIndex: 1,
+                        pointerEvents: "none",
+                    }
+                }}
+            />
+            <Container maxW="container.md" centerContent position="relative" zIndex={2}>
+                <VStack 
+                    spacing={6} 
+                    textAlign="center" 
+                    p={10} 
+                    borderRadius="xl"
+                    backdropFilter="blur(10px)"
+                    backgroundColor="rgba(255, 255, 255, 0.75)"
+                    w="full"
+                    position="relative"
+                    boxShadow="0 0 40px rgba(0, 0, 0, 0.05)"
+                    sx={{
+                        position: 'relative',
+                        border: '2px solid transparent',
+                        backgroundClip: 'padding-box',
+                        '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            inset: 0,
+                            borderRadius: 'xl',
+                            padding: '2px',
+                            background: 'linear-gradient(to right, var(--chakra-colors-orange-400), var(--chakra-colors-orange-500), var(--chakra-colors-orange-600))',
+                            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                            WebkitMaskComposite: 'xor',
+                            maskComposite: 'exclude',
+                            pointerEvents: 'none'
+                        }
+                    }}
+                >
                     {error && (
                         <Alert status='error' variant='subtle' flexDirection='column' alignItems='center' justifyContent='center' textAlign='center' borderRadius="md">
                             <AlertIcon boxSize='40px' mr={0} />
@@ -74,19 +123,8 @@ export default function InviteClientPage({
                             <Text fontSize="lg" color="gray.700">
                                 You've been invited to join the group: <strong>{groupName}</strong>.
                             </Text>
-                            <Text fontSize="md" color="gray.500">
-                                Please log in or sign up to accept the invitation.
-                            </Text>
-                            <HStack spacing={5} pt={5}>
-                                <Button
-                                    onClick={handleSignIn} // Use signIn from next-auth
-                                    colorScheme="orange"
-                                    size="lg"
-                                    px={8}
-                                    _hover={{ transform: 'translateY(-2px)', boxShadow: 'lg' }}
-                                >
-                                    Login or Sign Up
-                                </Button>
+                            <HStack spacing={5}>
+                                <AuthButton token={token} text="Join Group" />
                             </HStack>
                         </>
                     )}

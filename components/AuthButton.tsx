@@ -10,11 +10,11 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 
-const AuthButton = () => {
+const AuthButton = ({ token, text = "Login" }: { token: string, text?: string }) => {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
-    return <Button isLoading  h="2rem" leftIcon={<Spinner size="xs" />}>Loading...</Button>;
+    return <Button isLoading h="2rem" leftIcon={<Spinner size="xs" />}>Loading...</Button>;
   }
 
   if (status === "authenticated" && session?.user) {
@@ -32,7 +32,7 @@ const AuthButton = () => {
     );
   }
 
-  return <Button colorScheme="orange" onClick={() => signIn("google")}>Login</Button>;
+  return <Button colorScheme="orange" onClick={() => signIn("google", { callbackUrl: token ? `/invite?token=${token}` : '/' })}>{text}</Button>;
 };
 
 export default AuthButton;
