@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
 import { prisma } from "@/prisma/client";
+import { calculateScore } from "@/services/ScoringService";
 import {
-    calculateScore,
     createSubmissionsByDate,
     processSubmission,
     type ScoredGroupUser
