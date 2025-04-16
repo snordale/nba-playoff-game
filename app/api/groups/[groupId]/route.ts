@@ -12,8 +12,8 @@ import { format, parseISO, startOfDay } from 'date-fns';
 import { NextRequest, NextResponse } from "next/server";
 
 // Handler for GET /api/groups/[groupId]
-export async function GET(req: NextRequest, { params }: { params: { groupId: string } }) {
-    const groupId = params.groupId;
+export async function GET(req: NextRequest, params: { groupId: string }) {
+    const { groupId } = await params;
     const session = await auth();
     const userId = session?.user?.id;
 
