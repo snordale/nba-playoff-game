@@ -61,7 +61,7 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
 
     // Derived Data from API Response
     const group = groupData?.group;
-    const leaderboardUsers = groupData?.users;
+    const leaderboardUsers = groupData?.leaderboardUsers;
     const gameCountsByDate = groupData?.gameCountsByDate;
     const submissionsByDate = groupData?.submissionsByDate;
     const previouslySubmittedPlayerIdsForCurrentUser = groupData?.previouslySubmittedPlayerIdsForCurrentUser;
