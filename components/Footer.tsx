@@ -34,8 +34,8 @@ export const Footer = async () => {
 
           <Stack spacing={4}>
             <Heading size="sm" color="gray.700">Legal</Heading>
-            <CustomLink href="/privacy" color="gray.600" fontSize="sm">Privacy Policy</CustomLink>
             <CustomLink href="/terms" color="gray.600" fontSize="sm">Terms of Service</CustomLink>
+            <CustomLink href="/privacy" color="gray.600" fontSize="sm">Privacy Policy</CustomLink>
             <CustomLink href="mailto:snordale@gmail.com" color="gray.600" fontSize="sm">Contact Us</CustomLink>
           </Stack>
         </SimpleGrid>
