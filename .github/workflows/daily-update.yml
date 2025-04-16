@@ -1,5 +1,5 @@
 # .github/workflows/daily-update.yml
-name: Daily Update
+name: Load Games
 
 on:
   schedule:
