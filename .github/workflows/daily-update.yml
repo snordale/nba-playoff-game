@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Trigger Load Games API
         run: |
-          curl -X POST \
+          curl -X GET \
             -H "Authorization: Bearer playdefense007" \
             -f \
             https://nbaplayoffgame.com/api/cron/load-games
