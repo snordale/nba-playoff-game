@@ -10,15 +10,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 // import { useGetBlogPost } from "@/react-query/queries";
 
-interface Props {
-    params: {
-        slug: string;
-    };
-}
+type Params = Promise<{ slug: string }>
 
 // Make component async and fetch data directly
-export default async function BlogPost({ params }: Props) {
-    const { slug } = params;
+export default async function BlogPost({ params }: { params: Params }) {
+    const { slug } = await params;
     
     // Fetch post directly using Prisma
     const post = await prisma.blogPost.findUnique({
