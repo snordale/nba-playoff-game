@@ -1,12 +1,10 @@
 import { prisma } from "@/prisma/client";
 import { NextResponse } from "next/server";
 
-interface Params {
-    params: { slug: string };
-}
+type Params = Promise<{ slug: string }>
 
-export async function GET(request: Request, { params }: Params) {
-    const { slug } = params;
+export async function GET(request: Request, { params }: { params: Params }) {
+    const { slug } = await params;
 
     if (!slug) {
         return NextResponse.json({ error: "Slug parameter is required" }, { status: 400 });

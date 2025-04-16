@@ -3,10 +3,12 @@ import jwt from 'jsonwebtoken';
 import { prisma } from "../../../../../prisma/client";
 import { auth } from "../../../../../auth";
 
-export async function POST(req: NextRequest, { params }: { params: { groupId: string } }) {
+type Params = Promise<{ groupId: string }>
+
+export async function POST(req: NextRequest, { params }: { params: Params }) {
+  const { groupId } = await params;
   const session = await auth();
   const userId = session?.user?.id;
-  const groupId = params.groupId;
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

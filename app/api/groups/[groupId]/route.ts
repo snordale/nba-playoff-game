@@ -11,15 +11,10 @@ import type { PlayerGameStats } from "@prisma/client";
 import { format, parseISO, startOfDay } from 'date-fns';
 import { NextResponse } from "next/server";
 
-type Props = {
-    params: Promise<{
-      groupId: string
-    }>
-  }
+type Params = Promise<{ groupId: string }>
 
-export async function GET(request: Request, props: Props) {
-    const params = await props.params;
-    const groupId = params.groupId;
+export async function GET(request: Request, { params }: { params: Params }) {
+    const { groupId } = await params
     const session = await auth();
     const userId = session?.user?.id;
 
