@@ -42,9 +42,6 @@ export const useCreateSubmission = () =>
   useMutation<unknown, Error, CreateSubmissionVariables>({
     mutationFn: createSubmission,
     onSuccess: (data, variables) => {
-      // Attempt to invalidate the specific group the submission belongs to
-      // This requires getting the groupId from the submission response or variables
-      // For now, just invalidate all groups as a simpler approach
       queryClient.invalidateQueries({ queryKey: ["getGroup"] });
     },
   });

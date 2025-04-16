@@ -347,13 +347,6 @@ export const loadGamesForDate = async (
                       
         const startsAtValue = isTBD ? null : gameDate;
 
-        // Log date values for debugging
-        log(`  [Date Debug] Event ID: ${event.id}`);
-        log(`    Raw event.date: ${event.date}`);
-        log(`    isTBD flag: ${isTBD}`);
-        log(`    Final dbDateForNY obj for DB 'date': ${dbDateForNY.toISOString()}`);
-        log(`    Final startsAtValue for DB 'startsAt': ${startsAtValue?.toISOString() ?? 'null'}`);
-
         const game = await prisma.game.upsert({
           where: { espnId: event.id },
           update: {

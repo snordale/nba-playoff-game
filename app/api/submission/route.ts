@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       throw new Error("Missing gameId or playerId");
     }
   } catch (error) {
+    console.error("Error validating request body:", error);
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
@@ -43,22 +44,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Validate Game State (Ensure game hasn't started or finished)
-    const now = new Date();
-    // Use startOfDay to compare dates without time component influencing the check
-    const gameDateStart = new Date(game.date); 
-    gameDateStart.setHours(0, 0, 0, 0); 
-
-    const nowStart = new Date();
-    nowStart.setHours(0, 0, 0, 0);
-
     // Allow submission only if game status is scheduled AND game date is today or in the future
     // AND the exact game time hasn't passed yet.
     const isScheduled = game.status === 'STATUS_SCHEDULED';
-    const gameTimeHasPassed = game.date <= now;
+    const gameTimeHasPassed = game.startsAt <= new Date();
     
     // Allow submission if game is scheduled and time has not passed
     if (!isScheduled || gameTimeHasPassed) {
-      let reason = gameTimeHasPassed ? `start time (${game.date.toLocaleString()}) has passed` : `status is ${game.status}`;
+      let reason = gameTimeHasPassed ? `start time (${game.startsAt.toLocaleString()}) has passed` : `status is ${game.status}`;
+      console.error(`Cannot submit for this game because its ${reason}.`);
       return NextResponse.json(
         { error: `Cannot submit for this game because its ${reason}.` },
         { status: 400 } 

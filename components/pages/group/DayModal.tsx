@@ -162,9 +162,10 @@ export const DayModal = ({
             onClose(true);
         } catch (error: any) {
             console.error("Submission failed:", error);
+            const errorMessage = error?.response?.data?.error || error.message || 'Could not submit your pick. The game might have started, or an error occurred.';
             toast({
                 title: 'Submission Failed',
-                description: error?.message || 'Could not submit your pick. The game might have started, or an error occurred.',
+                description: errorMessage,
                 status: 'error',
                 duration: 5000,
                 isClosable: true,

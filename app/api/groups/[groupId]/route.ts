@@ -67,6 +67,7 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                                 id: true,
                                 date: true,
                                 status: true,
+                                startsAt: true,
                             }
                         },
                         player: {
@@ -108,7 +109,6 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         // --- Fetch Games for Game Counts --- 
         const playoffStartDate = startOfDay(parseISO(PLAYOFF_START_DATE));
         const playoffEndDate = startOfDay(parseISO(PLAYOFF_END_DATE));
-        console.log('Fetching games between:', { playoffStartDate, playoffEndDate });
         const gamesInRange = await prisma.game.findMany({
              where: {
                 date: {
@@ -118,14 +118,12 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
              },
              select: { date: true }
         });
-        console.log('Found games:', gamesInRange);
+
         const gameCountsByDate: { [dateKey: string]: number } = {};
         gamesInRange.forEach(game => {
             const dateKey = format(startOfDay(game.date), 'yyyy-MM-dd');
             gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
         });
-        console.log('Game counts by date:', gameCountsByDate);
-        // --- End Game Counts --- 
 
         const todayUTCStart = startOfDay(new Date());
         const now = new Date();
@@ -139,7 +137,7 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                 if (!sub.game || !sub.player) return null;
 
                 const gameDate = new Date(sub.game.date);
-                const isPickLocked = sub.game.status !== 'STATUS_SCHEDULED' || gameDate <= now;
+                const isPickLocked = sub.game.status !== 'STATUS_SCHEDULED' || sub.game.startsAt <= now;
                 const canShowDetails = isPickLocked || isOwnUser; // Show if locked OR it's the requester's pick
 
                 // Get score/stats only if needed (locked)
@@ -150,13 +148,12 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                     date: format(gameDate, 'yyyy-MM-dd'), 
                     gameId: sub.gameId,
                     playerId: sub.playerId,
-                    // Conditionally return sensitive data
                     playerName: canShowDetails ? sub.player.name : null, 
                     score: canShowDetails ? rawScore : null, 
                     stats: canShowDetails ? rawStats : null, 
-                    // Always include game details
                     gameStatus: sub.game.status, 
-                    gameDate: sub.game.date, 
+                    gameDate: sub.game.date,
+                    gameStartsAt: sub.game.startsAt,
                 };
             }).filter(sub => sub !== null); 
 
@@ -205,7 +202,6 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                 score: submission.score // Already potentially nulled
               });
             } 
-            // Implicitly don't add if no submission existed for a past date
           });
         });
 
@@ -216,7 +212,7 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
              const gameDate = new Date(sub.gameDate);
              const gameDateStart = startOfDay(gameDate);
              // Determine lock status for *this specific pick* for the map
-             const isPickLocked = sub.gameStatus !== 'STATUS_SCHEDULED' || gameDate <= now;
+             const isPickLocked = sub.gameStatus !== 'STATUS_SCHEDULED' || (sub.gameStartsAt && sub.gameStartsAt <= now);
              const dateKey = format(gameDateStart, 'yyyy-MM-dd');
               currentUserSubmissionsMap[dateKey] = {
                   // Use the potentially nulled playerName from the submission object

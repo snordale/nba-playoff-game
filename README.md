@@ -50,6 +50,20 @@ turnovers: -2
 └── scripts/            # Utility scripts for maintenance
 ```
 
+## Database Schema Overview
+
+The database schema is defined in `prisma/schema.prisma` and managed by Prisma ORM. Key models include:
+
+*   **`User`**: Stores user authentication details (email, username, image). Linked to `GroupUser` (memberships) and `Submission` (picks).
+*   **`Group`**: Represents a user-created group with a unique name. Linked to `GroupUser`.
+*   **`GroupUser`**: A join table connecting `User` and `Group`, indicating group membership and admin status. Also linked to `Submission`.
+*   **`Team`**: Stores NBA team information (name, ESPN ID, abbreviation, logo). Linked to `Game` (as home/away team) and `Player` (current team).
+*   **`Player`**: Stores player details (name, ESPN ID, image, current team). Linked to `Team`, `PlayerGameStats`, and `Submission`.
+*   **`Game`**: Represents an NBA game (ESPN ID, date, start time, teams, score, status). Linked to `Team` (home/away), `PlayerGameStats`, and `Submission`.
+*   **`PlayerGameStats`**: Holds the statistical performance of a `Player` in a specific `Game` (points, rebounds, assists, etc.).
+*   **`Submission`**: The core gameplay entity, representing a `User`'s pick (`Player`) for a specific `Game` within the context of a `GroupUser` membership.
+*   **`BlogPost`**: For storing blog post content (likely separate from core game logic).
+
 ## Getting Started
 
 1. **Prerequisites**
@@ -128,6 +142,18 @@ Scores for user submissions are calculated dynamically when viewing group data b
 - Users can view a live leaderboard with total score of each user's picks
 - Users can view a list or calendar of all days during NBA playoffs so they can see the record of who picked what and the score of each pick.
 - Users cannot see pending picks of other users ie picks whose game has not started yet.
+
+## Key Concepts & Notes
+
+*   **`game.date` vs `game.startsAt`:** Be mindful of the difference between these two `Game` model fields.
+    *   `game.date` (Date): Represents the calendar date of the game (YYYY-MM-DD), stored in 'America/New_York'. Use this primarily for associating submissions/games with a specific *day* (e.g., finding daily submissions, grouping by date).
+    *   `game.startsAt` (DateTime): Represents the exact date and time the game starts (including timezone). Use this for checks related to game locking (e.g., preventing submissions after the game has started, determining if a pick's details can be revealed).
+*   **Timezones:** Game scheduling and locking logic heavily rely on correct timezone handling. Game times are fetched and stored relative to 'America/New_York'. Date comparisons (e.g., finding submissions for "today") often use UTC start/end of day calculations (e.g., via `date-fns` `startOfDay` combined with `setUTCHours`).
+*   **Data Loading:** The `DataLoaderService` (using `EspnService`) is crucial for fetching game schedules, player rosters, and daily stats. The `scripts/loadGames.ts` script needs to run regularly during the playoffs.
+*   **Scoring:** Scores are calculated dynamically based on fetched `PlayerGameStats` using weights defined directly within the relevant API routes (e.g., `app/api/groups/[groupId]/route.ts` as of writing).
+*   **Authentication:** `NextAuth.js` with the Google Provider handles authentication. API routes typically verify the user session using the `auth()` helper from `@/auth`.
+*   **State Management:** `react-query` is used on the frontend to fetch and cache data from the Next.js API routes. Custom hooks for data fetching are often defined in `react-query/`.
+*   **Constants:** Important configuration like playoff dates (`PLAYOFF_START_DATE`, `PLAYOFF_END_DATE`) are stored in `@/constants`.
 
 ## Core Game Mechanics Verification
 

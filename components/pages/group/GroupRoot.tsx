@@ -56,8 +56,6 @@ export const GroupRoot = ({ params }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const { data: groupData, isLoading: isLoadingGroup } = useGetGroup({ groupId });
   const { mutate: createSubmission, isPending: isSubmitting } = useCreateSubmission();
-  const { mutate: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
-  const { onCopy, setValue, hasCopied } = useClipboard("");
   const toast = useToast();
   const currentUserId = sessionData?.user?.id;
   const currentUserUsername = sessionData?.user?.name;
