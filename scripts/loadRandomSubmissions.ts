@@ -59,7 +59,7 @@ async function populatePastSubmissions(groupId: string) {
     }
 
     const gameIdsOnDate = gamesOnDate.map((g) => g.id);
-    
+
     // Get all player stats for games on this date
     const statsOnDate = await prisma.playerGameStats.findMany({
       where: {
@@ -109,7 +109,7 @@ async function populatePastSubmissions(groupId: string) {
         where: {
           AND: [
             { userId: groupUser.userId },
-            { 
+            {
               game: {
                 date: {
                   equals: new Date(dateStr)
@@ -153,14 +153,7 @@ async function populatePastSubmissions(groupId: string) {
       // 5. Create or update the submission
       try {
         if (existingSubmission) {
-          const updatedSubmission = await prisma.submission.update({
-            where: { id: existingSubmission.id },
-            data: {
-              playerId: randomPlayerId,
-              gameId: playerData.game.id,
-            },
-          });
-          console.log(`${groupUser.user.username}: Updated pick to ${playerData.player.name}`);
+          console.log(`Submission already exists for ${groupUser.user.username} on ${dateStr}. Skipping.`);
         } else {
           const newSubmission = await prisma.submission.create({
             data: {
