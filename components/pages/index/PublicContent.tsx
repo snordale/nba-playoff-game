@@ -6,8 +6,8 @@ import {
   Heading,
   Text,
   VStack,
-  keyframes
 } from "@chakra-ui/react";
+import { keyframes } from "@emotion/react";
 
 const basketballTextureAnimation = keyframes`
   0% { background-position: 0 0; }

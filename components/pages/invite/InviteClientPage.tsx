@@ -14,8 +14,8 @@ import {
     Spinner,
     Text,
     VStack,
-    keyframes,
 } from "@chakra-ui/react";
+import { keyframes } from "@emotion/react";
 import NextLink from "next/link";
 
 const basketballTextureAnimation = keyframes`
