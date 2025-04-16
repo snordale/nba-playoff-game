@@ -7,7 +7,7 @@ on:
     - cron: '*/20 0-8 * * *'    # 4:00 PM – 1:59 AM PT
 
 jobs:
-  ping:
+  load-games:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Load Games API
