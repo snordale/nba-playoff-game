@@ -1,8 +1,8 @@
 import { Stack, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from '@chakra-ui/react';
-import { useGetGroup } from "../../../react-query/queries";
+import { useGroup } from './GroupContext';
 
-export const Leaderboard = ({ groupId }) => {
-  const { data: groupData } = useGetGroup({ groupId });
+export const Leaderboard = () => {
+  const { leaderboardUsers } = useGroup();
 
   return (
     <Stack maxWidth="500px">
@@ -17,7 +17,7 @@ export const Leaderboard = ({ groupId }) => {
             </Tr>
           </Thead>
           <Tbody>
-            {groupData?.players.map((player, index) => (
+            {leaderboardUsers?.map((player, index) => (
               <Tr key={player.userId}>
                 <Td px={2} py={1} width="50px" textAlign="center">{index + 1}</Td>
                 <Td px={2} py={1}>{player.username}</Td>

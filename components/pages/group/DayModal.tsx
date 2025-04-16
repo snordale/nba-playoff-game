@@ -5,6 +5,9 @@ import { Badge, Box, Button, Divider, Grid, HStack, Heading, Input, Modal, Modal
 import { format, isBefore, parseISO, startOfDay } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
+import { DayModalGames } from './DayModalGames';
+import { DayModalSubmissions } from './DayModalSubmissions';
+import { DayModalSubmissionInput } from './DayModalSubmissionInput';
 
 interface DayModalProps {
     isOpen: boolean;
@@ -185,186 +188,33 @@ export const DayModal = ({
                 <ModalBody pb={6}>
                     <Stack gap={4}>
                         {/* Games Section */}
-                        <Stack gap={2}>
-                            <Heading size="sm" color="gray.700">Games</Heading>
-                            {loadingGames ? (
-                                <HStack py={2} justifyContent='center'><Spinner color="orange.500" size="sm" /></HStack>
-                            ) : games && games.length > 0 ? (
-                                <Grid gap={2} gridTemplateColumns={['1fr 1fr', '1fr 1fr 1fr', '1fr 1fr 1fr 1fr']}>
-                                    {games.map((game) => (
-                                        <Box key={game.id} p={1} borderWidth="1px" borderRadius="md">
-                                            <HStack justify="space-between" alignItems='flex-start'>
-                                                <VStack alignItems='flex-start' gap={0}>
-                                                    <Text fontSize="2xs" color="gray.600">{game.homeTeam.abbreviation} {game.homeScore !== null ? `- ${game.homeScore}` : ''}</Text>
-                                                    <Text fontSize="2xs" color="gray.600">{game.awayTeam.abbreviation} {game.awayScore !== null ? `- ${game.awayScore}` : ''}</Text>
-                                                </VStack>
-                                                <VStack alignItems='flex-end' spacing={0}>
-                                                    <Text fontSize="2xs" color={getStatusColor(game.status)}>
-                                                        {game.starts_at ? format(parseISO(game.starts_at), 'h:mm a') : 'TBD'}
-                                                    </Text>
-                                                    <Text fontSize="2xs" color={getStatusColor(game.status)}>
-                                                        {game.status.replace('STATUS_', '').replace('_', ' ')}
-                                                    </Text>
-                                                </VStack>
-                                            </HStack>
-                                        </Box>
-                                    ))}
-                                </Grid>
-                            ) : (
-                                <Text color="gray.500">No games scheduled.</Text>
-                            )}
-                        </Stack>
+                        <DayModalGames games={games} isLoading={loadingGames} />
 
                         <Divider />
 
                         {/* Submissions Display Section */}
-                        <Stack spacing={3}>
-                            <Heading size="sm" color="gray.700">Player Picks</Heading>
-                            {loadingSubmissions ? (
-                                <HStack py={2} justifyContent='center'><Spinner color="orange.500" size="sm" /></HStack>
-                            ) : sortedSubmissions.length === 0 ? (
-                                <Text color="gray.500">No submissions yet for this day.</Text>
-                            ) : (
-                                <Stack spacing={3} maxH="250px" overflowY="auto" pr={2}>
-                                    {sortedSubmissions.map((user, index) => {
-                                        const submission = user.submission;
-                                        const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
-                                        const isPickLocked = submission?.gameStatus !== 'STATUS_SCHEDULED' || (gameStartsAt && gameStartsAt <= now);
-                                        const canShowPick = isPickLocked || user.userId === currentUserId;
-
-                                        return (
-                                            <Box
-                                                key={user.username + index}
-                                                p={3}
-                                                borderWidth="1px"
-                                                borderRadius="md"
-                                                bg={isLocked ? (index === 0 ? 'orange.50' : 'transparent') : (user.username === currentUserUsername ? 'blue.50' : 'transparent')}
-                                                borderColor={isLocked ? (index === 0 ? 'orange.200' : 'gray.200') : (user.username === currentUserUsername ? 'blue.200' : 'gray.200')}
-                                            >
-                                                <HStack justify="space-between" align="flex-start">
-                                                    <VStack align="start" spacing={1} flex={1} mr={2}>
-                                                        <Text fontWeight="bold">{isLocked ? `${index + 1}. ` : ''}{user.username}</Text>
-                                                        <Text fontSize="sm" color={submission ? "green.500" : "orange.500"} noOfLines={1}>
-                                                            {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
-                                                        </Text>
-                                                        {canShowPick && submission?.stats && (
-                                                            <HStack gap={2} pt={1} width="100%">
-                                                                <Text fontSize="xs" color="gray.600">PTS: {submission.stats.points ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">REB: {submission.stats.rebounds ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">AST: {submission.stats.assists ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">STL: {submission.stats.steals ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">BLK: {submission.stats.blocks ?? '-'}</Text>
-                                                                <Text fontSize="xs" color="gray.600">TO: {submission.stats.turnovers ?? '-'}</Text>
-                                                            </HStack>
-                                                        )}
-                                                    </VStack>
-                                                    {isLocked ? (
-                                                        <Badge
-                                                            fontSize="md"
-                                                            colorScheme={submission?.score === null && submission?.playerName ? 'gray' : 'orange'}
-                                                            px={3} py={1} borderRadius="full"
-                                                            visibility={canShowPick && submission?.playerName ? 'visible' : 'hidden'}
-                                                        >
-                                                            {submission?.score ?? 'N/A'} pts
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge colorScheme={submission?.playerName ? 'green' : 'gray'} variant='subtle'>
-                                                            {submission?.playerName ? 'Pick In' : 'No Pick'}
-                                                        </Badge>
-                                                    )}
-                                                </HStack>
-                                            </Box>
-                                        );
-                                    })}
-                                </Stack>
-                            )}
-                        </Stack>
+                        <DayModalSubmissions
+                            submissions={sortedSubmissions}
+                            isLoading={false}
+                            isLocked={isLocked}
+                            currentUserUsername={currentUserUsername}
+                            currentUserId={currentUserId}
+                        />
 
                         {/* Conditional Submission Section */}
                         {!isLocked && (
                             <>
                                 <Divider />
-                                <Stack gap={2}>
-                                    <Heading size="sm" color="gray.700">Make Your Pick</Heading>
-                                    <Input
-                                        value={search}
-                                        placeholder="Search players..."
-                                        onChange={e => onSearchChange(e.target.value)}
-                                    />
-                                    {currentSubmissionForUser && (
-                                        <Text
-                                            fontSize="sm"
-                                            fontWeight="semibold" color="orange.600" textAlign="center" p={1} borderWidth={1} borderRadius="md" borderColor="orange.200" bg="orange.50">
-                                            Current Pick: {currentSubmissionForUser.playerName} {currentPickTeamAbbreviation ? `(${currentPickTeamAbbreviation})` : ''}
-                                        </Text>
-                                    )}
-                                </Stack>
-                                <Stack
-                                    position='relative'
-                                    overflowY='auto'
-                                    maxH='300px'
-                                    borderWidth={1}
-                                    borderColor="gray.200"
-                                    borderRadius="md"
-                                    p={2}
-                                >
-                                    {loadingPlayers ? (
-                                        <HStack py={8} justifyContent='center'><Spinner color="orange.500" /></HStack>
-                                    ) : (
-                                        <>
-                                            {filteredPlayersByTeam && filteredPlayersByTeam.length > 0 ? (
-                                                filteredPlayersByTeam.map((team) => (
-                                                    <Stack key={team.teamId} pl={2} mb={2} spacing={1}>
-                                                        <Text fontWeight="semibold" fontSize="sm" color="gray.600">
-                                                            {team.name}
-                                                        </Text>
-                                                        <Stack pl={2} spacing={0.5}>
-                                                            {team.players?.map((player) => {
-                                                                const isCurrentPick = currentSubmissionForUser?.playerId === player.id;
-                                                                const isPreviouslySubmitted = previouslySubmittedPlayerIds?.includes(player.id) && !isCurrentPick;
-
-                                                                return (
-                                                                    <Button
-                                                                        size='sm'
-                                                                        variant={isCurrentPick ? 'solid' : 'ghost'}
-                                                                        colorScheme='orange'
-                                                                        flexShrink={0}
-                                                                        key={player.id}
-                                                                        isDisabled={!player.gameId || isPreviouslySubmitted || isSubmitting}
-                                                                        isLoading={isSubmitting && currentSubmissionForUser?.playerId === player.id}
-                                                                        onClick={() => player.gameId && handleSubmit({ gameId: player.gameId, playerId: player.id })}
-                                                                        justifyContent='space-between'
-                                                                        gap={2}
-                                                                        fontWeight="normal"
-                                                                        _disabled={{
-                                                                            opacity: isPreviouslySubmitted || !player.gameId ? 0.5 : 1,
-                                                                            cursor: isPreviouslySubmitted || !player.gameId ? 'not-allowed' : 'default',
-                                                                            textDecoration: isPreviouslySubmitted ? 'line-through' : 'none'
-                                                                        }}
-                                                                    >
-                                                                        <Text>{player.name} – {team.abbreviation}</Text>
-                                                                        <HStack spacing={2}>
-                                                                            {isPreviouslySubmitted &&
-                                                                                <Text as="span" fontSize="xs" color="gray.500">(Used)</Text>
-                                                                            }
-                                                                            {isCurrentPick && (
-                                                                                <CheckCircleIcon color={isCurrentPick ? 'white' : 'orange.500'} boxSize={4} />
-                                                                            )}
-                                                                        </HStack>
-                                                                    </Button>
-                                                                );
-                                                            })}
-                                                        </Stack>
-                                                    </Stack>
-                                                ))
-                                            ) : (
-                                                <Text textAlign="center" color="gray.500" p={4}>
-                                                    No players found or available for this date/search.
-                                                </Text>
-                                            )}
-                                        </>
-                                    )}
-                                </Stack>
+                                <DayModalSubmissionInput
+                                    search={search}
+                                    onSearchChange={onSearchChange}
+                                    currentSubmissionForUser={currentSubmissionForUser}
+                                    currentPickTeamAbbreviation={currentPickTeamAbbreviation}
+                                    filteredPlayersByTeam={filteredPlayersByTeam}
+                                    loadingPlayers={loadingPlayers}
+                                    isSubmitting={isSubmitting}
+                                    handleSubmit={handleSubmit}
+                                />
                             </>
                         )}
                     </Stack>

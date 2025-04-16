@@ -109,6 +109,8 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         const todayStart = startOfDay(new Date());
 
         // --- Process Users for Final Response --- 
+        let previouslySubmittedPlayerIdsForCurrentUser: string[] = []; // Initialize for current user
+
         const scoredGroupUsers: ScoredGroupUser[] = groupUsersWithData.map((groupUser) => {
             const isOwnUser = groupUser.userId === userId;
 
@@ -117,7 +119,14 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                     const statsKey = `${sub.gameId}_${sub.playerId}`;
                     const stats = statsMap.get(statsKey);
                     const score = calculatedScoresMap.get(statsKey);
-                    return processSubmission(sub, stats, score, isOwnUser);
+                    const processedSub = processSubmission(sub, stats, score, isOwnUser);
+
+                    // Collect previously submitted player IDs for the current user
+                    if (isOwnUser && processedSub && processedSub.playerId) {
+                        previouslySubmittedPlayerIdsForCurrentUser.push(processedSub.playerId);
+                    }
+
+                    return processedSub;
                 })
                 .filter((sub): sub is NonNullable<typeof sub> => sub !== null);
 
@@ -130,25 +139,22 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
                 username: groupUser.user.username,
                 isAdmin: groupUser.isAdmin,
                 score: totalScore,
-                submissions
+                submissions // These are now SubmissionView[]
             };
         }).sort((a, b) => b.score - a.score);
 
         // --- Generate Submission Views ---
         const submissionsByDate = createSubmissionsByDate(scoredGroupUsers, gameCountsByDate, todayStart);
 
-        // Find current user's submissions
-        const currentUserData = scoredGroupUsers.find(p => p.userId === userId);
-        const currentUserSubmissionsMap: UserSubmissionMap = currentUserData
-            ? createUserSubmissionsMap(currentUserData.submissions, todayStart)
-            : {};
+        // Remove duplicates from the collected IDs
+        previouslySubmittedPlayerIdsForCurrentUser = Array.from(new Set(previouslySubmittedPlayerIdsForCurrentUser));
 
         return NextResponse.json({
             group,
-            players: scoredGroupUsers,
-            currentUserSubmissionsMap,
+            users: scoredGroupUsers, // Renaming suggestion: leaderboardUsers or groupMembersWithScores
             gameCountsByDate,
             submissionsByDate,
+            previouslySubmittedPlayerIdsForCurrentUser, // ADDED
         });
 
     } catch (error) {

@@ -10,7 +10,7 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 
-const AuthButton = ({ token, text = "Login" }: { token: string, text?: string }) => {
+const AuthButton = ({ token, text = "Login" }: { token?: string, text?: string }) => {
   const { data: session, status } = useSession();
 
   if (status === "loading") {

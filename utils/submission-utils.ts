@@ -34,6 +34,7 @@ export interface ScoredGroupUser {
 }
 
 export interface SubmissionView {
+    userId: string;
     username: string;
     playerName: string | null;
     score: number | null;
@@ -107,17 +108,18 @@ export function createSubmissionsByDate(
         const isFutureDate = dateStart > todayStart;
         submissionsByDate[dateKey] = [];
 
-        scoredUsers.forEach(player => {
-            const submission = player.submissions.find(sub => sub.date === dateKey);
+        scoredUsers.forEach(user => {
+            const submission = user.submissions.find(sub => sub.date === dateKey);
 
             submissionsByDate[dateKey].push({
-                username: player.username,
+                username: user.username,
                 playerName: isFutureDate ? null : submission?.playerName || null,
                 score: isFutureDate ? null : submission?.score || null,
                 stats: isFutureDate ? null : submission?.stats || null,
                 gameStatus: submission?.gameStatus,
                 gameDate: submission?.gameDate,
-                gameStartsAt: submission?.gameStartsAt
+                gameStartsAt: submission?.gameStartsAt,
+                userId: user.userId,
             });
         });
     });
