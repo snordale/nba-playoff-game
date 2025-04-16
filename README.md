@@ -15,6 +15,22 @@ steals: 2
 blocks: 2
 turnovers: -2
 
+## Submission Visibility Rules
+
+The game implements strategic pick hiding to maintain fair competition:
+
+- **Your Own Picks**: You can always see your own picks and their scores
+- **Other Players' Picks**: 
+  - Hidden until the game starts or the game status changes from 'SCHEDULED'
+  - Once a game starts, both the player picked and their score become visible to everyone
+  - For future games, you can see who has submitted a pick but not which player they chose
+- **Calendar View**: 
+  - Past dates: Shows all picks and scores
+  - Future dates: Shows who has submitted (in green) but hides the actual picks
+- **Daily View**: 
+  - Locked games: Shows all picks and detailed stats (points, rebounds, assists, etc.)
+  - Future/scheduled games: Only shows your own pick, others show as "Hidden"
+
 ## Tech Stack
 
 - **Frontend**: Next.js, React, Chakra UI, Radix UI

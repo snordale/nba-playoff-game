@@ -1,18 +1,15 @@
 import { auth } from "@/auth";
+import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
 import { prisma } from "@/prisma/client";
-import { format, parseISO, startOfDay } from 'date-fns';
-import { NextRequest, NextResponse } from "next/server";
-import { PLAYOFF_START_DATE, PLAYOFF_END_DATE } from '@/constants';
-import { 
-    calculateScore, 
-    createSubmissionsByDate, 
-    createUserSubmissionsMap, 
+import {
+    calculateScore,
+    createSubmissionsByDate,
     processSubmission,
-    type ScoredGroupUser,
-    type SubmissionView,
-    type UserSubmissionMap
+    type ScoredGroupUser
 } from '@/utils/submission-utils';
 import type { PlayerGameStats } from "@prisma/client";
+import { format, parseISO, startOfDay } from 'date-fns';
+import { NextRequest, NextResponse } from "next/server";
 
 // Handler for GET /api/groups/[groupId]
 export async function GET(req: NextRequest, { params }: { params: { groupId: string } }) {
@@ -111,7 +108,7 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         // --- Process Users for Final Response --- 
         let previouslySubmittedPlayerIdsForCurrentUser: string[] = []; // Initialize for current user
 
-        const scoredGroupUsers: ScoredGroupUser[] = groupUsersWithData.map((groupUser) => {
+        const leaderboardUsers: ScoredGroupUser[] = groupUsersWithData.map((groupUser) => {
             const isOwnUser = groupUser.userId === userId;
 
             const submissions = groupUser.submissions
@@ -144,14 +141,14 @@ export async function GET(req: NextRequest, { params }: { params: { groupId: str
         }).sort((a, b) => b.score - a.score);
 
         // --- Generate Submission Views ---
-        const submissionsByDate = createSubmissionsByDate(scoredGroupUsers, gameCountsByDate, todayStart);
+        const submissionsByDate = createSubmissionsByDate(leaderboardUsers, gameCountsByDate, todayStart);
 
         // Remove duplicates from the collected IDs
         previouslySubmittedPlayerIdsForCurrentUser = Array.from(new Set(previouslySubmittedPlayerIdsForCurrentUser));
 
         return NextResponse.json({
             group,
-            users: scoredGroupUsers, // Renaming suggestion: leaderboardUsers or groupMembersWithScores
+            leaderboardUsers,
             gameCountsByDate,
             submissionsByDate,
             previouslySubmittedPlayerIdsForCurrentUser, // ADDED
