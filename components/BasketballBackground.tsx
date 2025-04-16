@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, keyframes } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
+import { keyframes } from "@emotion/react";
 import { ReactNode } from "react";
 
 const basketballTextureAnimation = keyframes`
