@@ -70,8 +70,8 @@ export const DayModalSubmissions = ({
                                             {submission?.score ?? 'N/A'} pts
                                         </Badge>
                                     ) : (
-                                        <Badge colorScheme={submission?.playerName ? 'green' : 'gray'} variant='subtle'>
-                                            {submission?.playerName ? 'Pick In' : 'No Pick'}
+                                        <Badge colorScheme={submission ? 'green' : 'gray'} variant='subtle'>
+                                            {submission ? 'Pick In' : 'No Pick'}
                                         </Badge>
                                     )}
                                 </HStack>
