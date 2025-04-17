@@ -115,7 +115,7 @@ export default function TermsPage() {
                         <p>We may update these terms at any time. Continued use of the service after changes constitutes acceptance of the new terms.</p>
 
                         <h2>9. Contact Information</h2>
-                        <p>For questions about these terms, please contact us at support@nbaplayoffgame.com</p>
+                        <p>For questions about these terms, please contact us at snordale@gmail.com</p>
                     </Box>
                 </Box>
             </Container>

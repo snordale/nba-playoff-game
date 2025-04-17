@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: React.PropsWithChildren) {
   return (
     <html lang="en">
-      <Box as="body" className={fonts.rubik.className}>
+      <Box as="body">
         <Providers>
           <ErrorBoundary>
             <Flex

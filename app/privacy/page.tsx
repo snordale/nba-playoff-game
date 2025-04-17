@@ -134,7 +134,7 @@ export default function PrivacyPage() {
                         <p>We may update this policy periodically. We will notify you of significant changes through the service or via email.</p>
 
                         <h2>10. Contact Us</h2>
-                        <p>For privacy-related questions or concerns, please contact us at privacy@nbaplayoffgame.com</p>
+                        <p>For privacy-related questions or concerns, please contact us at snordale@gmail.com</p>
                     </Box>
                 </Box>
             </Container>

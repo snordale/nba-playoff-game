@@ -110,6 +110,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                                 <Text
                                                     fontSize="xs"
                                                     color={submission ? "green.500" : "orange.500"}
+                                                    fontWeight="medium"
                                                 >
                                                     {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
                                                 </Text>

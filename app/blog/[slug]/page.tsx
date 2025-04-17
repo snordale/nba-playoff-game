@@ -15,7 +15,7 @@ type Params = Promise<{ slug: string }>
 // Make component async and fetch data directly
 export default async function BlogPost({ params }: { params: Params }) {
     const { slug } = await params;
-    
+
     // Fetch post directly using Prisma
     const post = await prisma.blogPost.findUnique({
         where: {
@@ -56,6 +56,7 @@ export default async function BlogPost({ params }: { params: Params }) {
                         <Text fontSize="sm">← Back to Blog</Text>
                     </CustomLink>
 
+                    <Heading as="h1" size="xl" mb={0} pb={0}>{post.title}</Heading>
                     <Text fontSize="sm" color="orange.600" mb={2} mt={6}>
                         {new Date(post.publishedAt).toLocaleDateString('en-US', {
                             year: 'numeric',
@@ -63,11 +64,11 @@ export default async function BlogPost({ params }: { params: Params }) {
                             day: 'numeric'
                         })}
                     </Text>
-                    <Heading as="h1" size="xl" mb={8}>{post.title}</Heading>
                     <Box
                         className="prose prose-lg prose-slate max-w-none"
                         sx={{
                             'h1': {
+                                display: 'none',
                                 color: 'gray.900',
                                 fontWeight: '700',
                                 fontSize: '2.25rem',
@@ -177,7 +178,7 @@ export async function generateStaticParams() {
     const posts = await prisma.blogPost.findMany({
         select: { slug: true }, // Only select the slug field
     });
-    
+
     // Return the format Next.js expects: { slug: string }[]
     return posts.map((post) => ({
         slug: post.slug,
