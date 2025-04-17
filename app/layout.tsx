@@ -5,7 +5,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Footer } from '@/components/Footer';
 import { Box, Flex } from "@chakra-ui/react";
 import type { Metadata } from 'next';
-import { fonts } from "./fonts";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -13,7 +12,15 @@ export const metadata: Metadata = {
   description:
     "Compete with your friends over the course of the playoffs. Pick a player each day and get points for their performance.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/favicon.ico' },
+    ],
+    shortcut: [
+      { url: '/favicon.ico' },
+    ],
   },
 };
 
