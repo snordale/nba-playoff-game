@@ -34,7 +34,7 @@ interface GroupContextType {
     setSearch: (search: string) => void;
     setIsDayModalOpen: (isOpen: boolean) => void;
     setViewMode: (mode: 'calendar' | 'list') => void;
-    handleDayClick: (date: string) => void;
+    handleDayClick: (date: Date | string) => void;
     onSubmit: (data: { gameId: string; playerId: string }) => Promise<void>;
 }
 
@@ -72,19 +72,31 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
     }, [leaderboardUsers, currentUserId]);
 
     // Actions
-    const handleDayClick = (date: string) => {
+    const handleDayClick = (date: Date | string) => {
         const timeZone = 'America/New_York';
-        const clickedDayStartInNY = fromZonedTime(date, timeZone);
+        let clickedDateObject: Date;
+        let dateKey: string; // yyyy-MM-dd string for NY timezone
 
-        const dateKey = date;
+        if (typeof date === 'string') {
+            // Date string from DailySubmissionCard (already yyyy-MM-dd in NY time)
+            dateKey = date;
+            clickedDateObject = fromZonedTime(date, timeZone); 
+        } else {
+            // Date object from CalendarDisplay (represents local time usually)
+            // Convert it to the equivalent start of day in NY time
+            clickedDateObject = date; // Assuming react-calendar gives start of day
+            // Format it to the NY timezone yyyy-MM-dd string for key lookup and state
+            dateKey = formatTz(date, 'yyyy-MM-dd', { timeZone: timeZone });
+        }
 
         const hasGames = groupData?.gameCountsByDate?.[dateKey] > 0;
         
         const startOfTodayNY = dateFnsStartOfDay(toZonedTime(new Date(), timeZone));
-        const isPast = isBefore(clickedDayStartInNY, startOfTodayNY);
+        // Compare the start of the clicked day (in NY) with start of today (in NY)
+        const isPast = isBefore(clickedDateObject, startOfTodayNY);
 
         if (hasGames || isPast) {
-            setSelectedDate(date);
+            setSelectedDate(dateKey); // Always set the string version
             setIsDayModalOpen(true);
         } else {
             toast({
