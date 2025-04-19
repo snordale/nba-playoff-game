@@ -89,13 +89,20 @@ export const GroupInterface = () => {
     };
 
     const sortedDates = useMemo(() => {
-        const startDate = parseISO(PLAYOFF_START_DATE);
-        const endDate = parseISO(PLAYOFF_END_DATE);
+        const timeZone = 'America/New_York';
         try {
-            const dates = eachDayOfInterval({ start: startDate, end: endDate })
-                .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-                .map(date => format(toZonedTime(date, 'America/New_York'), 'yyyy-MM-dd'))
-            console.log(dates);
+            // Explicitly interpret start/end dates as start of day in target timezone and get UTC equivalent
+            const startUTC = fromZonedTime(PLAYOFF_START_DATE, timeZone);
+            const endUTC = fromZonedTime(PLAYOFF_END_DATE, timeZone);
+
+            // Generate interval using unambiguous UTC dates
+            const datesInUTC = eachDayOfInterval({ start: startUTC, end: endUTC })
+                .sort((a, b) => a.getTime() - b.getTime());
+
+            // Convert back to target timezone and format
+            const dates = datesInUTC.map(utcDate => format(toZonedTime(utcDate, timeZone), 'yyyy-MM-dd'))
+            
+            console.log("Generated sortedDates (America/New_York):", dates);
             return dates;
         } catch (e) {
             console.error("Error calculating date interval:", e);
@@ -119,7 +126,7 @@ export const GroupInterface = () => {
         if (!leaderboardUsers) return [];
         return leaderboardUsers.map(user => {
             const submission = user.submissions?.find(sub =>
-                format(new Date(sub.gameDate), 'yyyy-MM-dd') === selectedDate
+                format(toZonedTime(new Date(sub.gameDate), 'America/New_York'), 'yyyy-MM-dd') === selectedDate
             );
             const submissionView: SubmissionView | null = submission
                 ? { ...submission, userId: user.userId, username: user.username }
