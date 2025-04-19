@@ -94,7 +94,7 @@ export const GroupInterface = () => {
         try {
             const dates = eachDayOfInterval({ start: startDate, end: endDate })
                 .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-                .map(date => date.toISOString().split('T')[0])
+                .map(date => format(toZonedTime(date, 'America/New_York'), 'yyyy-MM-dd'))
             console.log(dates);
             return dates;
         } catch (e) {
