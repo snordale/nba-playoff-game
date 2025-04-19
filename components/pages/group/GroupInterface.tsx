@@ -94,7 +94,7 @@ export const GroupInterface = () => {
         try {
             const dates = eachDayOfInterval({ start: startDate, end: endDate })
                 .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-                .map(date => toZonedTime(date, 'America/New_York').toISOString().split('T')[0])
+                .map(date => date.toISOString().split('T')[0])
             return dates;
         } catch (e) {
             console.error("Error calculating date interval:", e);

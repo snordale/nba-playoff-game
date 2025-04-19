@@ -2,7 +2,7 @@ import type { PlayerGameStats } from "@prisma/client";
 import { format, startOfDay } from 'date-fns';
 
 // --- Canonical Submission Types ---
-export interface ProcessedSubmission {
+export type ProcessedSubmission = {
     date: string;
     gameId: string;
     playerId: string;
@@ -14,7 +14,7 @@ export interface ProcessedSubmission {
     gameStartsAt: string | null;
 }
 
-export interface ScoredGroupUser {
+export type ScoredGroupUser = {
     groupUserId: string;
     userId: string;
     username: string;
@@ -23,7 +23,7 @@ export interface ScoredGroupUser {
     submissions: ProcessedSubmission[];
 }
 
-export interface SubmissionView {
+export type SubmissionView = {
     userId: string;
     username: string;
     playerName: string | null;
@@ -32,15 +32,6 @@ export interface SubmissionView {
     gameStatus?: string;
     gameDate?: Date;
     gameStartsAt?: string | null;
-}
-
-export interface UserSubmissionMap {
-    [dateKey: string]: {
-        playerName: string | null;
-        score: number | null;
-        isFuture: boolean;
-        playerId?: string;
-    };
 }
 
 export function isPickLocked(gameStatus: string, gameStartsAt: Date | string | null): boolean {
@@ -71,35 +62,4 @@ export function processSubmission(
         gameDate: submission.game.date,
         gameStartsAt: submission.game.startsAt,
     };
-}
-
-export function createSubmissionsByDate(
-    scoredUsers: ScoredGroupUser[],
-    gameCountsByDate: { [key: string]: number },
-    todayStart: Date
-): { [key: string]: SubmissionView[] } {
-    const submissionsByDate: { [key: string]: SubmissionView[] } = {};
-
-    Object.keys(gameCountsByDate).forEach(dateKey => {
-        const dateStart = startOfDay(new Date(dateKey));
-        const isFutureDate = dateStart > todayStart;
-        submissionsByDate[dateKey] = [];
-
-        scoredUsers.forEach(user => {
-            const submission = user.submissions.find(sub => sub.date === dateKey);
-
-            submissionsByDate[dateKey].push({
-                username: user.username,
-                playerName: isFutureDate ? null : submission?.playerName || null,
-                score: isFutureDate ? null : submission?.score || null,
-                stats: isFutureDate ? null : submission?.stats || null,
-                gameStatus: submission?.gameStatus,
-                gameDate: submission?.gameDate,
-                gameStartsAt: submission?.gameStartsAt,
-                userId: user.userId,
-            });
-        });
-    });
-
-    return submissionsByDate;
 }
