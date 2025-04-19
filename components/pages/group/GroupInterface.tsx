@@ -95,6 +95,7 @@ export const GroupInterface = () => {
             const dates = eachDayOfInterval({ start: startDate, end: endDate })
                 .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
                 .map(date => date.toISOString().split('T')[0])
+            console.log(dates);
             return dates;
         } catch (e) {
             console.error("Error calculating date interval:", e);
@@ -230,7 +231,6 @@ export const GroupInterface = () => {
                                     <DailySubmissionCard
                                         date={date}
                                         gameCount={gameCountsByDate?.[date] ?? 0}
-                                        handleDayClick={handleDayClick}
                                         users={usersWithSubmissionsForDate}
                                         isToday={today}
                                         isInPast={isInPast}

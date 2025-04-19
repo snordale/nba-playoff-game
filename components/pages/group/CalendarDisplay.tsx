@@ -48,9 +48,9 @@ const TileContent = ({ date, view }: TileContentProps) => {
         // Future: Show who has picked
         leaderboardUsers?.map((member, i) => {
           const submission = submissionsForThisDate.find(sub => sub.userId === member.userId);
-          const hasPicked = submission?.gameStatus === 'STATUS_SCHEDULED' && 
-                          submission?.gameStartsAt && 
-                          new Date(submission.gameStartsAt) > new Date();
+          const hasPicked = submission?.gameStatus === 'STATUS_SCHEDULED' &&
+            submission?.gameStartsAt &&
+            new Date(submission.gameStartsAt) > new Date();
           return (
             <Text
               key={i}
@@ -69,7 +69,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
 };
 
 export const CalendarDisplay = () => {
-  const { handleDayClick: onDateClick } = useGroup();
+  const { handleDayClick } = useGroup();
 
   return (
     <Box width="100%">
@@ -134,7 +134,7 @@ export const CalendarDisplay = () => {
         defaultActiveStartDate={new Date()}
         maxDate={new Date(PLAYOFF_END_DATE)}
         minDate={new Date(PLAYOFF_START_DATE)}
-        onClickDay={onDateClick}
+        onClickDay={handleDayClick}
         tileContent={({ date, view }) => (
           <TileContent
             date={date}

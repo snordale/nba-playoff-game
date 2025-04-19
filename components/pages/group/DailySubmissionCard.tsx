@@ -4,6 +4,7 @@ import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
 import { format, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import React from 'react';
+import { useGroup } from './GroupContext';
 
 // Define expected stats structure (can be imported if defined centrally)
 interface PlayerStats {
@@ -25,17 +26,9 @@ type PlayerSubmission = {
     gameStartsAt?: string;
 }
 
-// Define the structure for each player object in the players array
-type UserForCard = {
-    userId: string;
-    username: string;
-    submission: PlayerSubmission | null;
-}
-
-interface DailySubmissionCardProps {
+type DailySubmissionCardProps = {
     date: string; // YYYY-MM-DD
     gameCount: number;
-    handleDayClick: (date: string) => void;
     isToday: boolean;
     isInPast: boolean;
     users: {
@@ -48,11 +41,11 @@ interface DailySubmissionCardProps {
 export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     date,
     gameCount,
-    handleDayClick,
     users,
     isToday,
     isInPast
 }) => {
+    const { handleDayClick } = useGroup();
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
     const hasGames = gameCount > 0;
@@ -66,7 +59,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
             variant="outline"
             w="full"
             cursor="pointer"
-            onClick={() => handleDayClick(date)}
+            onClick={() => handleDayClick(startOfDayInUTC)}
             borderColor={isToday ? "orange.500" : undefined}
             _hover={{
                 borderColor: "orange.300",
