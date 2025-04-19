@@ -214,7 +214,7 @@ export const GroupInterface = () => {
 
                             const usersWithSubmissionsForDate = leaderboardUsers?.map(user => {
                                 const submission = user.submissions?.find(sub =>
-                                    new Date(sub.gameDate).toISOString().split('T')[0] === date
+                                    format(toZonedTime(new Date(sub.gameDate), 'America/New_York'), 'yyyy-MM-dd') === date
                                 );
                                 const submissionView: SubmissionView | null = submission
                                     ? { ...submission, userId: user.userId, username: user.username }
