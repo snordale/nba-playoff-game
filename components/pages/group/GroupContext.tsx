@@ -65,7 +65,6 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
     const gameCountsByDate = groupData?.gameCountsByDate;
     const submissionsByDate = groupData?.submissionsByDate;
     const previouslySubmittedPlayerIdsForCurrentUser = groupData?.previouslySubmittedPlayerIdsForCurrentUser;
-
     
     const userInGroup = useMemo(() => {
         return leaderboardUsers?.some(p => p.userId === currentUserId);

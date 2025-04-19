@@ -206,7 +206,7 @@ export const GroupInterface = () => {
                             const isToday = new Date(date).toDateString() === new Date().toDateString();
                             const usersWithSubmissionsForDate = leaderboardUsers?.map(user => {
                                 const submission = user.submissions?.find(sub =>
-                                    format(new Date(sub.gameDate), 'yyyy-MM-dd') === date
+                                    new Date(sub.gameDate).toISOString().split('T')[0] === date
                                 );
                                 const submissionView: SubmissionView | null = submission
                                     ? { ...submission, userId: user.userId, username: user.username }

@@ -9,7 +9,6 @@ interface DayModalSubmissionsProps {
     }[];
     isLoading: boolean;
     isLocked: boolean;
-    currentUserUsername: string;
     currentUserId: string | undefined;
 }
 
@@ -17,7 +16,6 @@ export const DayModalSubmissions = ({
     submissions,
     isLoading,
     isLocked,
-    currentUserUsername,
     currentUserId,
 }: DayModalSubmissionsProps) => {
     return (
