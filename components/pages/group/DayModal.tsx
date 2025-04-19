@@ -1,13 +1,12 @@
 import { useGetGames, useGetPlayers } from '@/react-query/queries';
 import { type SubmissionView } from '@/utils/submission-utils';
-import { CheckCircleIcon } from '@chakra-ui/icons';
-import { Badge, Box, Button, Divider, Grid, HStack, Heading, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, VStack, useToast } from '@chakra-ui/react';
+import { Divider, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack, useToast } from '@chakra-ui/react';
 import { format, isBefore, parseISO, startOfDay } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 import { DayModalGames } from './DayModalGames';
-import { DayModalSubmissions } from './DayModalSubmissions';
 import { DayModalSubmissionInput } from './DayModalSubmissionInput';
+import { DayModalSubmissions } from './DayModalSubmissions';
 
 interface DayModalProps {
     isOpen: boolean;
@@ -190,7 +189,6 @@ export const DayModal = ({
                             submissions={sortedSubmissions}
                             isLoading={false}
                             isLocked={isLocked}
-                            currentUserUsername={currentUserUsername}
                             currentUserId={currentUserId}
                         />
 
