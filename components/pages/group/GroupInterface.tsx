@@ -14,7 +14,7 @@ import { DayModal } from "./DayModal";
 import { useGroup } from './GroupContext';
 import { Leaderboard } from './Leaderboard';
 import { type SubmissionView } from '@/utils/submission-utils';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime, format as formatTz } from 'date-fns-tz';
 
 export const GroupInterface = () => {
     const {
@@ -99,8 +99,10 @@ export const GroupInterface = () => {
             const datesInUTC = eachDayOfInterval({ start: startUTC, end: endUTC })
                 .sort((a, b) => a.getTime() - b.getTime());
 
-            // Convert back to target timezone and format
-            const dates = datesInUTC.map(utcDate => format(toZonedTime(utcDate, timeZone), 'yyyy-MM-dd'))
+            // Convert back to target timezone and format using formatTz
+            const dates = datesInUTC.map(utcDate => 
+                formatTz(utcDate, 'yyyy-MM-dd', { timeZone: timeZone })
+            );
             
             console.log("Generated sortedDates (America/New_York):", dates);
             return dates;
@@ -126,7 +128,7 @@ export const GroupInterface = () => {
         if (!leaderboardUsers) return [];
         return leaderboardUsers.map(user => {
             const submission = user.submissions?.find(sub =>
-                format(toZonedTime(new Date(sub.gameDate), 'America/New_York'), 'yyyy-MM-dd') === selectedDate
+                formatTz(new Date(sub.gameDate), 'yyyy-MM-dd', { timeZone: 'America/New_York' }) === selectedDate
             );
             const submissionView: SubmissionView | null = submission
                 ? { ...submission, userId: user.userId, username: user.username }
@@ -143,7 +145,7 @@ export const GroupInterface = () => {
         if (!selectedDate || !leaderboardUsers || !currentUserId) return null;
         const currentUserData = leaderboardUsers.find(u => u.userId === currentUserId);
         const submission = currentUserData?.submissions?.find(sub =>
-            format(new Date(sub.gameDate), 'yyyy-MM-dd') === selectedDate
+            formatTz(new Date(sub.gameDate), 'yyyy-MM-dd', { timeZone: 'America/New_York' }) === selectedDate
         );
         return submission ? { playerName: submission.playerName, playerId: submission.playerId } : null;
     }, [selectedDate, leaderboardUsers, currentUserId]);
@@ -214,14 +216,14 @@ export const GroupInterface = () => {
 
                             const now = new Date();
                             const nowInNewYork = toZonedTime(now, timeZone);
-                            const todayInNewYorkStr = format(nowInNewYork, 'yyyy-MM-dd');
+                            const todayInNewYorkStr = formatTz(nowInNewYork, 'yyyy-MM-dd', { timeZone: timeZone });
 
                             const isInPast = isBefore(endOfDayInNewYork, now);
                             const today = date === todayInNewYorkStr;
 
                             const usersWithSubmissionsForDate = leaderboardUsers?.map(user => {
                                 const submission = user.submissions?.find(sub =>
-                                    format(toZonedTime(new Date(sub.gameDate), 'America/New_York'), 'yyyy-MM-dd') === date
+                                    formatTz(new Date(sub.gameDate), 'yyyy-MM-dd', { timeZone: 'America/New_York' }) === date
                                 );
                                 const submissionView: SubmissionView | null = submission
                                     ? { ...submission, userId: user.userId, username: user.username }

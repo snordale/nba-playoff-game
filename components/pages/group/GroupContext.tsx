@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState, type PropsWithChildren } from 'react';
 import { useSession } from 'next-auth/react';
 import { format, parseISO, startOfDay as dateFnsStartOfDay, isBefore } from 'date-fns';
+import { format as formatTz, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { useGetGroup, useCreateSubmission, queryClient } from '@/react-query/queries';
 import { type SubmissionView, type ScoredGroupUser } from '@/utils/submission-utils';
 import { useToast } from '@chakra-ui/react';
@@ -33,7 +34,7 @@ interface GroupContextType {
     setSearch: (search: string) => void;
     setIsDayModalOpen: (isOpen: boolean) => void;
     setViewMode: (mode: 'calendar' | 'list') => void;
-    handleDayClick: (date: Date | string) => void;
+    handleDayClick: (date: string) => void;
     onSubmit: (data: { gameId: string; playerId: string }) => Promise<void>;
 }
 
@@ -72,11 +73,15 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
 
     // Actions
     const handleDayClick = (date: string) => {
-        const clickedDay = typeof date === 'string' ? parseISO(date) : date;
-        const dateKey = format(clickedDay, 'yyyy-MM-dd');
+        const timeZone = 'America/New_York';
+        const clickedDayStartInNY = fromZonedTime(date, timeZone);
+
+        const dateKey = date;
 
         const hasGames = groupData?.gameCountsByDate?.[dateKey] > 0;
-        const isPast = isBefore(dateFnsStartOfDay(clickedDay), dateFnsStartOfDay(new Date()));
+        
+        const startOfTodayNY = dateFnsStartOfDay(toZonedTime(new Date(), timeZone));
+        const isPast = isBefore(clickedDayStartInNY, startOfTodayNY);
 
         if (hasGames || isPast) {
             setSelectedDate(date);
