@@ -103,24 +103,3 @@ export function createSubmissionsByDate(
 
     return submissionsByDate;
 }
-
-export function createUserSubmissionsMap(
-    submissions: ProcessedSubmission[],
-    todayStart: Date
-): UserSubmissionMap {
-    const map: UserSubmissionMap = {};
-
-    submissions.forEach(sub => {
-        const gameDateStart = startOfDay(sub.gameDate);
-        const dateKey = format(gameDateStart, 'yyyy-MM-dd');
-
-        map[dateKey] = {
-            playerName: sub.playerName,
-            score: sub.score,
-            isFuture: gameDateStart > todayStart,
-            playerId: sub.playerId
-        };
-    });
-
-    return map;
-} 

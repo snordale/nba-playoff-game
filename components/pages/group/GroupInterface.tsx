@@ -4,7 +4,7 @@
 import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
-import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { eachDayOfInterval, format, isBefore, parseISO } from 'date-fns';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
@@ -14,6 +14,7 @@ import { DayModal } from "./DayModal";
 import { useGroup } from './GroupContext';
 import { Leaderboard } from './Leaderboard';
 import { type SubmissionView } from '@/utils/submission-utils';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 export const GroupInterface = () => {
     const {
@@ -23,7 +24,7 @@ export const GroupInterface = () => {
         selectedDate,
         search,
         setSearch,
-        handleDayClick: onCalendarDateClick,
+        handleDayClick,
         isDayModalOpen,
         setIsDayModalOpen,
         gameCountsByDate,
@@ -91,9 +92,10 @@ export const GroupInterface = () => {
         const startDate = parseISO(PLAYOFF_START_DATE);
         const endDate = parseISO(PLAYOFF_END_DATE);
         try {
-            return eachDayOfInterval({ start: startDate, end: endDate })
-                .map(date => format(date, 'yyyy-MM-dd'))
-                .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+            const dates = eachDayOfInterval({ start: startDate, end: endDate })
+                .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+                .map(date => toZonedTime(date, 'America/New_York').toISOString().split('T')[0])
+            return dates;
         } catch (e) {
             console.error("Error calculating date interval:", e);
             return [];
@@ -137,10 +139,6 @@ export const GroupInterface = () => {
         );
         return submission ? { playerName: submission.playerName, playerId: submission.playerId } : null;
     }, [selectedDate, leaderboardUsers, currentUserId]);
-
-    const handleCardClick = (date: string) => {
-        onCalendarDateClick(date);
-    };
 
     return (
         <Stack gap={6}>
@@ -203,7 +201,16 @@ export const GroupInterface = () => {
                         pt={4}
                     >
                         {sortedDates.map(date => {
-                            const isToday = new Date(date).toDateString() === new Date().toDateString();
+                            const timeZone = 'America/New_York';
+                            const endOfDayInNewYork = fromZonedTime(`${date}T23:59:59`, timeZone);
+
+                            const now = new Date();
+                            const nowInNewYork = toZonedTime(now, timeZone);
+                            const todayInNewYorkStr = format(nowInNewYork, 'yyyy-MM-dd');
+
+                            const isInPast = isBefore(endOfDayInNewYork, now);
+                            const today = date === todayInNewYorkStr;
+
                             const usersWithSubmissionsForDate = leaderboardUsers?.map(user => {
                                 const submission = user.submissions?.find(sub =>
                                     new Date(sub.gameDate).toISOString().split('T')[0] === date
@@ -219,13 +226,14 @@ export const GroupInterface = () => {
                             }) || [];
 
                             return (
-                                <div key={date} ref={isToday ? todayRef : null}>
+                                <div key={date} ref={today ? todayRef : null}>
                                     <DailySubmissionCard
                                         date={date}
-                                        hasGames={(gameCountsByDate?.[date] ?? 0) > 0}
                                         gameCount={gameCountsByDate?.[date] ?? 0}
-                                        onClick={handleCardClick}
+                                        handleDayClick={handleDayClick}
                                         users={usersWithSubmissionsForDate}
+                                        isToday={today}
+                                        isInPast={isInPast}
                                     />
                                 </div>
                             );

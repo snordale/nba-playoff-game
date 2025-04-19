@@ -71,15 +71,14 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
     }, [leaderboardUsers, currentUserId]);
 
     // Actions
-    const handleDayClick = (date: Date | string) => {
+    const handleDayClick = (date: string) => {
         const clickedDay = typeof date === 'string' ? parseISO(date) : date;
-        const formattedDate = format(clickedDay, 'yyyy-MM-dd');
 
-        const hasGames = groupData?.gameCountsByDate?.[formattedDate] > 0;
+        const hasGames = groupData?.gameCountsByDate?.[date] > 0;
         const isPast = isBefore(dateFnsStartOfDay(clickedDay), dateFnsStartOfDay(new Date()));
 
         if (hasGames || isPast) {
-            setSelectedDate(formattedDate);
+            setSelectedDate(date);
             setIsDayModalOpen(true);
         } else {
             toast({
