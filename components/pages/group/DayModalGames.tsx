@@ -14,10 +14,18 @@ interface GameWithTeams {
 
 // Helper function (can be kept here or moved to utils if used elsewhere)
 function getStatusColor(status: string) {
-    if (status === 'STATUS_SCHEDULED') return 'green.600';
-    if (status === 'STATUS_IN_PROGRESS') return 'orange.500';
-    if (status === 'STATUS_FINAL') return 'red.500';
-    return 'gray.500'; // Default
+    const statusToColor = {
+        'STATUS_SCHEDULED': 'green.600',
+        'STATUS_FINAL': 'red.500',
+        'STATUS_IN_PROGRESS': 'blue.500',
+        'STATUS_HALFTIME': 'blue.500',
+        'STATUS_END_OF_REGULATION': 'blue.500',
+        'STATUS_POSTPONED': 'orange.500',
+        'STATUS_CANCELED': 'orange.500',
+        'STATUS_DELAYED': 'orange.500',
+    }
+
+    return statusToColor[status as keyof typeof statusToColor] || 'gray.500';
 }
 
 interface DayModalGamesProps {
