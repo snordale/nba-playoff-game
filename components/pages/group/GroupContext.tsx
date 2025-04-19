@@ -78,25 +78,23 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
         let dateKey: string; // yyyy-MM-dd string for NY timezone
 
         if (typeof date === 'string') {
-            // Date string from DailySubmissionCard (already yyyy-MM-dd in NY time)
+            // String is already in NY format (yyyy-MM-dd)
             dateKey = date;
-            clickedDateObject = fromZonedTime(date, timeZone); 
+            clickedDateObject = fromZonedTime(`${date}T00:00:00`, timeZone);
         } else {
-            // Date object from CalendarDisplay (represents local time usually)
-            // Convert it to the equivalent start of day in NY time
-            clickedDateObject = date; // Assuming react-calendar gives start of day
-            // Format it to the NY timezone yyyy-MM-dd string for key lookup and state
-            dateKey = formatTz(date, 'yyyy-MM-dd', { timeZone: timeZone });
+            // Convert the Date object to NY timezone FIRST
+            clickedDateObject = toZonedTime(date, timeZone);
+            dateKey = formatTz(clickedDateObject, 'yyyy-MM-dd', { timeZone });
         }
 
         const hasGames = groupData?.gameCountsByDate?.[dateKey] > 0;
         
-        const startOfTodayNY = dateFnsStartOfDay(toZonedTime(new Date(), timeZone));
-        // Compare the start of the clicked day (in NY) with start of today (in NY)
+        const now = new Date();
+        const startOfTodayNY = dateFnsStartOfDay(toZonedTime(now, timeZone));
         const isPast = isBefore(clickedDateObject, startOfTodayNY);
 
         if (hasGames || isPast) {
-            setSelectedDate(dateKey); // Always set the string version
+            setSelectedDate(dateKey);
             setIsDayModalOpen(true);
         } else {
             toast({

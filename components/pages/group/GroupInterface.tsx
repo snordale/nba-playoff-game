@@ -92,8 +92,8 @@ export const GroupInterface = () => {
         const timeZone = 'America/New_York';
         try {
             // Explicitly interpret start/end dates as start of day in target timezone and get UTC equivalent
-            const startUTC = fromZonedTime(PLAYOFF_START_DATE, timeZone);
-            const endUTC = fromZonedTime(PLAYOFF_END_DATE, timeZone);
+            const startUTC = fromZonedTime(PLAYOFF_START_DATE, 'America/New_York');
+            const endUTC = fromZonedTime(PLAYOFF_END_DATE, 'America/New_York');
 
             // Generate interval using unambiguous UTC dates
             const datesInUTC = eachDayOfInterval({ start: startUTC, end: endUTC })
