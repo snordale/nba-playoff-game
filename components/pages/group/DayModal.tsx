@@ -1,7 +1,7 @@
 import { useGetGames, useGetPlayers } from '@/react-query/queries';
 import { type SubmissionView } from '@/utils/submission-utils';
 import { Divider, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack, useToast } from '@chakra-ui/react';
-import { format, isBefore, parseISO } from 'date-fns';
+import { isBefore, parseISO } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
@@ -60,9 +60,9 @@ export const DayModal = ({
     const currentUserId = sessionData?.user?.id;
     const TIMEZONE = 'America/New_York';
 
-    // Display date formatted correctly
+    // Display date formatted correctly using formatInTimeZone
     const displayDate = selectedDate
-        ? format(fromZonedTime(`${selectedDate}T00:00:00`, TIMEZONE), 'MMMM d, yyyy')
+        ? formatInTimeZone(fromZonedTime(`${selectedDate}T00:00:00`, TIMEZONE), TIMEZONE, 'MMMM d, yyyy')
         : 'Selected Date';
 
     const { data: games, isLoading: loadingGames } = useGetGames({ date: selectedDate });

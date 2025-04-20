@@ -5,7 +5,7 @@ import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
 import { type SubmissionView } from '@/utils/submission-utils';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
-import { eachDayOfInterval, isBefore } from 'date-fns';
+import { addDays, isBefore, isEqual } from 'date-fns';
 import { formatInTimeZone, format as formatTz, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries";
@@ -102,11 +102,14 @@ export const GroupInterface = () => {
                 return [];
             }
 
-            // Use standard eachDayOfInterval with the zoned dates
-            const datesInInterval = eachDayOfInterval({ start: startNY, end: endNY });
+            const dateStrings: string[] = [];
+            let currentDate = startNY;
 
-            // Format each resulting date back into the YYYY-MM-DD string in the NY timezone
-            const dateStrings = datesInInterval.map(date => formatInTimeZone(date, TIMEZONE, 'yyyy-MM-dd'));
+            // Manually iterate through dates within the NY timezone
+            while (isBefore(currentDate, endNY) || isEqual(currentDate, endNY)) {
+                dateStrings.push(formatInTimeZone(currentDate, TIMEZONE, 'yyyy-MM-dd'));
+                currentDate = addDays(currentDate, 1);
+            }
 
             console.log("Generated sortedDates:", dateStrings);
 
