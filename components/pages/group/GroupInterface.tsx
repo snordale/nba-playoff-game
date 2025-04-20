@@ -89,19 +89,12 @@ export const GroupInterface = () => {
     };
 
     const sortedDates = useMemo(() => {
-        const timeZone = 'UTC';
         try {
-            const startUTC = fromZonedTime(PLAYOFF_START_DATE, timeZone);
-            const endUTC = fromZonedTime(PLAYOFF_END_DATE, timeZone);
+            const start = new Date(`${PLAYOFF_START_DATE}T00:00:00Z`);
+            const end = new Date(`${PLAYOFF_END_DATE}T00:00:00Z`);
 
-            // Generate interval using unambiguous UTC dates
-            const datesInUTC = eachDayOfInterval({ start: startUTC, end: endUTC })
-                .sort((a, b) => a.getTime() - b.getTime());
-
-            const formattedDates = datesInUTC.map(utcDate => formatTz(utcDate, 'yyyy-MM-dd', { timeZone }));
-
-            console.log("Generated sortedDates:", formattedDates);
-            return formattedDates;
+            const dates = eachDayOfInterval({ start, end });
+            return dates.map(d => format(d, 'yyyy-MM-dd'));
         } catch (e) {
             console.error("Error calculating date interval:", e);
             return [];
