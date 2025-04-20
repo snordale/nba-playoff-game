@@ -53,7 +53,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     // Parse the NY date string into a Date object representing the start of that day in NY time
 
     // Format that Date object back into a display string for the NY timezone
-    const formattedDateString = format(new Date(date), 'MMM d, yyyy', { timeZone: 'America/New_York' });
+    const formattedDateString = format(new Date(date), 'MMM d, yyyy', { timeZone: 'UTC' });
     console.log("formattedDateString", formattedDateString);
     return (
         <Card
