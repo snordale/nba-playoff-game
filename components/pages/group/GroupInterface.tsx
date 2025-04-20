@@ -92,18 +92,16 @@ export const GroupInterface = () => {
         const timeZone = 'America/New_York';
         try {
             // Explicitly interpret start/end dates as start of day in target timezone and get UTC equivalent
-            const startUTC = fromZonedTime(PLAYOFF_START_DATE, 'America/New_York');
-            const endUTC = fromZonedTime(PLAYOFF_END_DATE, 'America/New_York');
+            const startUTC = new Date(PLAYOFF_START_DATE);
+            const endUTC = new Date(PLAYOFF_END_DATE);
 
             // Generate interval using unambiguous UTC dates
             const datesInUTC = eachDayOfInterval({ start: startUTC, end: endUTC })
                 .sort((a, b) => a.getTime() - b.getTime());
 
             // Convert back to target timezone and format using formatTz
-            const dates = datesInUTC.map(utcDate => 
-                formatTz(utcDate, 'yyyy-MM-dd', { timeZone: timeZone })
-            );
-            
+            const dates = datesInUTC.map(utcDate => format(utcDate, 'yyyy-MM-dd'));
+
             console.log("Generated sortedDates (America/New_York):", dates);
             return dates;
         } catch (e) {
