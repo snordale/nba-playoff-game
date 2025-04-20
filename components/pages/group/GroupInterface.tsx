@@ -2,9 +2,11 @@
 'use client';
 
 import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
+import { type SubmissionView } from '@/utils/submission-utils';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
-import { eachDayOfInterval, format, isBefore, parseISO } from 'date-fns';
+import { eachDayOfInterval, isBefore, parseISO } from 'date-fns';
+import { format as formatTz, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
@@ -13,8 +15,6 @@ import { DailySubmissionCard } from './DailySubmissionCard';
 import { DayModal } from "./DayModal";
 import { useGroup } from './GroupContext';
 import { Leaderboard } from './Leaderboard';
-import { type SubmissionView } from '@/utils/submission-utils';
-import { fromZonedTime, toZonedTime, format as formatTz } from 'date-fns-tz';
 
 export const GroupInterface = () => {
     const {
@@ -90,18 +90,26 @@ export const GroupInterface = () => {
 
     const sortedDates = useMemo(() => {
         try {
-            const start = new Date(`${PLAYOFF_START_DATE}T00:00:00Z`);
-            const end = new Date(`${PLAYOFF_END_DATE}T00:00:00Z`);
+            // Explicitly construct ISO strings to force UTC midnight
+            const start = parseISO(`${PLAYOFF_START_DATE}T00:00:00.000Z`);
+            const end = parseISO(`${PLAYOFF_END_DATE}T00:00:00.000Z`);
+
             const dates = eachDayOfInterval({ start, end });
-            console.log("dates", dates);
-            const formattedDates = dates.map(d => format(d, 'yyyy-MM-dd'));
-            console.log("formattedDates", formattedDates);
-            return formattedDates;
+
+            console.log(dates)
+
+            // Format as yyyy-MM-dd based on UTC (not local time)
+            const formattedDates = dates.map((d) => d.toISOString().slice(0, 10));
+
+            console.log(formattedDates)
+
+            return formattedDates
         } catch (e) {
             console.error("Error calculating date interval:", e);
             return [];
         }
     }, []);
+
 
     useEffect(() => {
         if (viewMode === 'list' && todayRef.current && scrollContainerRef.current) {
