@@ -92,9 +92,11 @@ export const GroupInterface = () => {
         try {
             const start = new Date(`${PLAYOFF_START_DATE}T00:00:00Z`);
             const end = new Date(`${PLAYOFF_END_DATE}T00:00:00Z`);
-
             const dates = eachDayOfInterval({ start, end });
-            return dates.map(d => format(d, 'yyyy-MM-dd'));
+            console.log("dates", dates);
+            const formattedDates = dates.map(d => format(d, 'yyyy-MM-dd'));
+            console.log("formattedDates", formattedDates);
+            return formattedDates;
         } catch (e) {
             console.error("Error calculating date interval:", e);
             return [];
