@@ -88,25 +88,29 @@ export const GroupInterface = () => {
         }
     };
 
-
-    const sortedDates = useMemo(() => {
+    // Return date strings in YYYY-MM-DD format, starting from PLAYOFF_START_DATE and ending at PLAYOFF_END_DATE – regardless of timezone
+    const sortedDates = useMemo<string[]>(() => {
         try {
-            // parse as UTC‐midnight
-            const start = parseISO(`${PLAYOFF_START_DATE}T00:00:00.000Z`)
-            const end = parseISO(`${PLAYOFF_END_DATE}T00:00:00.000Z`)
+            // lock the bounds to absolute‑UTC midnight
+            const start = new Date(`${PLAYOFF_START_DATE}T00:00:00Z`);
+            const end = new Date(`${PLAYOFF_END_DATE}T00:00:00Z`);
 
-            // get every 24‑hour step (all in UTC)
-            const days = eachDayOfInterval({ start, end })
+            const dateStrings: string[] = [];
+            const DAY_MS = 86_400_000;
 
-            const formattedDates = days.map(d => d.toISOString().slice(0, 10))
-            console.log(formattedDates)
-            // drop the time, keep YYYY‑MM‑DD
-            return formattedDates
-        } catch (e) {
-            console.error(e)
-            return []
+            for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
+                dateStrings.push(new Date(t).toISOString().slice(0, 10)); // → “YYYY‑MM‑DD”
+            }
+
+            console.log(dateStrings)
+
+            return dateStrings;
+        } catch (err) {
+            console.error('sortedDates failed:', err);
+            return [];
         }
-    }, [PLAYOFF_START_DATE, PLAYOFF_END_DATE])
+    }, [PLAYOFF_START_DATE, PLAYOFF_END_DATE]);
+
 
     useEffect(() => {
         if (viewMode === 'list' && todayRef.current && scrollContainerRef.current) {
