@@ -5,6 +5,7 @@ import { format, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import React from 'react';
 import { useGroup } from './GroupContext';
+import { parse } from 'date-fns';
 
 // Define expected stats structure (can be imported if defined centrally)
 interface PlayerStats {
@@ -49,12 +50,15 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
     const hasGames = gameCount > 0;
-    
+
     // Parse the NY date string into a Date object representing the start of that day in NY time
 
-    // Format that Date object back into a display string for the NY timezone
-    const formattedDateString = format(new Date(date), 'MMM d, yyyy', { timeZone: 'UTC' });
-    console.log("formattedDateString", formattedDateString);
+
+    const formattedDateString = format(
+        parse(date, 'yyyy-MM-dd', new Date()), // parses as local‐midnight
+        'MMM d, yyyy'
+    )
+    console.log(formattedDateString)
     return (
         <Card
             variant="outline"

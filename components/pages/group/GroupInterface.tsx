@@ -88,28 +88,23 @@ export const GroupInterface = () => {
         }
     };
 
+
     const sortedDates = useMemo(() => {
         try {
-            // Explicitly construct ISO strings to force UTC midnight
-            const start = parseISO(`${PLAYOFF_START_DATE}T00:00:00.000Z`);
-            const end = parseISO(`${PLAYOFF_END_DATE}T00:00:00.000Z`);
-
-            const localDates = eachDayOfInterval({ start, end });
-
-            console.log(localDates)
-            const utcDates = localDates.map((d) => fromZonedTime(d, Intl.DateTimeFormat().resolvedOptions().timeZone));
-            console.log(utcDates)
-            const formattedDates = utcDates.map((d) => formatTz(d, 'yyyy-MM-dd', { timeZone: 'UTC' }));
-
-            console.log(formattedDates)
-
-            return formattedDates
+          // parse as UTC‐midnight
+          const start = parseISO(`${PLAYOFF_START_DATE}T00:00:00.000Z`)
+          const end   = parseISO(`${PLAYOFF_END_DATE}T00:00:00.000Z`)
+      
+          // get every 24‑hour step (all in UTC)
+          const days = eachDayOfInterval({ start, end })
+      
+          // drop the time, keep YYYY‑MM‑DD
+          return days.map(d => d.toISOString().slice(0, 10))
         } catch (e) {
-            console.error("Error calculating date interval:", e);
-            return [];
+          console.error(e)
+          return []
         }
-    }, []);
-
+      }, [PLAYOFF_START_DATE, PLAYOFF_END_DATE])
 
     useEffect(() => {
         if (viewMode === 'list' && todayRef.current && scrollContainerRef.current) {
