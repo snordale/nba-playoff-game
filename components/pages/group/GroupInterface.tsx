@@ -99,7 +99,7 @@ export const GroupInterface = () => {
             console.log(dates)
 
             // Format as yyyy-MM-dd based on UTC (not local time)
-            const formattedDates = dates.map((d) => d.toISOString().slice(0, 10));
+            const formattedDates = dates.map((d) => formatTz(d, 'yyyy-MM-dd', { timeZone: 'America/New_York' }));
 
             console.log(formattedDates)
 
