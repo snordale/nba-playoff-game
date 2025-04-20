@@ -94,15 +94,10 @@ export const GroupInterface = () => {
             const start = parseISO(`${PLAYOFF_START_DATE}T00:00:00.000Z`);
             const end = parseISO(`${PLAYOFF_END_DATE}T00:00:00.000Z`);
 
-            const dates = eachDayOfInterval({ start, end });
+            const localDates = eachDayOfInterval({ start, end });
 
-            console.log(dates)
-            const utcDates = dates.map((d) => fromZonedTime(d, 'UTC'));
-
-            console.log(utcDates)
-
-            // Format as yyyy-MM-dd based on UTC (not local time)
-            const formattedDates = utcDates.map((d) => formatTz(d, 'yyyy-MM-dd', { timeZone: 'UTC' }));
+            console.log(localDates)
+            const formattedDates = localDates.map((d) => d.toUTCString().slice(0, 10));
 
             console.log(formattedDates)
 
