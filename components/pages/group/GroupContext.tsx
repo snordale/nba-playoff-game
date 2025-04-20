@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState, type PropsWithChildren } from 'react';
 import { useSession } from 'next-auth/react';
-import { format, parseISO, startOfDay as dateFnsStartOfDay, isBefore } from 'date-fns';
-import { format as formatTz, toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { isBefore, parseISO } from 'date-fns';
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { useGetGroup, useCreateSubmission, queryClient } from '@/react-query/queries';
 import { type SubmissionView, type ScoredGroupUser } from '@/utils/submission-utils';
 import { useToast } from '@chakra-ui/react';
@@ -50,8 +50,12 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
     const currentUserUsername = sessionData?.user?.name;
     const toast = useToast();
 
+    const TIMEZONE = 'America/New_York';
+
     // UI State
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(() => {
+        return formatInTimeZone(new Date(), TIMEZONE, 'yyyy-MM-dd');
+    });
     const [search, setSearch] = useState('');
     const [isDayModalOpen, setIsDayModalOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
@@ -73,25 +77,19 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
 
     // Actions
     const handleDayClick = (date: Date | string) => {
-        const timeZone = 'America/New_York';
-        let clickedDateObject: Date;
-        let dateKey: string; // yyyy-MM-dd string for NY timezone
-
+        let dateKey: string;
         if (typeof date === 'string') {
-            // String is already in NY format (yyyy-MM-dd)
             dateKey = date;
-            clickedDateObject = fromZonedTime(`${date}T00:00:00`, timeZone);
         } else {
-            // Convert the Date object to NY timezone FIRST
-            clickedDateObject = toZonedTime(date, timeZone);
-            dateKey = formatTz(clickedDateObject, 'yyyy-MM-dd', { timeZone });
+            dateKey = formatInTimeZone(date, TIMEZONE, 'yyyy-MM-dd');
         }
 
+        const clickedDateObject = fromZonedTime(`${dateKey}T00:00:00`, TIMEZONE);
         const hasGames = groupData?.gameCountsByDate?.[dateKey] > 0;
-        
         const now = new Date();
-        const startOfTodayNY = dateFnsStartOfDay(toZonedTime(now, timeZone));
-        const isPast = isBefore(clickedDateObject, startOfTodayNY);
+
+        const endOfDayNY = fromZonedTime(`${dateKey}T23:59:59.999`, TIMEZONE);
+        const isPast = isBefore(endOfDayNY, now);
 
         if (hasGames || isPast) {
             setSelectedDate(dateKey);

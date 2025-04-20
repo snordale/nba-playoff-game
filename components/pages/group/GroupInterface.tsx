@@ -5,7 +5,7 @@ import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
 import { type SubmissionView } from '@/utils/submission-utils';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
-import { eachDayOfInterval, isBefore, parseISO } from 'date-fns';
+import { eachDayOfInterval, isBefore } from 'date-fns';
 import { formatInTimeZone, format as formatTz, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries";
@@ -88,21 +88,27 @@ export const GroupInterface = () => {
         }
     };
 
-    // Return date strings in YYYY-MM-DD format, starting from PLAYOFF_START_DATE and ending at PLAYOFF_END_DATE – regardless of timezone
+    // Return date strings in YYYY-MM-DD format, starting from PLAYOFF_START_DATE and ending at PLAYOFF_END_DATE
+    // based on the America/New_York timezone.
     const sortedDates = useMemo<string[]>(() => {
+        const TIMEZONE = 'America/New_York';
         try {
-            // lock the bounds to absolute‑UTC midnight
-            const start = new Date(`${PLAYOFF_START_DATE}T00:00:00Z`);
-            const end = new Date(`${PLAYOFF_END_DATE}T00:00:00Z`);
+            // Parse start and end dates in the NY timezone
+            const startNY = fromZonedTime(`${PLAYOFF_START_DATE}T00:00:00`, TIMEZONE);
+            const endNY = fromZonedTime(`${PLAYOFF_END_DATE}T00:00:00`, TIMEZONE);
 
-            const dateStrings: string[] = [];
-            const DAY_MS = 86_400_000;
-
-            for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
-                dateStrings.push(new Date(t).toISOString().slice(0, 10)); // → "YYYY‑MM‑DD"
+            if (isBefore(endNY, startNY)) {
+                console.error("Playoff end date is before start date.");
+                return [];
             }
 
-            console.log(dateStrings)
+            // Use standard eachDayOfInterval with the zoned dates
+            const datesInInterval = eachDayOfInterval({ start: startNY, end: endNY });
+
+            // Format each resulting date back into the YYYY-MM-DD string in the NY timezone
+            const dateStrings = datesInInterval.map(date => formatInTimeZone(date, TIMEZONE, 'yyyy-MM-dd'));
+
+            console.log("Generated sortedDates:", dateStrings);
 
             return dateStrings;
         } catch (err) {
@@ -214,9 +220,11 @@ export const GroupInterface = () => {
                             const TZ = 'America/New_York';
                             const now          = new Date();
                             const todayNYStr   = formatInTimeZone(now, TZ, 'yyyy-MM-dd');
-                            // 23:59:59 at the end of that NY day, expressed in UTC
-                            const endOfNYDayUtc = toZonedTime(`${date}T23:59:59`, 'America/New_York');
-                            const isInPast = isBefore(endOfNYDayUtc, now);
+                            // Use the date string directly to create a NY Date object for comparison
+                            const dateNY = fromZonedTime(`${date}T00:00:00`, TZ); // Start of the day in NY
+                            // Determine if the *entire* day is in the past relative to the current moment in NY
+                            const endOfDayNY = fromZonedTime(`${date}T23:59:59.999`, TZ);
+                            const isInPast = isBefore(endOfDayNY, now);
                             const isToday = date === todayNYStr;
 
                             const usersForDate = leaderboardUsers.map(u => {

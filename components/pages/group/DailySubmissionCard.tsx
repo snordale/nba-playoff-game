@@ -1,11 +1,10 @@
 // components/pages/group/DailySubmissionCard.tsx
 import { type SubmissionView, isPickLocked } from '@/utils/submission-utils';
 import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
-import { format, fromZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import React from 'react';
 import { useGroup } from './GroupContext';
-import { parse } from 'date-fns';
 
 // Define expected stats structure (can be imported if defined centrally)
 interface PlayerStats {
@@ -50,15 +49,17 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
     const hasGames = gameCount > 0;
+    const TIMEZONE = 'America/New_York';
 
     // Parse the NY date string into a Date object representing the start of that day in NY time
+    const dateInNY = fromZonedTime(`${date}T00:00:00`, TIMEZONE);
 
-
-    const formattedDateString = format(
-        parse(date, 'yyyy-MM-dd', new Date()), // parses as local‐midnight
+    const formattedDateString = formatInTimeZone(
+        dateInNY,
+        TIMEZONE,
         'MMM d, yyyy'
     )
-    console.log(formattedDateString)
+
     return (
         <Card
             variant="outline"
@@ -101,7 +102,10 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                 const submission = user.submission;
                                 const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
                                 const pickIsLocked = isPickLocked(submission?.gameStatus ?? '', gameStartsAt);
-                                const canShowPick = pickIsLocked || user.userId === currentUserId;
+
+                                // Determine if the pick can be shown: either the day is past (isLocked logic is in parent/modal),
+                                // the game itself is locked, or it's the current user's pick.
+                                const canShowPick = isInPast || pickIsLocked || user.userId === currentUserId;
 
                                 return (
                                     <VStack key={user.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
@@ -119,9 +123,9 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                                 {isInPast && submission && (
                                                     <Badge
                                                         colorScheme={submission.score !== null ? "orange" : "gray"}
-                                                        visibility={canShowPick || submission.score !== null ? 'visible' : 'hidden'}
+                                                        visibility={canShowPick ? 'visible' : 'hidden'}
                                                     >
-                                                        {submission.score !== null ? `${submission.score} pts` : 'N/A'}
+                                                        {submission.score} pts
                                                     </Badge>
                                                 )}
                                             </HStack>

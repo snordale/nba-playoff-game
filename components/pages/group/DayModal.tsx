@@ -1,7 +1,8 @@
 import { useGetGames, useGetPlayers } from '@/react-query/queries';
 import { type SubmissionView } from '@/utils/submission-utils';
 import { Divider, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack, useToast } from '@chakra-ui/react';
-import { format, isBefore, parseISO, startOfDay } from 'date-fns';
+import { format, isBefore, parseISO } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 import { DayModalGames } from './DayModalGames';
@@ -57,12 +58,21 @@ export const DayModal = ({
 }: DayModalProps) => {
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
-    const displayDate = selectedDate ? format(parseISO(selectedDate), 'MMMM d, yyyy') : 'Selected Date';
+    const TIMEZONE = 'America/New_York';
+
+    // Display date formatted correctly
+    const displayDate = selectedDate
+        ? format(fromZonedTime(`${selectedDate}T00:00:00`, TIMEZONE), 'MMMM d, yyyy')
+        : 'Selected Date';
+
     const { data: games, isLoading: loadingGames } = useGetGames({ date: selectedDate });
     const toast = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const now = new Date();
-    const isLocked = isBefore(startOfDay(parseISO(selectedDate)), startOfDay(new Date()));
+
+    // Determine if the day is locked (entire day is in the past relative to NY time)
+    const endOfDayNY = fromZonedTime(`${selectedDate}T23:59:59.999`, TIMEZONE);
+    const isLocked = isBefore(endOfDayNY, now);
 
     // Fetch players available for selection ONLY if the date is not locked
     const { data: playersForSelectionData, isLoading: loadingPlayers } = useGetPlayers({
@@ -147,14 +157,12 @@ export const DayModal = ({
         }
     };
 
-    // Sort submissions for display
+    // Sort submissions for display (using the prop passed from parent)
     const sortedSubmissions = useMemo(() => {
         if (!usersWithSubmissionsForDate) return [];
         if (isLocked) {
-            // Sort by score descending for past dates
             return [...usersWithSubmissionsForDate].sort((a, b) => ((b.submission?.score ?? -Infinity) - (a.submission?.score ?? -Infinity)));
         } else {
-            // Sort alphabetically by username for future/current dates
             return [...usersWithSubmissionsForDate].sort((a, b) => a.username.localeCompare(b.username));
         }
     }, [usersWithSubmissionsForDate, isLocked]);

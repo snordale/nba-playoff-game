@@ -10,6 +10,7 @@ import {
 } from "@/utils/submission-utils";
 import type { PlayerGameStats } from "@prisma/client";
 import { format, parseISO, startOfDay } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { NextResponse } from "next/server";
 
 type Params = Promise<{ groupId: string }>;
@@ -23,6 +24,8 @@ export async function GET(request: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!groupId)
     return NextResponse.json({ error: "Group ID missing" }, { status: 400 });
+
+  const TIMEZONE = 'America/New_York';
 
   try {
     // --- 1. Fetch Group and Auth Check Concurrently ---
@@ -102,28 +105,21 @@ export async function GET(request: Request, { params }: { params: Params }) {
     }
 
     // --- 4. Fetch Game Counts (Optimized) ---
-    const playoffStartDate = startOfDay(parseISO(PLAYOFF_START_DATE));
-    const playoffEndDate = startOfDay(parseISO(PLAYOFF_END_DATE));
-    const gameCountsResult = await prisma.game.groupBy({
-      by: ["date"],
-      where: {
-        date: { gte: playoffStartDate, lte: playoffEndDate },
-      },
-      _count: { id: true },
-      orderBy: { date: "asc" },
+    const playoffStartDateUTC = new Date(`${PLAYOFF_START_DATE}T00:00:00Z`);
+    const playoffEndDateUTC = new Date(`${PLAYOFF_END_DATE}T23:59:59Z`);
+
+    const gamesInPlayoffs = await prisma.game.findMany({
+        where: {
+            date: { gte: playoffStartDateUTC, lte: playoffEndDateUTC },
+        },
+        select: { id: true, date: true },
+        orderBy: { date: "asc" },
     });
 
     const gameCountsByDate: { [dateKey: string]: number } = {};
-    gameCountsResult.forEach((result) => {
-      const gameDateUTC = new Date(
-        Date.UTC(
-          result.date.getUTCFullYear(),
-          result.date.getUTCMonth(),
-          result.date.getUTCDate()
-        )
-      );
-      const dateKey = format(gameDateUTC, "yyyy-MM-dd");
-      gameCountsByDate[dateKey] = result._count.id;
+    gamesInPlayoffs.forEach((game) => {
+        const dateKey = formatInTimeZone(game.date, TIMEZONE, 'yyyy-MM-dd');
+        gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
     });
 
     // --- 5. Process Submissions and Aggregate Data ---
@@ -149,14 +145,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       const userDetails = groupUserMap.get(currentSubmissionUserId);
       if (!userDetails) return;
 
-      const gameDateUTC = new Date(
-        Date.UTC(
-          sub.game.date.getUTCFullYear(),
-          sub.game.date.getUTCMonth(),
-          sub.game.date.getUTCDate()
-        )
-      );
-      const dateKey = format(gameDateUTC, "yyyy-MM-dd");
+      const dateKey = formatInTimeZone(sub.game.date, TIMEZONE, 'yyyy-MM-dd');
 
       const statsKey = `${sub.playerId}_${sub.gameId}`;
       const stats = statsMap.get(statsKey) || null;
