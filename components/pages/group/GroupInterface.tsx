@@ -97,7 +97,7 @@ export const GroupInterface = () => {
             const localDates = eachDayOfInterval({ start, end });
 
             console.log(localDates)
-            const formattedDates = localDates.map((d) => d.toUTCString().slice(0, 10));
+            const formattedDates = localDates.map((d) => formatTz(d, 'yyyy-MM-dd', { timeZone: 'UTC' }));
 
             console.log(formattedDates)
 
