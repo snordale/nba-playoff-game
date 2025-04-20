@@ -97,9 +97,12 @@ export const GroupInterface = () => {
             const dates = eachDayOfInterval({ start, end });
 
             console.log(dates)
+            const utcDates = dates.map((d) => fromZonedTime(d, 'UTC'));
+
+            console.log(utcDates)
 
             // Format as yyyy-MM-dd based on UTC (not local time)
-            const formattedDates = dates.map((d) => formatTz(d, 'yyyy-MM-dd', { timeZone: 'UTC' }));
+            const formattedDates = utcDates.map((d) => formatTz(d, 'yyyy-MM-dd', { timeZone: 'UTC' }));
 
             console.log(formattedDates)
 
