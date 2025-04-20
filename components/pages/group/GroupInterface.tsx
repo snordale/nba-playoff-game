@@ -91,20 +91,22 @@ export const GroupInterface = () => {
 
     const sortedDates = useMemo(() => {
         try {
-          // parse as UTC‐midnight
-          const start = parseISO(`${PLAYOFF_START_DATE}T00:00:00.000Z`)
-          const end   = parseISO(`${PLAYOFF_END_DATE}T00:00:00.000Z`)
-      
-          // get every 24‑hour step (all in UTC)
-          const days = eachDayOfInterval({ start, end })
-      
-          // drop the time, keep YYYY‑MM‑DD
-          return days.map(d => d.toISOString().slice(0, 10))
+            // parse as UTC‐midnight
+            const start = parseISO(`${PLAYOFF_START_DATE}T00:00:00.000Z`)
+            const end = parseISO(`${PLAYOFF_END_DATE}T00:00:00.000Z`)
+
+            // get every 24‑hour step (all in UTC)
+            const days = eachDayOfInterval({ start, end })
+
+            const formattedDates = days.map(d => d.toISOString().slice(0, 10))
+            console.log(formattedDates)
+            // drop the time, keep YYYY‑MM‑DD
+            return formattedDates
         } catch (e) {
-          console.error(e)
-          return []
+            console.error(e)
+            return []
         }
-      }, [PLAYOFF_START_DATE, PLAYOFF_END_DATE])
+    }, [PLAYOFF_START_DATE, PLAYOFF_END_DATE])
 
     useEffect(() => {
         if (viewMode === 'list' && todayRef.current && scrollContainerRef.current) {
