@@ -6,7 +6,7 @@ import { type SubmissionView } from '@/utils/submission-utils';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
 import { eachDayOfInterval, isBefore, parseISO } from 'date-fns';
-import { format as formatTz, fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, format as formatTz, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
@@ -99,7 +99,7 @@ export const GroupInterface = () => {
             const DAY_MS = 86_400_000;
 
             for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
-                dateStrings.push(new Date(t).toISOString().slice(0, 10)); // → “YYYY‑MM‑DD”
+                dateStrings.push(new Date(t).toISOString().slice(0, 10)); // → "YYYY‑MM‑DD"
             }
 
             console.log(dateStrings)
@@ -211,37 +211,29 @@ export const GroupInterface = () => {
                         pt={4}
                     >
                         {sortedDates.map(date => {
-                            const timeZone = 'America/New_York';
-                            const endOfDayInNewYork = fromZonedTime(`${date}T23:59:59`, timeZone);
+                            const TZ = 'America/New_York';
+                            const now          = new Date();
+                            const todayNYStr   = formatInTimeZone(now, TZ, 'yyyy-MM-dd');
+                            // 23:59:59 at the end of that NY day, expressed in UTC
+                            const endOfNYDayUtc = toZonedTime(`${date}T23:59:59`, 'America/New_York');
+                            const isInPast = isBefore(endOfNYDayUtc, now);
+                            const isToday = date === todayNYStr;
 
-                            const now = new Date();
-                            const nowInNewYork = toZonedTime(now, timeZone);
-                            const todayInNewYorkStr = formatTz(nowInNewYork, 'yyyy-MM-dd', { timeZone: timeZone });
-
-                            const isInPast = isBefore(endOfDayInNewYork, now);
-                            const today = date === todayInNewYorkStr;
-
-                            const usersWithSubmissionsForDate = leaderboardUsers?.map(user => {
-                                const submission = user.submissions?.find(sub =>
-                                    formatTz(new Date(sub.gameDate), 'yyyy-MM-dd', { timeZone: 'America/New_York' }) === date
-                                );
-                                const submissionView: SubmissionView | null = submission
-                                    ? { ...submission, userId: user.userId, username: user.username }
-                                    : null;
-                                return {
-                                    userId: user.userId,
-                                    username: user.username,
-                                    submission: submissionView
-                                };
-                            }) || [];
+                            const usersForDate = leaderboardUsers.map(u => {
+                                const sub = u.submissions?.find(s =>
+                                    formatInTimeZone(new Date(s.gameDate), TZ, 'yyyy-MM-dd') === date
+                                ) ?? null;
+                                const submissionView: SubmissionView | null = sub ? { ...sub, userId: u.userId, username: u.username } : null;
+                                return { userId: u.userId, username: u.username, submission: submissionView };
+                            });
 
                             return (
-                                <div key={date} ref={today ? todayRef : null}>
+                                <div key={date} ref={isToday ? todayRef : undefined}>
                                     <DailySubmissionCard
                                         date={date}
                                         gameCount={gameCountsByDate?.[date] ?? 0}
-                                        users={usersWithSubmissionsForDate}
-                                        isToday={today}
+                                        users={usersForDate}
+                                        isToday={isToday}
                                         isInPast={isInPast}
                                     />
                                 </div>
