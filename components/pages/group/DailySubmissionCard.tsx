@@ -86,7 +86,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                         </VStack>
                         {hasGames && (
                             <Text fontSize="sm" color={isInPast ? "gray.600" : "orange.500"} fontWeight="medium">
-                                {isInPast ? "Final" : "Open"}
+                                {(isInPast && !isToday) ? "Final" : "Open"}
                             </Text>
                         )}
                     </HStack>

@@ -215,8 +215,11 @@ export const GroupInterface = () => {
                             const todayInNyStr = formatTz(new Date(), 'yyyy-MM-dd', { timeZone: TZ });
 
                             const endOfNyDay = fromZonedTime(`${dateInNyStr}T23:59:59.999`, TZ);
+
+                            console.log(date, localDate, dateInNyStr, todayInNyStr, endOfNyDay)
                             const isInPast = isBefore(endOfNyDay, new Date());
                             const isToday = date === todayInNyStr;
+                            console.log(isInPast, isToday)
 
                             const usersWithSubmissions = submissionsByDate?.[date] ?? [];
 
