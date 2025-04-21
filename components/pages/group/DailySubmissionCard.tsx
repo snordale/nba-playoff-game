@@ -105,12 +105,11 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                     {hasGames ? (
                         <VStack align="stretch" width="100%" spacing={1}>
                             {submissionsWithMissingUsers.map((submission) => {
-                                const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
-                                const pickIsLocked = isPickLocked(submission?.gameStatus ?? '', gameStartsAt);
+                                const isLocked = submission.gameStatus !== 'STATUS_SCHEDULED'
 
                                 // Determine if the pick can be shown: either the day is past (isLocked logic is in parent/modal),
                                 // the game itself is locked, or it's the current user's pick.
-                                const canShowPick = isInPast || pickIsLocked || submission.userId === currentUserId;
+                                const canShowPick = isInPast || isLocked || submission.userId === currentUserId;
 
                                 return (
                                     <VStack key={submission.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
@@ -125,7 +124,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                                 >
                                                     {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
                                                 </Text>
-                                                {isInPast && submission && (
+                                                {submission.stats && (
                                                     <Badge
                                                         colorScheme={submission.score !== null ? "orange" : "gray"}
                                                         visibility={canShowPick ? 'visible' : 'hidden'}
