@@ -23,6 +23,12 @@ export type ScoredGroupUser = {
     submissions: ProcessedSubmission[];
 }
 
+export type UserView = {
+    userId: string;
+    username: string;
+    submission: SubmissionView | null;
+}
+
 export type SubmissionView = {
     userId: string;
     username: string;

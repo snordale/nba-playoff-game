@@ -4,6 +4,7 @@ import { prisma } from "@/prisma/client";
 import { calculateScore } from "@/services/ScoringService";
 import {
   processSubmission,
+  UserView,
   type ProcessedSubmission,
   type ScoredGroupUser,
   type SubmissionView,
@@ -128,7 +129,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       Map<string, ProcessedSubmission>
     >();
     let previouslySubmittedPlayerIdsForCurrentUser = new Set<string>();
-    const submissionsByDateMap = new Map<string, SubmissionView[]>();
+    const submissionsByDateMap = new Map<string, UserView[]>();
 
     submissionsWithDetails.forEach((sub) => {
       if (
@@ -188,10 +189,16 @@ export async function GET(request: Request, { params }: { params: Params }) {
           gameStartsAt: processedSub.gameStartsAt,
         };
 
+        const userView: UserView = {
+          userId: currentSubmissionUserId,
+          username: userDetails.user.username,
+          submission: submissionView,
+        };
+
         if (!submissionsByDateMap.has(dateKey)) {
           submissionsByDateMap.set(dateKey, []);
         }
-        submissionsByDateMap.get(dateKey)?.push(submissionView);
+        submissionsByDateMap.get(dateKey)?.push(userView);
       }
     });
 

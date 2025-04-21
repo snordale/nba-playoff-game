@@ -25,15 +25,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
   const today = startOfDay(new Date());
   const isPast = date < today;
   const gameCount = gameCountsByDate?.[dateKey] ?? 0;
-  const submissions = submissionsByDate?.[dateKey] ?? [];
-  const missingUsers = leaderboardUsers?.filter(user => !submissions?.some(submission => submission.userId === user.userId)) ?? [];
-  const submissionsWithMissingUsers = submissions.concat(missingUsers.map(user => ({
-    userId: user.userId,
-    username: user.username,
-    playerName: null,
-    score: null,
-    stats: null
-  })));
+  const users = submissionsByDate?.[dateKey] ?? [];
 
   if (gameCount === 0) return null;
 
@@ -47,15 +39,15 @@ const TileContent = ({ date, view }: TileContentProps) => {
       {/* Submissions */}
       {isPast ? (
         // Past or Today: Show scores
-        submissionsWithMissingUsers.map((sub, i) => (
+        users.map((user, i) => (
           <Text key={i} fontSize="2xs" color="green.600" isTruncated>
-            {sub.username}: {sub.stats ? sub.score : 'N/A'}
+            {user.username}: {user.submission?.stats ? user.submission.score : 'N/A'}
           </Text>
         ))
       ) : (
         // Future: Show who has picked
-        leaderboardUsers?.map((member, i) => {
-          const submission = submissionsWithMissingUsers.find(sub => sub.userId === member.userId);
+        leaderboardUsers?.map((user, i) => {
+          const submission = users.find(sub => sub.userId === user.userId);
           return (
             <Text
               key={i}
@@ -64,7 +56,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
               fontWeight={submission ? "medium" : "normal"}
               isTruncated
             >
-              {member.username}
+              {user.username}
             </Text>
           );
         })

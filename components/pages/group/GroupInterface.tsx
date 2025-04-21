@@ -232,18 +232,8 @@ export const GroupInterface = () => {
 
                             console.log(date, localDate, dateInNyStr, todayInNyStr)
 
-                            const submissions = submissionsByDate?.[date] ?? [];
-                            const usersWithSubmissions = leaderboardUsers.map(user => {
-                                const submission = user.submissions?.find(sub =>
-                                    formatTz(new Date(sub.gameDate), 'yyyy-MM-dd', { timeZone: 'America/New_York' }) === dateInNyStr
-                                );
-                                return {
-                                    userId: user.userId,
-                                    username: user.username,
-                                    submission: submission
-                                }
-                            })
-
+                            const usersWithSubmissions = submissionsByDate?.[date] ?? [];
+                            
                             return (
                                 <div key={date} ref={isToday ? todayRef : undefined}>
                                     <DailySubmissionCard

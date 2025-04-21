@@ -3,7 +3,7 @@ import { useSession } from 'next-auth/react';
 import { isBefore, parseISO } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { useGetGroup, useCreateSubmission, queryClient } from '@/react-query/queries';
-import { type SubmissionView, type ScoredGroupUser } from '@/utils/submission-utils';
+import { type UserView, type ScoredGroupUser } from '@/utils/submission-utils';
 import { useToast } from '@chakra-ui/react';
 
 interface GroupContextType {
@@ -12,7 +12,7 @@ interface GroupContextType {
     groupId: string;
     leaderboardUsers: ScoredGroupUser[] | undefined;
     gameCountsByDate: { [key: string]: number } | undefined;
-    submissionsByDate: { [key: string]: SubmissionView[] } | undefined;
+    submissionsByDate: { [key: string]: UserView[] } | undefined;
     previouslySubmittedPlayerIdsForCurrentUser: string[] | undefined;
 
     // UI State

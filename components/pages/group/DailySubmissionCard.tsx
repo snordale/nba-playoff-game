@@ -1,5 +1,5 @@
 // components/pages/group/DailySubmissionCard.tsx
-import { type SubmissionView, isPickLocked } from '@/utils/submission-utils';
+import { type SubmissionView, UserView, isPickLocked } from '@/utils/submission-utils';
 import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
@@ -31,11 +31,7 @@ type DailySubmissionCardProps = {
     gameCount: number;
     isToday: boolean;
     isInPast: boolean;
-    usersWithSubmissions: {
-        userId: string;
-        username: string;
-        submission: SubmissionView | null;
-    }[];
+    usersWithSubmissions: UserView[];
 }
 
 export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
