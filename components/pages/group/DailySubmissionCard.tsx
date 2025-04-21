@@ -105,7 +105,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                     <VStack key={userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
                                         {/* Username and Score/Status */}
                                         <HStack justify="space-between" width="100%">
-                                            <VStack width="100%" gap={1}>
+                                            <VStack width="100%" gap={1} alignItems='flex-start'>
                                                 <Text fontSize="xs" fontWeight="medium">{username}</Text>
                                                 <Text
                                                     fontSize="xs"
