@@ -56,7 +56,8 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
         'MMM d, yyyy'
     )
 
-    const missingUsers = leaderboardUsers?.filter(user => !submissions.some(submission => submission.userId === user.userId)) ?? [];
+    console.log(date, submissions)
+    const missingUsers = leaderboardUsers?.filter(user => !submissions?.some(submission => submission.userId === user.userId)) ?? [];
     const submissionsWithMissingUsers = submissions.concat(missingUsers.map(user => ({
         userId: user.userId,
         username: user.username,

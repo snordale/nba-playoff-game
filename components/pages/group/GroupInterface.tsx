@@ -232,7 +232,7 @@ export const GroupInterface = () => {
 
                             console.log(date, localDate, dateInNyStr, todayInNyStr)
 
-                            const submissions = submissionsByDate[date];
+                            const submissions = submissionsByDate?.[date] ?? [];
 
                             return (
                                 <div key={date} ref={isToday ? todayRef : undefined}>
