@@ -25,9 +25,18 @@ const TileContent = ({ date, view }: TileContentProps) => {
   const today = startOfDay(new Date());
   const isPast = date < today;
   const gameCount = gameCountsByDate?.[dateKey] ?? 0;
-  const users = submissionsByDate?.[dateKey] ?? [];
+  const usersWithSubmissions = submissionsByDate?.[dateKey] ?? [];
 
   if (gameCount === 0) return null;
+
+  const allUsersWithSubmissions = leaderboardUsers.map(user => {
+    const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
+    return {
+      userId: user.userId,
+      username: user.username,
+      submission: submission ? submission.submission : null
+    }
+  });
 
   return (
     <VStack spacing={0.5} align="stretch" mt={1} width='100%'>
@@ -39,21 +48,20 @@ const TileContent = ({ date, view }: TileContentProps) => {
       {/* Submissions */}
       {isPast ? (
         // Past or Today: Show scores
-        users.map((user, i) => (
+        allUsersWithSubmissions.map((user, i) => (
           <Text key={i} fontSize="2xs" color="green.600" isTruncated>
-            {user.username}: {user.submission?.stats ? user.submission.score : 'N/A'}
+            {user.username}: {user.submission ? user.submission.score : 'N/A'}
           </Text>
         ))
       ) : (
         // Future: Show who has picked
-        leaderboardUsers?.map((user, i) => {
-          const submission = users.find(sub => sub.userId === user.userId);
+        allUsersWithSubmissions?.map((user, i) => {
           return (
             <Text
               key={i}
               fontSize="2xs"
-              color={submission ? "green.500" : "gray.400"}
-              fontWeight={submission ? "medium" : "normal"}
+              color={user.submission ? "green.500" : "gray.400"}
+              fontWeight={user.submission ? "medium" : "normal"}
               isTruncated
             >
               {user.username}

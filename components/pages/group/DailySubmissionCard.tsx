@@ -1,5 +1,5 @@
 // components/pages/group/DailySubmissionCard.tsx
-import { type SubmissionView, UserView, isPickLocked } from '@/utils/submission-utils';
+import { UserView } from '@/utils/submission-utils';
 import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
@@ -41,13 +41,11 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     isToday,
     isInPast
 }) => {
-    const { handleDayClick, leaderboardUsers } = useGroup();
+    const { handleDayClick } = useGroup();
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
     const hasGames = gameCount > 0;
     const TIMEZONE = 'America/New_York';
-    console.log('usersWithSubmissions');
-    console.log(date, usersWithSubmissions);
 
     // Parse the NY date string into a Date object representing the start of that day in NY time
     const dateInNY = fromZonedTime(`${date}T00:00:00`, TIMEZONE);

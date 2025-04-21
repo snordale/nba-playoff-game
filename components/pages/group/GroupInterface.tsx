@@ -228,16 +228,23 @@ export const GroupInterface = () => {
                             const isInPast = isBefore(endOfNyDay, new Date());
                             const isToday = date === todayInNyStr;
 
-                            console.log(date, localDate, dateInNyStr, todayInNyStr)
-
                             const usersWithSubmissions = submissionsByDate?.[date] ?? [];
+
+                            const allUsersWithSubmissions = leaderboardUsers.map(user => {
+                                const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
+                                return {
+                                  userId: user.userId,
+                                  username: user.username,
+                                  submission: submission ? submission.submission : null
+                                }
+                              });
                             
                             return (
                                 <div key={date} ref={isToday ? todayRef : undefined}>
                                     <DailySubmissionCard
                                         date={date}
                                         gameCount={gameCountsByDate?.[date] ?? 0}
-                                        usersWithSubmissions={usersWithSubmissions}
+                                        usersWithSubmissions={allUsersWithSubmissions}
                                         isToday={isToday}
                                         isInPast={isInPast}
                                     />
