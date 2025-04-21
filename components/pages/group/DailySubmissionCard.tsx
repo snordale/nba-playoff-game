@@ -46,6 +46,8 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     const currentUserId = sessionData?.user?.id;
     const hasGames = gameCount > 0;
     const TIMEZONE = 'America/New_York';
+    console.log('usersWithSubmissions');
+    console.log(date, usersWithSubmissions);
 
     // Parse the NY date string into a Date object representing the start of that day in NY time
     const dateInNY = fromZonedTime(`${date}T00:00:00`, TIMEZONE);
@@ -113,7 +115,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                                     color={submission.playerName ? "green.500" : "orange.500"}
                                                     fontWeight="medium"
                                                 >
-                                                    {submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
+                                                    {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
                                                 </Text>
                                                 {submission.stats && (
                                                     <Badge

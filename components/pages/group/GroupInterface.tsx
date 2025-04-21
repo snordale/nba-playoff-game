@@ -112,8 +112,6 @@ export const GroupInterface = () => {
                 currentDate = addDays(currentDate, 1);
             }
 
-            console.log("Generated sortedDates:", dateStrings);
-
             return dateStrings;
         } catch (err) {
             console.error('sortedDates failed:', err);
