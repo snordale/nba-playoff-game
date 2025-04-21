@@ -11,6 +11,7 @@ import {
 } from "@/utils/submission-utils";
 import type { PlayerGameStats } from "@prisma/client";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { NextResponse } from "next/server";
 
 type Params = Promise<{ groupId: string }>;
@@ -28,47 +29,69 @@ export async function GET(request: Request, { params }: { params: Params }) {
   const TIMEZONE = "America/New_York";
 
   try {
-    // --- 1. Fetch Group and Auth Check Concurrently ---
+    // --- 1. Fetch Group and Auth Check (including user deleted check) ---
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { deletedAt: true }
+    });
+
+    // Check if the requesting user is deleted
+    if (currentUser?.deletedAt) {
+      return NextResponse.json({ error: "User deleted, contact support for help" }, { status: 403 });
+    }
+
     const [group, userInGroup] = await Promise.all([
       prisma.group.findUnique({
         where: { id: groupId },
         select: { id: true, name: true },
       }),
       prisma.groupUser.findFirst({
-        where: { groupId, userId },
+        where: {
+          groupId,
+          userId,
+          user: { deletedAt: null } // Ensure user in group isn't deleted
+        },
         select: { userId: true },
       }),
     ]);
 
     if (!group)
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    // User might be authenticated but not in *this specific* group, or the user record linked to the group is deleted
     if (!userInGroup)
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden or user not found in group" }, { status: 403 });
 
-    // --- 2. Fetch Group Users (Basic Info) ---
+    // --- 2. Fetch *Non-Deleted* Group Users (Basic Info) ---
     const groupUsers = await prisma.groupUser.findMany({
-      where: { groupId },
+      where: {
+        groupId,
+        user: { deletedAt: null } // Exclude deleted users
+      },
       select: {
         id: true,
         userId: true,
         isAdmin: true,
-        user: { select: { username: true } },
+        user: { select: { username: true } }, // Select only non-deleted user info
       },
       orderBy: { user: { username: "asc" } },
     });
+    // Filter map to only include non-deleted users fetched above
     const groupUserMap = new Map(groupUsers.map((gu) => [gu.userId, gu]));
 
     // --- 3. Fetch Submissions + Game + Player ---
     const submissionsWithDetails = await prisma.submission.findMany({
       where: {
-        groupUser: { groupId: groupId },
+        groupUser: {
+          groupId: groupId,
+          user: { deletedAt: null } // Filter submissions by non-deleted user
+        },
       },
       include: {
         game: {
           select: { id: true, date: true, status: true, startsAt: true },
         },
         player: { select: { id: true, name: true } },
-        groupUser: { select: { userId: true } },
+        groupUser: { select: { userId: true } }, // We already know this user isn't deleted
       },
       orderBy: { game: { date: "asc" } },
     });
@@ -104,7 +127,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       );
     }
 
-    // --- 4. Fetch Game Counts (Optimized) ---
+    // --- 4. Fetch Game Counts (Optimized - use formatInTimeZone) ---
     const playoffStartDateUTC = new Date(`${PLAYOFF_START_DATE}T00:00:00Z`);
     const playoffEndDateUTC = new Date(`${PLAYOFF_END_DATE}T23:59:59Z`);
 
@@ -118,7 +141,8 @@ export async function GET(request: Request, { params }: { params: Params }) {
 
     const gameCountsByDate: { [dateKey: string]: number } = {};
     gamesInPlayoffs.forEach((game) => {
-      const dateKey = format(game.date, "yyyy-MM-dd");
+      // Use formatInTimeZone consistently
+      const dateKey = formatInTimeZone(game.date, TIMEZONE, 'yyyy-MM-dd');
       gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
     });
 
@@ -133,7 +157,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
 
     submissionsWithDetails.forEach((sub) => {
       if (
-        !sub.groupUser?.userId ||
+        !sub.groupUser?.userId || // User should exist due to query filter
         !sub.game ||
         !sub.player ||
         !sub.playerId ||
@@ -143,16 +167,19 @@ export async function GET(request: Request, { params }: { params: Params }) {
 
       const currentSubmissionUserId = sub.groupUser.userId;
       const userDetails = groupUserMap.get(currentSubmissionUserId);
-      if (!userDetails) return;
+      // Double-check userDetails existence, though it should be guaranteed by the earlier fetch
+      if (!userDetails) {
+        console.warn(`Skipping submission for user ${currentSubmissionUserId} - user details not found in map.`);
+        return;
+      }
 
-      const dateKey = format(sub.game.date, "yyyy-MM-dd");
+      // Use formatInTimeZone consistently
+      const dateKey = formatInTimeZone(sub.game.date, TIMEZONE, 'yyyy-MM-dd');
 
       const statsKey = `${sub.playerId}_${sub.gameId}`;
       const stats = statsMap.get(statsKey) || null;
-
       const score = stats ? calculateScore(stats) : null;
       const isOwnUser = currentSubmissionUserId === userId;
-
       const processedSub: ProcessedSubmission | null = processSubmission(
         sub,
         stats,
@@ -214,6 +241,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
     const submissionsByDate = Object.fromEntries(submissionsByDateMap);
 
     // --- 6. Construct Final Response ---
+    // The groupUsers array used here is already filtered for non-deleted users
     const leaderboardUsers: ScoredGroupUser[] = groupUsers
       .map((gu) => ({
         groupUserId: gu.id,

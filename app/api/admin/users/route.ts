@@ -19,23 +19,28 @@ export async function GET(request: NextRequest) {
     try {
         let users;
         if (groupId) {
-            // Fetch users belonging to the specified group
+            // Fetch non-deleted users belonging to the specified group
             const groupUsers = await prisma.groupUser.findMany({
-                where: { groupId: groupId },
+                where: {
+                    groupId: groupId,
+                    user: { deletedAt: null } // Filter out deleted users
+                 },
                 include: {
                     user: {
-                        select: { id: true, username: true, email: true } // Select desired user fields
+                        select: { id: true, username: true, email: true }
                     }
                 },
                 orderBy: {
                     user: { username: 'asc' }
                 }
             });
-            users = groupUsers.map(gu => gu.user);
+            // Filter out potential null users just in case relation is optional or error occurs
+            users = groupUsers.map(gu => gu.user).filter(user => user != null);
         } else {
-            // Fetch all users if no groupId is provided
+            // Fetch all non-deleted users if no groupId is provided
             users = await prisma.user.findMany({
-                select: { id: true, username: true, email: true }, // Select desired user fields
+                where: { deletedAt: null }, // Filter out deleted users
+                select: { id: true, username: true, email: true },
                 orderBy: {
                     username: 'asc'
                 }
