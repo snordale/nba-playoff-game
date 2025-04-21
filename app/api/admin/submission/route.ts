@@ -53,55 +53,58 @@ export async function POST(req: NextRequest) {
     }
     const groupUserId = groupUser.id;
 
-    // 4. Find the Correct Game for the Player on the Specified Date
-    // Fetch player entries for the date that match the selected player ID
-    // The date from the request IS the NY date string. We need games whose date falls on this NY day.
+    // 4. Find the Correct Game for the Player on the Specified Date (Alternative Approach)
     const startOfNYDay = fromZonedTime(`${date}T00:00:00`, TIMEZONE);
     const endOfNYDay = fromZonedTime(`${date}T23:59:59.999`, TIMEZONE);
 
-    // Find games occurring *on* the target date in NY
+    // Find the player and their current team ID
+    const player = await prisma.player.findUnique({
+        where: { id: playerId },
+        select: { id: true, name: true, currentTeamId: true } // Ensure currentTeamId is selected
+    });
+
+    if (!player) {
+        return NextResponse.json({ error: `Player with ID ${playerId} not found.` }, { status: 404 });
+    }
+    if (!player.currentTeamId) {
+        return NextResponse.json({ error: `Player ${player.name} does not have a current team assigned.` }, { status: 400 });
+    }
+    const playerTeamId = player.currentTeamId;
+
+    // Find games occurring *on* the target date in NY timezone involving the player's team
     const gamesOnDate = await prisma.game.findMany({
         where: {
-            date: {
-                gte: startOfNYDay, // Convert NY day start to UTC for DB query
-                lte: endOfNYDay    // Convert NY day end to UTC for DB query
-            }
+            date: { // Compare game's UTC date against the NY day boundaries
+                gte: startOfNYDay,
+                lte: endOfNYDay
+            },
+            // Check if player's team is either home or away
+            OR: [
+                { homeTeamId: playerTeamId },
+                { awayTeamId: playerTeamId }
+            ]
         },
-        select: { id: true, date: true, startsAt: true, status: true }
+        // Select necessary fields
+        select: { id: true, date: true, startsAt: true, status: true, homeTeamId: true, awayTeamId: true }
     });
 
+    // Handle cases where the team might play twice (rare, but possible) or not at all
     if (gamesOnDate.length === 0) {
-        return NextResponse.json({ error: `No games found scheduled for ${date}` }, { status: 404 });
+        return NextResponse.json({ error: `No game found for player ${player.name}'s team (${playerTeamId}) on ${date}` }, { status: 404 });
+    }
+    if (gamesOnDate.length > 1) {
+        // Ambiguous situation - could log a warning or return an error
+        console.warn(`[ADMIN] Found multiple games (${gamesOnDate.map(g => g.id).join(', ')}) for player ${player.name}'s team (${playerTeamId}) on ${date}. Using the first one found.`);
+        // Or return NextResponse.json({ error: `Ambiguous: Found multiple games for player's team on ${date}` }, { status: 400 });
     }
 
-    // Now find which of these games the *player* is actually playing in (via PlayerGameStats or a direct relation if available)
-    // We'll use the PlayerGameStats record associated with the player *for one of the games on that day*.
-    // This assumes the player only plays one game per day.
-    const playerGameStatLink = await prisma.playerGameStats.findFirst({
-        where: {
-            playerId: playerId,
-            gameId: {
-                in: gamesOnDate.map(g => g.id)
-            }
-        },
-        select: { gameId: true }
-    });
-
-    if (!playerGameStatLink || !playerGameStatLink.gameId) {
-        const player = await prisma.player.findUnique({ where: {id: playerId}, select: { name: true }})
-        return NextResponse.json({ error: `Player ${player?.name ?? playerId} is not scheduled to play in any game on ${date}` }, { status: 404 });
-    }
-    const gameId = playerGameStatLink.gameId;
-    const game = gamesOnDate.find(g => g.id === gameId); // Get the full game details
-
-    // Optional: Add validation for game status/time if needed for admin actions
-    // e.g., if (!game.status === 'STATUS_SCHEDULED') { ... }
-    // e.g., if (game.startsAt && new Date(game.startsAt) <= new Date()) { ... }
+    // Use the first game found (or implement logic to choose if multiple)
+    const game = gamesOnDate[0];
+    const gameId = game.id;
 
     // 5. Find if a submission already exists for this GroupUser on this date
-    // The game.date directly from the DB should be used for finding existing submissions for that *specific game instance's day*.
-    const gameDateActual = game.date;
-    const startOfDayUTC = new Date(gameDateActual); // Use the actual game date from DB
+    const gameDateActual = game.date; // Use the date from the specific game found
+    const startOfDayUTC = new Date(gameDateActual);
     startOfDayUTC.setUTCHours(0, 0, 0, 0);
     const endOfDayUTC = new Date(startOfDayUTC);
     endOfDayUTC.setUTCHours(23, 59, 59, 999);

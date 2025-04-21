@@ -25,6 +25,7 @@ import {
     useAdminUpsertSubmission
 } from '@/react-query/queries';
 import { formatInTimeZone } from 'date-fns-tz';
+import { TypeaheadInput, type TypeaheadOption } from '@/components/shared/TypeaheadInput';
 
 // Define types for fetched data (adjust if needed based on actual API response)
 interface AdminGroup {
@@ -43,7 +44,6 @@ interface PlayerForSelection {
     name: string;
     teamName?: string;
     teamAbbreviation?: string;
-    // Add gameId if needed for selection logic, though API handles finding the game
 }
 
 const AdminInterface = () => {
@@ -56,8 +56,7 @@ const AdminInterface = () => {
     const [selectedDate, setSelectedDate] = useState<string>(
         formatInTimeZone(new Date(), TIMEZONE, 'yyyy-MM-dd')
     );
-    const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
-    const [searchPlayer, setSearchPlayer] = useState<string>('');
+    const [selectedPlayer, setSelectedPlayer] = useState<TypeaheadOption | null>(null);
 
     // Fetching Data
     const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useAdminGetAllGroups();
@@ -81,21 +80,21 @@ const AdminInterface = () => {
     // The hook now fetches filtered data based on selectedGroupId.
     const usersForSelectedGroup = users || []; // Directly use the potentially filtered list
 
-    // Filter and process players for dropdown
-    const playersForSelection = useMemo(() => {
+    // Map raw player data to TypeaheadOption format
+    const playerOptions = useMemo<TypeaheadOption[]>(() => {
         if (!playersData) return [];
-        // Ensure playersData is treated as an array
         const playerDataArray = Array.isArray(playersData) ? playersData : [];
-        return (playerDataArray as PlayerForSelection[])
-            .filter(p => p.name.toLowerCase().includes(searchPlayer.toLowerCase()))
-            .sort((a, b) => a.name.localeCompare(b.name));
-    }, [playersData, searchPlayer]);
+        return (playerDataArray as PlayerForSelection[]).map(player => ({
+            id: player.id,
+            label: `${player.name} ${player.teamAbbreviation ? `(${player.teamAbbreviation})` : ''}`
+        })).sort((a, b) => a.label.localeCompare(b.label)); // Sort by label now
+    }, [playersData]);
 
     // Form Submission Handler
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!selectedGroupId || !selectedUserId || !selectedDate || !selectedPlayerId) {
+        if (!selectedGroupId || !selectedUserId || !selectedDate || !selectedPlayer?.id) {
             toast({
                 title: 'Missing Information',
                 description: 'Please fill out all fields.',
@@ -107,7 +106,7 @@ const AdminInterface = () => {
         }
 
         upsertSubmission(
-            { groupId: selectedGroupId, userId: selectedUserId, date: selectedDate, playerId: selectedPlayerId },
+            { groupId: selectedGroupId, userId: selectedUserId, date: selectedDate, playerId: selectedPlayer.id },
             {
                 onSuccess: () => {
                     toast({
@@ -117,9 +116,7 @@ const AdminInterface = () => {
                         duration: 5000,
                         isClosable: true,
                     });
-                    // Optionally reset form fields
-                    // setSelectedPlayerId('');
-                    // setSearchPlayer('');
+                    setSelectedPlayer(null);
                 },
                 onError: (error: any) => {
                     toast({
@@ -137,14 +134,12 @@ const AdminInterface = () => {
     // Effect to reset user & player selection when group changes
     useEffect(() => {
         setSelectedUserId('');
-        setSelectedPlayerId('');
-        setSearchPlayer('');
+        setSelectedPlayer(null);
     }, [selectedGroupId]);
 
     // Effect to reset player selection when date changes
     useEffect(() => {
-        setSelectedPlayerId('');
-        setSearchPlayer('');
+        setSelectedPlayer(null);
     }, [selectedDate]);
 
     // Handle API errors for display
@@ -209,36 +204,20 @@ const AdminInterface = () => {
 
                 <Divider my={2} />
 
-                {/* Player Selection */}
-                <FormControl isRequired>
+                {/* Player Selection - Use TypeaheadInput */}
+                <FormControl isRequired isInvalid={!!playersError}>
                     <FormLabel>Player</FormLabel>
-                    <Input
-                        placeholder="Search player..."
-                        value={searchPlayer}
-                        onChange={(e) => setSearchPlayer(e.target.value)}
-                        mb={2}
-                        isDisabled={!selectedDate} // Disable if no date selected
-                    />
-                    {isLoadingPlayers ? (
-                        <HStack justifyContent="center" py={2}><Spinner size="sm" /></HStack>
-                    ) : playersError ? (
-                        <Text color="red.500">Error loading players: {playersError.message}</Text>
+                    {playersError ? (
+                        <FormErrorMessage>Error loading players: {playersError.message}</FormErrorMessage>
                     ) : (
-                        <Select
-                            placeholder="Select player"
-                            value={selectedPlayerId}
-                            onChange={(e) => setSelectedPlayerId(e.target.value)}
-                            isDisabled={!selectedDate || playersForSelection.length === 0}
-                        >
-                            {playersForSelection.map((player) => (
-                                <option key={player.id} value={player.id}>
-                                    {player.name} {player.teamAbbreviation ? `(${player.teamAbbreviation})` : ''}
-                                </option>
-                            ))}
-                            {!isLoadingPlayers && playersForSelection.length === 0 && (
-                                <option disabled>No players found for this date/search</option>
-                            )}
-                        </Select>
+                        <TypeaheadInput
+                            placeholder="Search & select player..."
+                            options={playerOptions}
+                            isLoading={isLoadingPlayers}
+                            onSelect={(option) => setSelectedPlayer(option)}
+                            value={selectedPlayer}
+                            label="Select Player"
+                        />
                     )}
                     {!selectedDate && <Text fontSize="xs" color="gray.500" mt={1}>Select a date first</Text>}
                 </FormControl>
@@ -252,11 +231,11 @@ const AdminInterface = () => {
 
                 {/* Submit Button */}
                 <Button
-                    mt={4} // Add some margin top
+                    mt={4}
                     type="submit"
                     colorScheme="orange"
                     isLoading={isSubmitting}
-                    isDisabled={isSubmitting || !selectedGroupId || !selectedUserId || !selectedDate || !selectedPlayerId}
+                    isDisabled={isSubmitting || !selectedGroupId || !selectedUserId || !selectedDate || !selectedPlayer?.id || isLoadingPlayers}
                 >
                     Upsert Submission
                 </Button>
