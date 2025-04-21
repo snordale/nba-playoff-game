@@ -1,6 +1,6 @@
 // components/pages/group/DailySubmissionCard.tsx
 import { UserView } from '@/utils/submission-utils';
-import { Badge, Card, CardBody, HStack, Stack, Text, VStack } from "@chakra-ui/react";
+import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import React from 'react';
@@ -95,12 +95,6 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                     {hasGames ? (
                         <VStack align="stretch" width="100%" spacing={1}>
                             {usersWithSubmissions.map(({ userId, username, submission }) => {
-                                const isLocked = submission?.gameStatus !== 'STATUS_SCHEDULED'
-
-                                // Determine if the pick can be shown: either the day is past (isLocked logic is in parent/modal),
-                                // the game itself is locked, or it's the current user's pick.
-                                const canShowPick = isInPast || isLocked || userId === currentUserId;
-
                                 return (
                                     <VStack key={userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
                                         {/* Username and Score/Status */}
@@ -112,14 +106,11 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                                     color={submission ? "green.500" : "orange.500"}
                                                     fontWeight="medium"
                                                 >
-                                                    {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
+                                                    {!submission ? 'No Pick' : submission.playerName || "Hidden"}
                                                 </Text>
                                             </VStack>
                                             {submission?.stats && (
-                                                <Badge
-                                                    colorScheme="orange"
-                                                    visibility={canShowPick ? 'visible' : 'hidden'}
-                                                >
+                                                <Badge colorScheme="orange">
                                                     {submission.score} pts
                                                 </Badge>
                                             )}

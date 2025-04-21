@@ -32,32 +32,64 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       try {
         const existingUser = await prisma.user.findUnique({
             where: { email: user.email },
-            select: { deletedAt: true }
+            select: { id: true, deletedAt: true }
         });
+
         if (existingUser?.deletedAt) {
             console.log(`SignIn blocked for deleted user: ${user.email}`);
             throw new Error("User deleted, contact support for help"); 
         }
-        const userData = await prisma.user.upsert({
-          where: { email: user.email },
-          create: {
-            email: user.email,
-            username: user.email,
-            image: user.image ?? null,
-            deletedAt: null,
-          },
-          update: {
-            image: user.image ?? null,
-          },
-          select: { id: true } 
-        });
-        (user as any).dbId = userData.id; // Attach ID for jwt callback
+
+        let finalUserId: string | undefined;
+
+        if (existingUser) {
+            // User exists and is not deleted, update image potentially
+            console.log(`SignIn: Updating existing user ${user.email}`);
+            const updatedUser = await prisma.user.update({
+                where: { email: user.email },
+                data: { image: user.image ?? null },
+                select: { id: true },
+            });
+            finalUserId = updatedUser.id;
+        } else {
+            // User does not exist, create them
+            console.log(`SignIn: Creating new user ${user.email}`);
+            const newUser = await prisma.user.create({
+                data: {
+                    email: user.email,
+                    username: user.email, // Using email as unique username
+                    image: user.image ?? null,
+                    deletedAt: null,
+                },
+                select: { id: true },
+            });
+            finalUserId = newUser.id;
+        }
+
+        // Ensure we got an ID
+        if (!finalUserId) {
+             console.error(`SignIn: Failed to get user ID for ${user.email} after create/update.`);
+             return false;
+        }
+
+        (user as any).dbId = finalUserId; // Attach ID for jwt callback
+        console.log(`SignIn successful for ${user.email}, user ID: ${finalUserId}`);
         return true; // Allow sign-in
+
       } catch (error: any) {
-        console.error("Error during signIn callback:", error);
+        // Log the specific error
+        console.error(`Error during signIn callback for ${user.email}:`, error);
+        // Check for Prisma Unique constraint violation (P2002)
+        if (error?.code === 'P2002') {
+            console.error("SignIn failed: Prisma Unique constraint violation (likely username).", error.meta);
+            // You could potentially retry with a different username here, but returning false is safer initially
+             return false;
+        }
+        // Re-throw the specific deleted user error if needed by NextAuth error pages
         if (error.message === "User deleted, contact support for help") {
             throw error;
         }
+        // Deny sign-in for all other errors
         return false;
       }
     },
