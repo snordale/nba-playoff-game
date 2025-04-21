@@ -50,11 +50,14 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     // Parse the NY date string into a Date object representing the start of that day in NY time
     const dateInNY = fromZonedTime(`${date}T00:00:00`, TIMEZONE);
 
+    console.log('dateInNY', dateInNY)
     const formattedDateString = formatInTimeZone(
         dateInNY,
         TIMEZONE,
         'MMM d, yyyy'
     )
+    console.log('formattedDateString', formattedDateString)
+
 
     return (
         <Card
