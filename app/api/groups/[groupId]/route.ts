@@ -32,12 +32,15 @@ export async function GET(request: Request, { params }: { params: Params }) {
     // --- 1. Fetch Group and Auth Check (including user deleted check) ---
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { deletedAt: true }
+      select: { deletedAt: true },
     });
 
     // Check if the requesting user is deleted
     if (currentUser?.deletedAt) {
-      return NextResponse.json({ error: "User deleted, contact support for help" }, { status: 403 });
+      return NextResponse.json(
+        { error: "User deleted, contact support for help" },
+        { status: 403 }
+      );
     }
 
     const [group, userInGroup] = await Promise.all([
@@ -49,7 +52,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
         where: {
           groupId,
           userId,
-          user: { deletedAt: null } // Ensure user in group isn't deleted
+          user: { deletedAt: null }, // Ensure user in group isn't deleted
         },
         select: { userId: true },
       }),
@@ -59,13 +62,16 @@ export async function GET(request: Request, { params }: { params: Params }) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     // User might be authenticated but not in *this specific* group, or the user record linked to the group is deleted
     if (!userInGroup)
-      return NextResponse.json({ error: "Forbidden or user not found in group" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden or user not found in group" },
+        { status: 403 }
+      );
 
     // --- 2. Fetch *Non-Deleted* Group Users (Basic Info) ---
     const groupUsers = await prisma.groupUser.findMany({
       where: {
         groupId,
-        user: { deletedAt: null } // Exclude deleted users
+        user: { deletedAt: null }, // Exclude deleted users
       },
       select: {
         id: true,
@@ -83,7 +89,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       where: {
         groupUser: {
           groupId: groupId,
-          user: { deletedAt: null } // Filter submissions by non-deleted user
+          user: { deletedAt: null }, // Filter submissions by non-deleted user
         },
       },
       include: {
@@ -142,7 +148,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
     const gameCountsByDate: { [dateKey: string]: number } = {};
     gamesInPlayoffs.forEach((game) => {
       // Use formatInTimeZone consistently
-      const dateKey = formatInTimeZone(game.date, TIMEZONE, 'yyyy-MM-dd');
+      const dateKey = formatInTimeZone(game.date, TIMEZONE, "yyyy-MM-dd");
       gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
     });
 
@@ -169,12 +175,14 @@ export async function GET(request: Request, { params }: { params: Params }) {
       const userDetails = groupUserMap.get(currentSubmissionUserId);
       // Double-check userDetails existence, though it should be guaranteed by the earlier fetch
       if (!userDetails) {
-        console.warn(`Skipping submission for user ${currentSubmissionUserId} - user details not found in map.`);
+        console.warn(
+          `Skipping submission for user ${currentSubmissionUserId} - user details not found in map.`
+        );
         return;
       }
 
       // Use formatInTimeZone consistently
-      const dateKey = formatInTimeZone(sub.game.date, TIMEZONE, 'yyyy-MM-dd');
+      const dateKey = new Date(sub.game.date).toISOString().split('T')[0];
 
       const statsKey = `${sub.playerId}_${sub.gameId}`;
       const stats = statsMap.get(statsKey) || null;
