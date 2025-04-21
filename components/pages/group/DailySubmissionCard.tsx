@@ -1,6 +1,6 @@
 // components/pages/group/DailySubmissionCard.tsx
 import { UserView } from '@/utils/submission-utils';
-import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
+import { Badge, Card, CardBody, HStack, Stack, Text, VStack } from "@chakra-ui/react";
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import React from 'react';
@@ -108,8 +108,8 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                     <VStack key={userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
                                         {/* Username and Score/Status */}
                                         <HStack justify="space-between" width="100%">
-                                            <Text fontSize="xs" fontWeight="medium">{username}</Text>
-                                            <HStack>
+                                            <Stack direction={['column', 'column', 'row']} width="100%">
+                                                <Text fontSize="xs" fontWeight="medium">{username}</Text>
                                                 <Text
                                                     fontSize="xs"
                                                     color={submission ? "green.500" : "orange.500"}
@@ -117,15 +117,15 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                                 >
                                                     {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
                                                 </Text>
-                                                {submission?.stats && (
-                                                    <Badge
-                                                        colorScheme="orange"
-                                                        visibility={canShowPick ? 'visible' : 'hidden'}
-                                                    >
-                                                        {submission.score} pts
-                                                    </Badge>
-                                                )}
-                                            </HStack>
+                                            </Stack>
+                                            {submission?.stats && (
+                                                <Badge
+                                                    colorScheme="orange"
+                                                    visibility={canShowPick ? 'visible' : 'hidden'}
+                                                >
+                                                    {submission.score} pts
+                                                </Badge>
+                                            )}
                                         </HStack>
                                     </VStack>
                                 );
