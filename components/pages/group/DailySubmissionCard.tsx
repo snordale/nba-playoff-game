@@ -31,17 +31,13 @@ type DailySubmissionCardProps = {
     gameCount: number;
     isToday: boolean;
     isInPast: boolean;
-    users: {
-        userId: string;
-        username: string;
-        submission: SubmissionView | null;
-    }[];
+    submissions: SubmissionView[];
 }
 
 export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     date,
     gameCount,
-    users,
+    submissions,
     isToday,
     isInPast
 }) => {
@@ -98,20 +94,19 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                     {/* Body: Player Submissions */}
                     {hasGames ? (
                         <VStack align="stretch" width="100%" spacing={1}>
-                            {users.map((user) => {
-                                const submission = user.submission;
+                            {submissions.map((submission) => {
                                 const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
                                 const pickIsLocked = isPickLocked(submission?.gameStatus ?? '', gameStartsAt);
 
                                 // Determine if the pick can be shown: either the day is past (isLocked logic is in parent/modal),
                                 // the game itself is locked, or it's the current user's pick.
-                                const canShowPick = isInPast || pickIsLocked || user.userId === currentUserId;
+                                const canShowPick = isInPast || pickIsLocked || submission.userId === currentUserId;
 
                                 return (
-                                    <VStack key={user.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
+                                    <VStack key={submission.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
                                         {/* Username and Score/Status */}
                                         <HStack justify="space-between" width="100%">
-                                            <Text fontSize="xs" fontWeight="medium">{user.username}</Text>
+                                            <Text fontSize="xs" fontWeight="medium">{submission.username}</Text>
                                             <HStack>
                                                 <Text
                                                     fontSize="xs"

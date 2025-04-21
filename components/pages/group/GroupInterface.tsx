@@ -225,29 +225,19 @@ export const GroupInterface = () => {
                             const localDate = new Date(date);
                             const dateInNyStr = formatTz(localDate, 'yyyy-MM-dd', { timeZone: TZ });
                             const todayInNyStr = formatTz(new Date(), 'yyyy-MM-dd', { timeZone: TZ });
-                            console.log(date, dateInNyStr)
 
                             const endOfNyDay = fromZonedTime(`${dateInNyStr}T23:59:59.999`, TZ);
                             const isInPast = isBefore(endOfNyDay, new Date());
                             const isToday = date === todayInNyStr;
 
-                            const usersForDate = leaderboardUsers.map(u => {
-                                const sub = u.submissions?.find(s =>
-                                    formatInTimeZone(new Date(s.gameDate), TZ, 'yyyy-MM-dd') === date
-                                ) ?? null;
-                                const submissionView: SubmissionView | null = sub ? { ...sub, userId: u.userId, username: u.username } : null;
-                                return { userId: u.userId, username: u.username, submission: submissionView };
-                            });
-
                             const submissions = submissionsByDate[date];
-                            console.log(submissions)
 
                             return (
                                 <div key={date} ref={isToday ? todayRef : undefined}>
                                     <DailySubmissionCard
                                         date={date}
                                         gameCount={gameCountsByDate?.[date] ?? 0}
-                                        users={usersForDate}
+                                        submissions={submissions}
                                         isToday={isToday}
                                         isInPast={isInPast}
                                     />
