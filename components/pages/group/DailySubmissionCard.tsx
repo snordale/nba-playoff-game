@@ -94,30 +94,29 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                     {/* Body: Player Submissions */}
                     {hasGames ? (
                         <VStack align="stretch" width="100%" spacing={1}>
-                            {usersWithSubmissions.map((user) => {
-                                const submission = user.submission;
-                                const isLocked = submission.gameStatus !== 'STATUS_SCHEDULED'
+                            {usersWithSubmissions.map(({ userId, username, submission }) => {
+                                const isLocked = submission?.gameStatus !== 'STATUS_SCHEDULED'
 
                                 // Determine if the pick can be shown: either the day is past (isLocked logic is in parent/modal),
                                 // the game itself is locked, or it's the current user's pick.
-                                const canShowPick = isInPast || isLocked || submission.userId === currentUserId;
+                                const canShowPick = isInPast || isLocked || userId === currentUserId;
 
                                 return (
-                                    <VStack key={submission.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
+                                    <VStack key={userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
                                         {/* Username and Score/Status */}
                                         <HStack justify="space-between" width="100%">
-                                            <Text fontSize="xs" fontWeight="medium">{submission.username}</Text>
+                                            <Text fontSize="xs" fontWeight="medium">{username}</Text>
                                             <HStack>
                                                 <Text
                                                     fontSize="xs"
-                                                    color={submission.playerName ? "green.500" : "orange.500"}
+                                                    color={submission ? "green.500" : "orange.500"}
                                                     fontWeight="medium"
                                                 >
                                                     {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
                                                 </Text>
-                                                {submission.stats && (
+                                                {submission?.stats && (
                                                     <Badge
-                                                        colorScheme={submission.score !== null ? "orange" : "gray"}
+                                                        colorScheme="orange"
                                                         visibility={canShowPick ? 'visible' : 'hidden'}
                                                     >
                                                         {submission.score} pts
