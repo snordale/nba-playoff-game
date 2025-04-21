@@ -224,12 +224,12 @@ export const GroupInterface = () => {
                             const TZ = 'America/New_York';
                             const localDate = new Date(date);
                             const dateInNyStr = formatTz(localDate, 'yyyy-MM-dd', { timeZone: TZ });
+                            const todayInNyStr = formatTz(new Date(), 'yyyy-MM-dd', { timeZone: TZ });
                             console.log(date, dateInNyStr)
 
-                            const startOfNyDay = fromZonedTime(`${dateInNyStr}T00:00:00`, TZ);
                             const endOfNyDay = fromZonedTime(`${dateInNyStr}T23:59:59.999`, TZ);
                             const isInPast = isBefore(endOfNyDay, new Date());
-                            const isToday = date === dateInNyStr;
+                            const isToday = date === todayInNyStr;
 
                             const usersForDate = leaderboardUsers.map(u => {
                                 const sub = u.submissions?.find(s =>
