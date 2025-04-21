@@ -25,7 +25,15 @@ const TileContent = ({ date, view }: TileContentProps) => {
   const today = startOfDay(new Date());
   const isPast = date < today;
   const gameCount = gameCountsByDate?.[dateKey] ?? 0;
-  const submissionsForThisDate = submissionsByDate?.[dateKey] ?? [];
+  const submissions = submissionsByDate?.[dateKey] ?? [];
+  const missingUsers = leaderboardUsers?.filter(user => !submissions?.some(submission => submission.userId === user.userId)) ?? [];
+  const submissionsWithMissingUsers = submissions.concat(missingUsers.map(user => ({
+    userId: user.userId,
+    username: user.username,
+    playerName: null,
+    score: null,
+    stats: null
+  })));
 
   if (gameCount === 0) return null;
 
@@ -39,24 +47,21 @@ const TileContent = ({ date, view }: TileContentProps) => {
       {/* Submissions */}
       {isPast ? (
         // Past or Today: Show scores
-        submissionsForThisDate.map((sub, i) => (
+        submissionsWithMissingUsers.map((sub, i) => (
           <Text key={i} fontSize="2xs" color="green.600" isTruncated>
-            {sub.username}: {sub.score ?? 'N/A'}
+            {sub.username}: {sub.stats ? sub.score : 'N/A'}
           </Text>
         ))
       ) : (
         // Future: Show who has picked
         leaderboardUsers?.map((member, i) => {
-          const submission = submissionsForThisDate.find(sub => sub.userId === member.userId);
-          const hasPicked = submission?.gameStatus === 'STATUS_SCHEDULED' &&
-            submission?.gameStartsAt &&
-            new Date(submission.gameStartsAt) > new Date();
+          const submission = submissionsWithMissingUsers.find(sub => sub.userId === member.userId);
           return (
             <Text
               key={i}
               fontSize="2xs"
-              color={hasPicked ? "green.500" : "gray.400"}
-              fontWeight={hasPicked ? "medium" : "normal"}
+              color={submission ? "green.500" : "gray.400"}
+              fontWeight={submission ? "medium" : "normal"}
               isTruncated
             >
               {member.username}
