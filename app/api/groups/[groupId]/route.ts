@@ -11,7 +11,7 @@ import {
 } from "@/utils/submission-utils";
 import type { PlayerGameStats } from "@prisma/client";
 import { format } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { NextResponse } from "next/server";
 
 type Params = Promise<{ groupId: string }>;
@@ -139,7 +139,10 @@ export async function GET(request: Request, { params }: { params: Params }) {
 
     const gamesInPlayoffs = await prisma.game.findMany({
       where: {
-        date: { gte: playoffStartDateUTC, lte: playoffEndDateUTC },
+        date: {
+          gte: playoffStartDateUTC,
+          lte: playoffEndDateUTC,
+        },
       },
       select: { id: true, date: true },
       orderBy: { date: "asc" },
@@ -147,9 +150,8 @@ export async function GET(request: Request, { params }: { params: Params }) {
 
     const gameCountsByDate: { [dateKey: string]: number } = {};
     gamesInPlayoffs.forEach((game) => {
-      // Use formatInTimeZone consistently
-      const dateKey = formatInTimeZone(game.date, TIMEZONE, "yyyy-MM-dd");
-      gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
+      const key = game.date.toISOString().split("T")[0];
+      gameCountsByDate[key] = (gameCountsByDate[key] || 0) + 1;
     });
 
     // --- 5. Process Submissions and Aggregate Data ---
@@ -182,7 +184,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       }
 
       // Use formatInTimeZone consistently
-      const dateKey = new Date(sub.game.date).toISOString().split('T')[0];
+      const dateKey = new Date(sub.game.date).toISOString().split("T")[0];
 
       const statsKey = `${sub.playerId}_${sub.gameId}`;
       const stats = statsMap.get(statsKey) || null;
