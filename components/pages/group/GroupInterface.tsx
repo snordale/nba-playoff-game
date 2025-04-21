@@ -33,7 +33,8 @@ export const GroupInterface = () => {
         setViewMode,
         currentUserUsername,
         currentUserId,
-        previouslySubmittedPlayerIdsForCurrentUser
+        previouslySubmittedPlayerIdsForCurrentUser,
+        submissionsByDate
     } = useGroup();
 
     const { mutateAsync: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
@@ -221,13 +222,13 @@ export const GroupInterface = () => {
                     >
                         {sortedDates.map(date => {
                             const TZ = 'America/New_York';
-                            const now          = new Date();
-                            const todayNYStr   = formatInTimeZone(now, TZ, 'yyyy-MM-dd');
-                            // Use the date string directly to create a NY Date object for comparison
-                            const dateNY = fromZonedTime(`${date}T00:00:00`, TZ); // Start of the day in NY
-                            // Determine if the *entire* day is in the past relative to the current moment in NY
-                            const endOfDayNY = fromZonedTime(`${date}T23:59:59.999`, TZ);
-                            const isInPast = isBefore(endOfDayNY, now);
+                            const now = new Date();
+                            const todayNYStr = formatTz(now, 'yyyy-MM-dd', { timeZone: TZ });
+                            console.log(date, todayNYStr)
+
+                            const startOfNyDay = fromZonedTime(`${todayNYStr}T00:00:00`, TZ);
+                            const endOfNyDay = fromZonedTime(`${todayNYStr}T23:59:59.999`, TZ);
+                            const isInPast = isBefore(endOfNyDay, now);
                             const isToday = date === todayNYStr;
 
                             const usersForDate = leaderboardUsers.map(u => {
@@ -237,6 +238,9 @@ export const GroupInterface = () => {
                                 const submissionView: SubmissionView | null = sub ? { ...sub, userId: u.userId, username: u.username } : null;
                                 return { userId: u.userId, username: u.username, submission: submissionView };
                             });
+
+                            const submissions = submissionsByDate[date];
+                            console.log(submissions)
 
                             return (
                                 <div key={date} ref={isToday ? todayRef : undefined}>
