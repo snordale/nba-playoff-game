@@ -118,7 +118,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
 
     const gameCountsByDate: { [dateKey: string]: number } = {};
     gamesInPlayoffs.forEach((game) => {
-        const dateKey = formatInTimeZone(game.date, TIMEZONE, 'yyyy-MM-dd');
+        const dateKey = format(game.date, 'yyyy-MM-dd');
         gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
     });
 
