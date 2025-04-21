@@ -41,7 +41,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     isToday,
     isInPast
 }) => {
-    const { handleDayClick } = useGroup();
+    const { handleDayClick, leaderboardUsers } = useGroup();
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
     const hasGames = gameCount > 0;
@@ -55,6 +55,15 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
         TIMEZONE,
         'MMM d, yyyy'
     )
+
+    const missingUsers = leaderboardUsers?.filter(user => !submissions.some(submission => submission.userId === user.userId)) ?? [];
+    const submissionsWithMissingUsers = submissions.concat(missingUsers.map(user => ({
+        userId: user.userId,
+        username: user.username,
+        playerName: null,
+        score: null,
+        stats: null
+    })));
 
     return (
         <Card
@@ -94,7 +103,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                     {/* Body: Player Submissions */}
                     {hasGames ? (
                         <VStack align="stretch" width="100%" spacing={1}>
-                            {submissions.map((submission) => {
+                            {submissionsWithMissingUsers.map((submission) => {
                                 const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
                                 const pickIsLocked = isPickLocked(submission?.gameStatus ?? '', gameStartsAt);
 
