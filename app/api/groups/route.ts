@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
   try {
     const requestBody = await req.json();
 
-    if (!requestBody.groupName) {
-      return new Response("Missing groupName", { status: 400 });
+    if (!requestBody.name) {
+      return new Response("Missing name", { status: 400 });
     }
 
     // Create the group and the initial GroupUser (admin)
     const newGroup = await prisma.group.create({
       data: {
-        name: requestBody.groupName,
+        name: requestBody.name,
         groupUsers: {
           create: {
             isAdmin: true,

@@ -7,7 +7,10 @@ import {
   getGroup,
   getGroups,
   getPlayers,
-  joinGroup
+  joinGroup,
+  adminGetAllGroups,
+  adminGetAllUsers,
+  adminUpsertSubmission,
 } from "@/services/ApiService";
 import type { BlogPost } from "@prisma/client";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
@@ -20,6 +23,12 @@ interface JoinGroupVariables { groupId: string }
 interface CreateSubmissionVariables { gameId: string; playerId: string }
 interface GenerateInviteVariables { groupId: string }
 interface GenerateInviteResponse { inviteUrl: string }
+interface AdminUpsertSubmissionVariables {
+  userId: string;
+  groupId: string;
+  date: string; // YYYY-MM-DD
+  playerId: string;
+}
 
 export const useCreateGroup = () =>
   useMutation<unknown, Error, CreateGroupVariables>({
@@ -37,7 +46,6 @@ export const useJoinGroup = () =>
     },
   });
 
-// Add type to useCreateSubmission
 export const useCreateSubmission = () =>
   useMutation<unknown, Error, CreateSubmissionVariables>({
     mutationFn: createSubmission,
@@ -76,7 +84,6 @@ export const useGetGames = ({ date }: { date: string }) => {
   });
 };
 
-// Hook for fetching blog posts
 export const useGetBlogPosts = () => {
   return useQuery<BlogPost[], Error>({
     queryKey: ["getBlogPosts"],
@@ -84,7 +91,6 @@ export const useGetBlogPosts = () => {
   });
 };
 
-// Hook for fetching a single blog post by slug
 export const useGetBlogPost = (slug: string | null | undefined) => {
   return useQuery<BlogPost, Error>({
     queryKey: ["getBlogPost", slug],
@@ -99,11 +105,10 @@ export const useGetBlogPost = (slug: string | null | undefined) => {
       }
       return response.json();
     },
-    enabled: !!slug, // Only run the query if slug is provided
+    enabled: !!slug,
   });
 }
 
-// Hook for generating a group invite link
 export const useGenerateInviteLink = () =>
   useMutation<GenerateInviteResponse, Error, GenerateInviteVariables>({
     mutationFn: generateInviteLink,
@@ -111,3 +116,34 @@ export const useGenerateInviteLink = () =>
       queryClient.invalidateQueries({ queryKey: ["getGroup"] });
     },
   });
+
+export const useAdminGetAllGroups = () => {
+  return useQuery({
+    queryKey: ["adminGetAllGroups"],
+    queryFn: adminGetAllGroups,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+};
+
+export const useAdminGetAllUsers = ({ groupId }: { groupId?: string }) => {
+  return useQuery({
+    queryKey: ["adminGetAllUsers", groupId || 'all'],
+    queryFn: () => adminGetAllUsers({ groupId }),
+    staleTime: 5 * 60 * 1000,
+    enabled: true,
+  });
+};
+
+export const useAdminUpsertSubmission = () => {
+  return useMutation<unknown, Error, AdminUpsertSubmissionVariables>({
+    mutationFn: adminUpsertSubmission,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["getGroup", variables.groupId] });
+      queryClient.invalidateQueries({ queryKey: ["getPlayers", variables.date] });
+      console.log("Admin submission successful, invalidated group and player queries.");
+    },
+    onError: (error) => {
+        console.error("Admin submission failed:", error);
+    }
+  });
+};

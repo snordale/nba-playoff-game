@@ -6,10 +6,9 @@ import {
   ModalBody,
   ModalCloseButton,
   ModalContent,
-  ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Stack,
+  Stack
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
@@ -38,15 +37,15 @@ export const CreateGroupModal = ({ variant, onClose }) => {
     if (variant === "create") {
       return (
         <Stack pb={4} gap={4}>
-          <Input 
+          <Input
             name="groupName"
             placeholder="Group Name"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
           />
-          <Button 
-            type="submit" 
-            colorScheme="orange" 
+          <Button
+            type="submit"
+            colorScheme="orange"
             isDisabled={!groupName.trim()}
           >
             Create Group
