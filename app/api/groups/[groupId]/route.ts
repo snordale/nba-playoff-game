@@ -249,6 +249,14 @@ export async function GET(request: Request, { params }: { params: Params }) {
           ?.sort((a, b) => a.username.localeCompare(b.username));
       }
     });
+
+    // Sort submissions by score
+    submissionsByDateMap.forEach((users) => {
+      users.sort(
+        (a, b) => (b.submission?.score ?? 0) - (a.submission?.score ?? 0)
+      );
+    });
+
     const submissionsByDate = Object.fromEntries(submissionsByDateMap);
 
     // --- 6. Construct Final Response ---

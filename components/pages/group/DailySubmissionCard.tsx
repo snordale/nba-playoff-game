@@ -16,16 +16,6 @@ interface PlayerStats {
     turnovers: number | null;
 }
 
-// Define the structure for a player's submission within the card props
-type PlayerSubmission = {
-    playerName: string | null; // Can be null
-    score: number | null;
-    stats: PlayerStats | null;
-    gameStatus?: string;
-    gameDate?: string | Date;
-    gameStartsAt?: string;
-}
-
 type DailySubmissionCardProps = {
     date: string; // YYYY-MM-DD
     gameCount: number;
