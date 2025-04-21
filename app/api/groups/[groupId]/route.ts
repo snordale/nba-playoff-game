@@ -9,8 +9,7 @@ import {
   type SubmissionView,
 } from "@/utils/submission-utils";
 import type { PlayerGameStats } from "@prisma/client";
-import { format, parseISO, startOfDay } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
+import { format } from "date-fns";
 import { NextResponse } from "next/server";
 
 type Params = Promise<{ groupId: string }>;
@@ -25,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
   if (!groupId)
     return NextResponse.json({ error: "Group ID missing" }, { status: 400 });
 
-  const TIMEZONE = 'America/New_York';
+  const TIMEZONE = "America/New_York";
 
   try {
     // --- 1. Fetch Group and Auth Check Concurrently ---
@@ -109,17 +108,17 @@ export async function GET(request: Request, { params }: { params: Params }) {
     const playoffEndDateUTC = new Date(`${PLAYOFF_END_DATE}T23:59:59Z`);
 
     const gamesInPlayoffs = await prisma.game.findMany({
-        where: {
-            date: { gte: playoffStartDateUTC, lte: playoffEndDateUTC },
-        },
-        select: { id: true, date: true },
-        orderBy: { date: "asc" },
+      where: {
+        date: { gte: playoffStartDateUTC, lte: playoffEndDateUTC },
+      },
+      select: { id: true, date: true },
+      orderBy: { date: "asc" },
     });
 
     const gameCountsByDate: { [dateKey: string]: number } = {};
     gamesInPlayoffs.forEach((game) => {
-        const dateKey = format(game.date, 'yyyy-MM-dd');
-        gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
+      const dateKey = format(game.date, "yyyy-MM-dd");
+      gameCountsByDate[dateKey] = (gameCountsByDate[dateKey] || 0) + 1;
     });
 
     // --- 5. Process Submissions and Aggregate Data ---
@@ -145,7 +144,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       const userDetails = groupUserMap.get(currentSubmissionUserId);
       if (!userDetails) return;
 
-      const dateKey = formatInTimeZone(sub.game.date, TIMEZONE, 'yyyy-MM-dd');
+      const dateKey = format(sub.game.date, "yyyy-MM-dd");
 
       const statsKey = `${sub.playerId}_${sub.gameId}`;
       const stats = statsMap.get(statsKey) || null;
