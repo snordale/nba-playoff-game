@@ -83,6 +83,7 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
         } else {
             dateKey = formatInTimeZone(date, TIMEZONE, 'yyyy-MM-dd');
         }
+        console.log(dateKey)
 
         const hasGames = groupData?.gameCountsByDate?.[dateKey] > 0;
         const now = new Date();
