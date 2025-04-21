@@ -134,7 +134,7 @@ export const GroupInterface = () => {
     const usersWithSubmissionsForSelectedDate = useMemo(() => {
         if (!leaderboardUsers) return [];
         return leaderboardUsers.map(user => {
-            const submission = user.submissions?.find(sub =>
+            const submission = user?.submissions?.find(sub =>
                 formatTz(new Date(sub.gameDate), 'yyyy-MM-dd', { timeZone: 'America/New_York' }) === selectedDate
             );
             const submissionView: SubmissionView | null = submission

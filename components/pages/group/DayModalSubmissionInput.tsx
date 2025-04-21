@@ -48,7 +48,7 @@ export const DayModalSubmissionInput = ({
                     <Text
                         fontSize="sm"
                         fontWeight="semibold" color="orange.600" textAlign="center" p={1} borderWidth={1} borderRadius="md" borderColor="orange.200" bg="orange.50">
-                        Current Pick: {user.submission.playerName}
+                        Current Pick: {user?.submission.playerName}
                     </Text>
                 )}
             </Stack>
