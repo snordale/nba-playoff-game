@@ -61,7 +61,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
             variant="outline"
             w="full"
             cursor="pointer"
-            onClick={() => handleDayClick(formattedDateString)}
+            onClick={() => handleDayClick(date)}
             borderColor={isToday ? "orange.500" : undefined}
             _hover={{
                 borderColor: "orange.300",
