@@ -230,6 +230,8 @@ export const GroupInterface = () => {
                             const isInPast = isBefore(endOfNyDay, new Date());
                             const isToday = date === todayInNyStr;
 
+                            console.log(date, localDate, dateInNyStr, todayInNyStr)
+
                             const submissions = submissionsByDate[date];
 
                             return (
