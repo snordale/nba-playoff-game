@@ -106,15 +106,11 @@ export const GroupInterface = () => {
             const dateStrings: string[] = [];
             let currentDate = startNY;
 
-            console.log('startNY', startNY);
-            console.log('endNY', endNY)
             // Manually iterate through dates within the NY timezone
             while (isBefore(currentDate, endNY) || isEqual(currentDate, endNY)) {
                 dateStrings.push(formatInTimeZone(currentDate, TIMEZONE, 'yyyy-MM-dd'));
                 currentDate = addDays(currentDate, 1);
             }
-
-            console.log('dateStrings', dateStrings);
 
             return dateStrings;
         } catch (err) {
@@ -242,8 +238,6 @@ export const GroupInterface = () => {
                                     submission: submission ? submission.submission : null
                                 }
                             });
-
-                            console.log(date)
 
                             return (
                                 <div key={date} ref={isToday ? todayRef : undefined}>

@@ -50,21 +50,18 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     // Parse the NY date string into a Date object representing the start of that day in NY time
     const dateInNY = fromZonedTime(`${date}T00:00:00`, TIMEZONE);
 
-    console.log('dateInNY', dateInNY)
     const formattedDateString = formatInTimeZone(
         dateInNY,
         TIMEZONE,
         'MMM d, yyyy'
     )
-    console.log('formattedDateString', formattedDateString)
-
 
     return (
         <Card
             variant="outline"
             w="full"
             cursor="pointer"
-            onClick={() => handleDayClick(date)}
+            onClick={() => handleDayClick(formattedDateString)}
             borderColor={isToday ? "orange.500" : undefined}
             _hover={{
                 borderColor: "orange.300",
@@ -108,7 +105,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                     <VStack key={userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
                                         {/* Username and Score/Status */}
                                         <HStack justify="space-between" width="100%">
-                                            <Stack direction={['column', 'column', 'row']} width="100%">
+                                            <VStack width="100%" gap={1}>
                                                 <Text fontSize="xs" fontWeight="medium">{username}</Text>
                                                 <Text
                                                     fontSize="xs"
@@ -117,7 +114,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                                                 >
                                                     {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
                                                 </Text>
-                                            </Stack>
+                                            </VStack>
                                             {submission?.stats && (
                                                 <Badge
                                                     colorScheme="orange"
