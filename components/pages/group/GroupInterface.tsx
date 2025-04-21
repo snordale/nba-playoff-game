@@ -222,14 +222,14 @@ export const GroupInterface = () => {
                     >
                         {sortedDates.map(date => {
                             const TZ = 'America/New_York';
-                            const now = new Date();
-                            const todayNYStr = formatTz(now, 'yyyy-MM-dd', { timeZone: TZ });
-                            console.log(date, todayNYStr)
+                            const localDate = new Date(date);
+                            const dateInNyStr = formatTz(localDate, 'yyyy-MM-dd', { timeZone: TZ });
+                            console.log(date, dateInNyStr)
 
-                            const startOfNyDay = fromZonedTime(`${todayNYStr}T00:00:00`, TZ);
-                            const endOfNyDay = fromZonedTime(`${todayNYStr}T23:59:59.999`, TZ);
-                            const isInPast = isBefore(endOfNyDay, now);
-                            const isToday = date === todayNYStr;
+                            const startOfNyDay = fromZonedTime(`${dateInNyStr}T00:00:00`, TZ);
+                            const endOfNyDay = fromZonedTime(`${dateInNyStr}T23:59:59.999`, TZ);
+                            const isInPast = isBefore(endOfNyDay, new Date());
+                            const isToday = date === dateInNyStr;
 
                             const usersForDate = leaderboardUsers.map(u => {
                                 const sub = u.submissions?.find(s =>
