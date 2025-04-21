@@ -208,42 +208,41 @@ export const GroupInterface = () => {
                         borderColor="gray.100"
                         pt={4}
                     >
-                        {sortedDates.map(date => {
-                            const TZ = 'America/New_York';
-                            const localDate = new Date(date);
-                            const dateInNyStr = formatTz(localDate, 'yyyy-MM-dd', { timeZone: TZ });
-                            const todayInNyStr = formatTz(new Date(), 'yyyy-MM-dd', { timeZone: TZ });
+                        {(() => {
+                            return sortedDates.map(date => {
+                                const todayInNyStr = formatTz(new Date(), 'yyyy-MM-dd', { timeZone: 'America/New_York' });
 
-                            const endOfNyDay = fromZonedTime(`${dateInNyStr}T23:59:59.999`, TZ);
+                                const endOfNyDay = fromZonedTime(`${date}T23:59:59.999`, 'America/New_York');
 
-                            console.log(date, localDate, dateInNyStr, todayInNyStr, endOfNyDay)
-                            const isInPast = isBefore(endOfNyDay, new Date());
-                            const isToday = date === todayInNyStr;
-                            console.log(isInPast, isToday)
+                                const isInPast = isBefore(endOfNyDay, new Date());
+                                const isToday = date === todayInNyStr;
+                                console.log(date, todayInNyStr, endOfNyDay)
+                                console.log(isInPast, isToday)
 
-                            const usersWithSubmissions = submissionsByDate?.[date] ?? [];
+                                const usersWithSubmissions = submissionsByDate?.[date] ?? [];
 
-                            const allUsersWithSubmissions = leaderboardUsers.map(user => {
-                                const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
-                                return {
-                                    userId: user.userId,
-                                    username: user.username,
-                                    submission: submission ? submission.submission : null
-                                }
+                                const allUsersWithSubmissions = leaderboardUsers.map(user => {
+                                    const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
+                                    return {
+                                        userId: user.userId,
+                                        username: user.username,
+                                        submission: submission ? submission.submission : null
+                                    }
+                                });
+
+                                return (
+                                    <div key={date} ref={isToday ? todayRef : undefined}>
+                                        <DailySubmissionCard
+                                            date={date}
+                                            gameCount={gameCountsByDate?.[date] ?? 0}
+                                            usersWithSubmissions={allUsersWithSubmissions}
+                                            isToday={isToday}
+                                            isInPast={isInPast}
+                                        />
+                                    </div>
+                                );
                             });
-
-                            return (
-                                <div key={date} ref={isToday ? todayRef : undefined}>
-                                    <DailySubmissionCard
-                                        date={date}
-                                        gameCount={gameCountsByDate?.[date] ?? 0}
-                                        usersWithSubmissions={allUsersWithSubmissions}
-                                        isToday={isToday}
-                                        isInPast={isInPast}
-                                    />
-                                </div>
-                            );
-                        })}
+                        })()}
                     </VStack>
                 )}
             </VStack>
