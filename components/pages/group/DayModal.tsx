@@ -8,23 +8,14 @@ import { useMemo, useState } from 'react';
 import { DayModalGames } from './DayModalGames';
 import { DayModalSubmissionInput } from './DayModalSubmissionInput';
 import { DayModalSubmissions } from './DayModalSubmissions';
+import { useGroup } from './GroupContext';
 
 interface DayModalProps {
     isOpen: boolean;
     onClose: (refresh?: boolean) => void;
-    selectedDate: string; // YYYY-MM-DD format
-    loadingSubmissions: boolean;
     onSubmit: (submissionData: { gameId: string; playerId: string }) => Promise<void>;
     search: string;
     onSearchChange: (value: string) => void;
-    currentSubmissionForUser: { playerName: string; playerId: string; } | undefined | null;
-    previouslySubmittedPlayerIds: string[];
-    currentUserUsername: string;
-    usersWithSubmissionsForDate: {
-        userId: string;
-        username: string;
-        submission: SubmissionView | null;
-    }[];
 }
 
 // Define structure for player data needed for selection
@@ -46,17 +37,13 @@ interface TeamForSelection {
 export const DayModal = ({
     isOpen,
     onClose,
-    selectedDate,
-    loadingSubmissions,
     onSubmit,
     search,
     onSearchChange,
-    currentSubmissionForUser,
-    previouslySubmittedPlayerIds,
-    currentUserUsername,
-    usersWithSubmissionsForDate,
 }: DayModalProps) => {
     const { data: sessionData } = useSession();
+    const { submissionsByDate, selectedDate, previouslySubmittedPlayerIdsForCurrentUser } = useGroup();
+    const users = submissionsByDate?.[selectedDate] ?? [];
     const currentUserId = sessionData?.user?.id;
     const TIMEZONE = 'America/New_York';
 
@@ -107,7 +94,7 @@ export const DayModal = ({
                 acc[teamId].players.push({
                     id: player.id,
                     name: player.name,
-                    alreadySubmitted: previouslySubmittedPlayerIds?.includes(player.id) ?? false,
+                    alreadySubmitted: previouslySubmittedPlayerIdsForCurrentUser?.includes(player.id) ?? false,
                     gameId: player.gameId
                 });
 
@@ -118,7 +105,7 @@ export const DayModal = ({
 
         return Object.values(playersByTeam).sort((a, b) => a.name.localeCompare(b.name));
 
-    }, [playersForSelectionData, search, previouslySubmittedPlayerIds, isLocked]);
+    }, [playersForSelectionData, search, previouslySubmittedPlayerIdsForCurrentUser, isLocked]);
 
     const handleSubmit = async (submissionData: { gameId: string; playerId: string }) => {
         setIsSubmitting(true);
@@ -159,25 +146,9 @@ export const DayModal = ({
 
     // Sort submissions for display (using the prop passed from parent)
     const sortedSubmissions = useMemo(() => {
-        if (!usersWithSubmissionsForDate) return [];
-        if (isLocked) {
-            return [...usersWithSubmissionsForDate].sort((a, b) => ((b.submission?.score ?? -Infinity) - (a.submission?.score ?? -Infinity)));
-        } else {
-            return [...usersWithSubmissionsForDate].sort((a, b) => a.username.localeCompare(b.username));
-        }
-    }, [usersWithSubmissionsForDate, isLocked]);
-
-    // Find team abbreviation for the current user's pick
-    let currentPickTeamAbbreviation = '';
-    if (!isLocked && currentSubmissionForUser && filteredPlayersByTeam) {
-        for (const team of filteredPlayersByTeam) {
-            const player = team.players?.find(p => p.id === currentSubmissionForUser.playerId);
-            if (player) {
-                currentPickTeamAbbreviation = team.abbreviation;
-                break;
-            }
-        }
-    }
+        if (!users) return [];
+        return [...users].sort((a, b) => ((b.submission?.score ?? -Infinity) - (a.submission?.score ?? -Infinity)));
+    }, [users]);
 
     return (
         <Modal isOpen={isOpen} onClose={() => onClose(false)} size="xl" scrollBehavior="inside">
@@ -207,8 +178,6 @@ export const DayModal = ({
                                 <DayModalSubmissionInput
                                     search={search}
                                     onSearchChange={onSearchChange}
-                                    currentSubmissionForUser={currentSubmissionForUser}
-                                    currentPickTeamAbbreviation={currentPickTeamAbbreviation}
                                     filteredPlayersByTeam={filteredPlayersByTeam}
                                     loadingPlayers={loadingPlayers}
                                     isSubmitting={isSubmitting}

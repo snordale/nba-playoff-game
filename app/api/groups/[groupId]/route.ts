@@ -217,6 +217,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
           userId: currentSubmissionUserId,
           username: userDetails.user.username,
           playerName: processedSub.playerName,
+          playerId: processedSub.playerId,
           score: processedSub.score,
           stats: stats,
           gameStatus: processedSub.gameStatus,

@@ -84,7 +84,6 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
             dateKey = formatInTimeZone(date, TIMEZONE, 'yyyy-MM-dd');
         }
 
-        const clickedDateObject = fromZonedTime(`${dateKey}T00:00:00`, TIMEZONE);
         const hasGames = groupData?.gameCountsByDate?.[dateKey] > 0;
         const now = new Date();
 

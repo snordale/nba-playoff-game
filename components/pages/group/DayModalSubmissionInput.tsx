@@ -1,5 +1,6 @@
-import { Button, HStack, Heading, Input, Spinner, Stack, Text } from '@chakra-ui/react';
 import { CheckCircleIcon } from '@chakra-ui/icons';
+import { Button, HStack, Heading, Input, Spinner, Stack, Text } from '@chakra-ui/react';
+import { useGroup } from './GroupContext';
 
 // Re-define or import these types if not globally available
 interface PlayerForSelection {
@@ -18,8 +19,6 @@ interface TeamForSelection {
 interface DayModalSubmissionInputProps {
     search: string;
     onSearchChange: (value: string) => void;
-    currentSubmissionForUser: { playerName: string; playerId: string; } | undefined | null;
-    currentPickTeamAbbreviation: string;
     filteredPlayersByTeam: TeamForSelection[];
     loadingPlayers: boolean;
     isSubmitting: boolean;
@@ -29,13 +28,13 @@ interface DayModalSubmissionInputProps {
 export const DayModalSubmissionInput = ({
     search,
     onSearchChange,
-    currentSubmissionForUser,
-    currentPickTeamAbbreviation,
     filteredPlayersByTeam,
     loadingPlayers,
     isSubmitting,
     handleSubmit,
 }: DayModalSubmissionInputProps) => {
+    const { currentUserId, currentUserUsername, submissionsByDate, selectedDate } = useGroup();
+    const user = submissionsByDate?.[selectedDate]?.find(user => user.userId === currentUserId);
     return (
         <>
             <Stack gap={2}>
@@ -45,11 +44,11 @@ export const DayModalSubmissionInput = ({
                     placeholder="Search players..."
                     onChange={e => onSearchChange(e.target.value)}
                 />
-                {currentSubmissionForUser && (
+                {user?.submission && (
                     <Text
                         fontSize="sm"
                         fontWeight="semibold" color="orange.600" textAlign="center" p={1} borderWidth={1} borderRadius="md" borderColor="orange.200" bg="orange.50">
-                        Current Pick: {currentSubmissionForUser.playerName} {currentPickTeamAbbreviation ? `(${currentPickTeamAbbreviation})` : ''}
+                        Current Pick: {user.submission.playerName}
                     </Text>
                 )}
             </Stack>
@@ -74,7 +73,7 @@ export const DayModalSubmissionInput = ({
                                     </Text>
                                     <Stack pl={2} spacing={0.5}>
                                         {team.players?.map((player) => {
-                                            const isCurrentPick = currentSubmissionForUser?.playerId === player.id;
+                                            const isCurrentPick = user?.submission?.playerName === player.id;
                                             const isPreviouslySubmitted = player.alreadySubmitted && !isCurrentPick;
 
                                             return (
@@ -85,7 +84,7 @@ export const DayModalSubmissionInput = ({
                                                     flexShrink={0}
                                                     key={player.id}
                                                     isDisabled={!player.gameId || isPreviouslySubmitted || isSubmitting}
-                                                    isLoading={isSubmitting && currentSubmissionForUser?.playerId === player.id}
+                                                    isLoading={isSubmitting && user.submission?.playerId === player.id}
                                                     onClick={() => player.gameId && handleSubmit({ gameId: player.gameId, playerId: player.id })}
                                                     justifyContent='space-between'
                                                     gap={2}

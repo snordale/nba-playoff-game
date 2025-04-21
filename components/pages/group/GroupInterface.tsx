@@ -6,7 +6,7 @@ import { type SubmissionView } from '@/utils/submission-utils';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
 import { addDays, isBefore, isEqual } from 'date-fns';
-import { formatInTimeZone, format as formatTz, fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, format as formatTz, fromZonedTime } from 'date-fns-tz';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
@@ -24,7 +24,6 @@ export const GroupInterface = () => {
         selectedDate,
         search,
         setSearch,
-        handleDayClick,
         isDayModalOpen,
         setIsDayModalOpen,
         gameCountsByDate,
@@ -149,15 +148,6 @@ export const GroupInterface = () => {
         });
     }, [selectedDate, leaderboardUsers]);
 
-    const currentSubmissionForSelectedDate = useMemo(() => {
-        if (!selectedDate || !leaderboardUsers || !currentUserId) return null;
-        const currentUserData = leaderboardUsers.find(u => u.userId === currentUserId);
-        const submission = currentUserData?.submissions?.find(sub =>
-            formatTz(new Date(sub.gameDate), 'yyyy-MM-dd', { timeZone: 'America/New_York' }) === selectedDate
-        );
-        return submission ? { playerName: submission.playerName, playerId: submission.playerId } : null;
-    }, [selectedDate, leaderboardUsers, currentUserId]);
-
     return (
         <Stack gap={6}>
             <HStack justifyContent='space-between'>
@@ -264,15 +254,9 @@ export const GroupInterface = () => {
                             queryClient.invalidateQueries({ queryKey: ["getGroup", groupId] });
                         }
                     }}
-                    selectedDate={selectedDate}
-                    loadingSubmissions={false}
                     onSubmit={onSubmit}
                     search={search}
                     onSearchChange={setSearch}
-                    currentSubmissionForUser={currentSubmissionForSelectedDate}
-                    previouslySubmittedPlayerIds={previouslySubmittedPlayerIdsForCurrentUser || []}
-                    currentUserUsername={currentUserUsername}
-                    usersWithSubmissionsForDate={usersWithSubmissionsForSelectedDate}
                 />
             )}
         </Stack>
