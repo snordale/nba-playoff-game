@@ -33,7 +33,7 @@ export const DayModalSubmissionInput = ({
     isSubmitting,
     handleSubmit,
 }: DayModalSubmissionInputProps) => {
-    const { currentUserId, currentUserUsername, submissionsByDate, selectedDate } = useGroup();
+    const { currentUserId, submissionsByDate, selectedDate } = useGroup();
     const user = submissionsByDate?.[selectedDate]?.find(user => user.userId === currentUserId);
     return (
         <>
@@ -84,7 +84,7 @@ export const DayModalSubmissionInput = ({
                                                     flexShrink={0}
                                                     key={player.id}
                                                     isDisabled={!player.gameId || isPreviouslySubmitted || isSubmitting}
-                                                    isLoading={isSubmitting && user.submission?.playerId === player.id}
+                                                    isLoading={isSubmitting && isCurrentPick}
                                                     onClick={() => player.gameId && handleSubmit({ gameId: player.gameId, playerId: player.id })}
                                                     justifyContent='space-between'
                                                     gap={2}
