@@ -30,7 +30,7 @@ export const DayModalSubmissions = ({
             ) : (
                 <Stack spacing={3} pr={2}>
                     {submissions.map((user, index) => {
-                        const submission = user.submission;
+                        const submission = user?.submission;
                         const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
                         const pickIsLocked = isPickLocked(submission?.gameStatus ?? '', gameStartsAt);
                         const canShowPick = pickIsLocked || user.userId === currentUserId;

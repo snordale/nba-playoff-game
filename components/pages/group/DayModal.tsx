@@ -153,7 +153,7 @@ export const DayModal = ({
         if (!usersWithSubmissionsForDate) return [];
         if (isLocked) {
             // Sort by score descending for past dates
-            return [...usersWithSubmissionsForDate].sort((a, b) => ((b.submission?.score ?? -Infinity) - (a.submission?.score ?? -Infinity)));
+            return [...usersWithSubmissionsForDate].sort((a, b) => ((b?.submission?.score ?? -Infinity) - (a?.submission?.score ?? -Infinity)));
         } else {
             // Sort alphabetically by username for future/current dates
             return [...usersWithSubmissionsForDate].sort((a, b) => a.username.localeCompare(b.username));

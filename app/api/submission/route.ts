@@ -52,14 +52,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure game has a start time
-    if (!game.startsAt) {
-      return NextResponse.json(
-        { error: "Cannot submit for this game because its start time is not set." },
-        { status: 400 }
-      );
-    }
-
     // Check if game time has passed (game.startsAt is stored in America/New_York timezone)
     const now = new Date();
     const gameStart = new Date(game.startsAt);
