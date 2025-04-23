@@ -3,16 +3,15 @@ name: Load Games
 
 on:
   schedule:
-    - cron: '*/20 16-23 * * *'  # 9:00 AM – 3:59 PM PT
-    - cron: '*/20 0-8 * * *'    # 4:00 PM – 1:59 AM PT
-
+    - cron: '*/20 9-23,0-1 * * *'
+      timezone: 'America/Los_Angeles'
 jobs:
   load-games:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Load Games API
         run: |
-          date=$(TZ='America/New_York' date '+%Y-%m-%d')
+          date=$(TZ='America/Los_Angeles' date '+%Y-%m-%d')
           curl -X GET \
             -H "Authorization: Bearer playdefense007" \
             -f \
