@@ -1,30 +1,20 @@
 import { useGetGames, useGetPlayers } from '@/react-query/queries';
-import { type SubmissionView } from '@/utils/submission-utils';
-import { CheckCircleIcon } from '@chakra-ui/icons';
-import { Badge, Box, Button, Divider, Grid, HStack, Heading, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spinner, Stack, Text, VStack, useToast } from '@chakra-ui/react';
-import { format, isBefore, parseISO, startOfDay } from 'date-fns';
+import { Divider, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack, useToast } from '@chakra-ui/react';
+import { isBefore } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 import { DayModalGames } from './DayModalGames';
-import { DayModalSubmissions } from './DayModalSubmissions';
 import { DayModalSubmissionInput } from './DayModalSubmissionInput';
+import { DayModalSubmissions } from './DayModalSubmissions';
+import { useGroup } from './GroupContext';
 
 interface DayModalProps {
     isOpen: boolean;
     onClose: (refresh?: boolean) => void;
-    selectedDate: string; // YYYY-MM-DD format
-    loadingSubmissions: boolean;
     onSubmit: (submissionData: { gameId: string; playerId: string }) => Promise<void>;
     search: string;
     onSearchChange: (value: string) => void;
-    currentSubmissionForUser: { playerName: string; playerId: string; } | undefined | null;
-    previouslySubmittedPlayerIds: string[];
-    currentUserUsername: string;
-    usersWithSubmissionsForDate: {
-        userId: string;
-        username: string;
-        submission: SubmissionView | null;
-    }[];
 }
 
 // Define structure for player data needed for selection
@@ -46,24 +36,31 @@ interface TeamForSelection {
 export const DayModal = ({
     isOpen,
     onClose,
-    selectedDate,
-    loadingSubmissions,
     onSubmit,
     search,
     onSearchChange,
-    currentSubmissionForUser,
-    previouslySubmittedPlayerIds,
-    currentUserUsername,
-    usersWithSubmissionsForDate,
 }: DayModalProps) => {
     const { data: sessionData } = useSession();
+    const { submissionsByDate, selectedDate, previouslySubmittedPlayerIdsForCurrentUser } = useGroup();
+    const users = submissionsByDate?.[selectedDate] ?? [];
     const currentUserId = sessionData?.user?.id;
-    const displayDate = selectedDate ? format(parseISO(selectedDate), 'MMMM d, yyyy') : 'Selected Date';
+    const TIMEZONE = 'America/New_York';
+    console.log(selectedDate)
+    console.log(users)
+
+    // Display date formatted correctly using formatInTimeZone
+    const displayDate = selectedDate
+        ? formatInTimeZone(fromZonedTime(`${selectedDate}T00:00:00`, TIMEZONE), TIMEZONE, 'MMMM d, yyyy')
+        : 'Selected Date';
+
     const { data: games, isLoading: loadingGames } = useGetGames({ date: selectedDate });
     const toast = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const now = new Date();
-    const isLocked = isBefore(startOfDay(parseISO(selectedDate)), startOfDay(new Date()));
+
+    // Determine if the day is locked (entire day is in the past relative to NY time)
+    const endOfDayNY = fromZonedTime(`${selectedDate}T23:59:59.999`, TIMEZONE);
+    const isLocked = isBefore(endOfDayNY, now);
 
     // Fetch players available for selection ONLY if the date is not locked
     const { data: playersForSelectionData, isLoading: loadingPlayers } = useGetPlayers({
@@ -98,7 +95,7 @@ export const DayModal = ({
                 acc[teamId].players.push({
                     id: player.id,
                     name: player.name,
-                    alreadySubmitted: previouslySubmittedPlayerIds?.includes(player.id) ?? false,
+                    alreadySubmitted: previouslySubmittedPlayerIdsForCurrentUser?.includes(player.id) ?? false,
                     gameId: player.gameId
                 });
 
@@ -109,7 +106,7 @@ export const DayModal = ({
 
         return Object.values(playersByTeam).sort((a, b) => a.name.localeCompare(b.name));
 
-    }, [playersForSelectionData, search, previouslySubmittedPlayerIds, isLocked]);
+    }, [playersForSelectionData, search, previouslySubmittedPlayerIdsForCurrentUser, isLocked]);
 
     const handleSubmit = async (submissionData: { gameId: string; playerId: string }) => {
         setIsSubmitting(true);
@@ -148,29 +145,11 @@ export const DayModal = ({
         }
     };
 
-    // Sort submissions for display
+    // Sort submissions for display (using the prop passed from parent)
     const sortedSubmissions = useMemo(() => {
-        if (!usersWithSubmissionsForDate) return [];
-        if (isLocked) {
-            // Sort by score descending for past dates
-            return [...usersWithSubmissionsForDate].sort((a, b) => ((b?.submission?.score ?? -Infinity) - (a?.submission?.score ?? -Infinity)));
-        } else {
-            // Sort alphabetically by username for future/current dates
-            return [...usersWithSubmissionsForDate].sort((a, b) => a.username.localeCompare(b.username));
-        }
-    }, [usersWithSubmissionsForDate, isLocked]);
-
-    // Find team abbreviation for the current user's pick
-    let currentPickTeamAbbreviation = '';
-    if (!isLocked && currentSubmissionForUser && filteredPlayersByTeam) {
-        for (const team of filteredPlayersByTeam) {
-            const player = team.players?.find(p => p.id === currentSubmissionForUser.playerId);
-            if (player) {
-                currentPickTeamAbbreviation = team.abbreviation;
-                break;
-            }
-        }
-    }
+        if (!users) return [];
+        return [...users].sort((a, b) => ((b?.submission?.score ?? -Infinity) - (a?.submission?.score ?? -Infinity)));
+    }, [users]);
 
     return (
         <Modal isOpen={isOpen} onClose={() => onClose(false)} size="xl" scrollBehavior="inside">
@@ -190,7 +169,6 @@ export const DayModal = ({
                             submissions={sortedSubmissions}
                             isLoading={false}
                             isLocked={isLocked}
-                            currentUserUsername={currentUserUsername}
                             currentUserId={currentUserId}
                         />
 
@@ -201,8 +179,6 @@ export const DayModal = ({
                                 <DayModalSubmissionInput
                                     search={search}
                                     onSearchChange={onSearchChange}
-                                    currentSubmissionForUser={currentSubmissionForUser}
-                                    currentPickTeamAbbreviation={currentPickTeamAbbreviation}
                                     filteredPlayersByTeam={filteredPlayersByTeam}
                                     loadingPlayers={loadingPlayers}
                                     isSubmitting={isSubmitting}

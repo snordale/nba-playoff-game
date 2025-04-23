@@ -25,9 +25,18 @@ const TileContent = ({ date, view }: TileContentProps) => {
   const today = startOfDay(new Date());
   const isPast = date < today;
   const gameCount = gameCountsByDate?.[dateKey] ?? 0;
-  const submissionsForThisDate = submissionsByDate?.[dateKey] ?? [];
+  const usersWithSubmissions = submissionsByDate?.[dateKey] ?? [];
 
   if (gameCount === 0) return null;
+
+  const allUsersWithSubmissions = leaderboardUsers.map(user => {
+    const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
+    return {
+      userId: user.userId,
+      username: user.username,
+      submission: submission ? submission.submission : null
+    }
+  });
 
   return (
     <VStack spacing={0.5} align="stretch" mt={1} width='100%'>
@@ -39,27 +48,23 @@ const TileContent = ({ date, view }: TileContentProps) => {
       {/* Submissions */}
       {isPast ? (
         // Past or Today: Show scores
-        submissionsForThisDate.map((sub, i) => (
+        allUsersWithSubmissions.map((user, i) => (
           <Text key={i} fontSize="2xs" color="green.600" isTruncated>
-            {sub.username}: {sub.score ?? 'N/A'}
+            {user.username}: {user.submission ? user.submission.score : 'N/A'}
           </Text>
         ))
       ) : (
         // Future: Show who has picked
-        leaderboardUsers?.map((member, i) => {
-          const submission = submissionsForThisDate.find(sub => sub.userId === member.userId);
-          const hasPicked = submission?.gameStatus === 'STATUS_SCHEDULED' && 
-                          submission?.gameStartsAt && 
-                          new Date(submission.gameStartsAt) > new Date();
+        allUsersWithSubmissions?.map((user, i) => {
           return (
             <Text
               key={i}
               fontSize="2xs"
-              color={hasPicked ? "green.500" : "gray.400"}
-              fontWeight={hasPicked ? "medium" : "normal"}
+              color={user.submission ? "green.500" : "gray.400"}
+              fontWeight={user.submission ? "medium" : "normal"}
               isTruncated
             >
-              {member.username}
+              {user.username}
             </Text>
           );
         })
@@ -69,7 +74,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
 };
 
 export const CalendarDisplay = () => {
-  const { handleDayClick: onDateClick } = useGroup();
+  const { handleDayClick } = useGroup();
 
   return (
     <Box width="100%">
@@ -134,7 +139,7 @@ export const CalendarDisplay = () => {
         defaultActiveStartDate={new Date()}
         maxDate={new Date(PLAYOFF_END_DATE)}
         minDate={new Date(PLAYOFF_START_DATE)}
-        onClickDay={onDateClick}
+        onClickDay={handleDayClick}
         tileContent={({ date, view }) => (
           <TileContent
             date={date}

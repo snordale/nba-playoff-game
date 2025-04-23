@@ -1,9 +1,10 @@
 // components/pages/group/DailySubmissionCard.tsx
-import { type SubmissionView, isPickLocked } from '@/utils/submission-utils';
+import { UserView } from '@/utils/submission-utils';
 import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
-import { startOfDay as dateFnsStartOfDay, format, isBefore, parseISO } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import React from 'react';
+import { useGroup } from './GroupContext';
 
 // Define expected stats structure (can be imported if defined centrally)
 interface PlayerStats {
@@ -15,54 +16,42 @@ interface PlayerStats {
     turnovers: number | null;
 }
 
-// Define the structure for a player's submission within the card props
-type PlayerSubmission = {
-    playerName: string | null; // Can be null
-    score: number | null;
-    stats: PlayerStats | null;
-    gameStatus?: string;
-    gameDate?: string | Date;
-    gameStartsAt?: string;
-}
-
-// Define the structure for each player object in the players array
-type UserForCard = {
-    userId: string;
-    username: string;
-    submission: PlayerSubmission | null;
-}
-
-interface DailySubmissionCardProps {
+type DailySubmissionCardProps = {
     date: string; // YYYY-MM-DD
-    hasGames: boolean;
     gameCount: number;
-    onClick: (date: string) => void;
-    users: {
-        userId: string;
-        username: string;
-        submission: SubmissionView | null;
-    }[];
+    isToday: boolean;
+    isInPast: boolean;
+    usersWithSubmissions: UserView[];
 }
 
 export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     date,
-    hasGames,
     gameCount,
-    onClick,
-    users
+    usersWithSubmissions,
+    isToday,
+    isInPast
 }) => {
+    const { handleDayClick } = useGroup();
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
-    const formattedDate = format(parseISO(date), 'MMM d, yyyy');
-    const isToday = new Date(date).toDateString() === new Date().toDateString();
-    const isDayLocked = isBefore(dateFnsStartOfDay(new Date(date)), dateFnsStartOfDay(new Date()));
+    const hasGames = gameCount > 0;
+    const TIMEZONE = 'America/New_York';
+
+    // Parse the NY date string into a Date object representing the start of that day in NY time
+    const dateInNY = fromZonedTime(`${date}T00:00:00`, TIMEZONE);
+
+    const formattedDateString = formatInTimeZone(
+        dateInNY,
+        TIMEZONE,
+        'MMM d, yyyy'
+    )
 
     return (
         <Card
             variant="outline"
             w="full"
             cursor="pointer"
-            onClick={() => onClick(date)}
+            onClick={() => handleDayClick(date)}
             borderColor={isToday ? "orange.500" : undefined}
             _hover={{
                 borderColor: "orange.300",
@@ -76,7 +65,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                     <HStack justify="space-between" width="100%">
                         <VStack align="start" spacing={0}>
                             <Text fontWeight={isToday ? "bold" : "semibold"} color={isToday ? "orange.500" : undefined}>
-                                {formattedDate}
+                                {formattedDateString}
                                 {isToday && " (Today)"}
                             </Text>
                             {hasGames && (
@@ -86,8 +75,8 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                             )}
                         </VStack>
                         {hasGames && (
-                            <Text fontSize="sm" color={isDayLocked ? "gray.600" : "orange.500"} fontWeight="medium">
-                                {isDayLocked ? "Final" : "Open"}
+                            <Text fontSize="sm" color={isInPast ? "gray.600" : "orange.500"} fontWeight="medium">
+                                {(isInPast && !isToday) ? "Final" : "Open"}
                             </Text>
                         )}
                     </HStack>
@@ -95,34 +84,26 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                     {/* Body: Player Submissions */}
                     {hasGames ? (
                         <VStack align="stretch" width="100%" spacing={1}>
-                            {users.map((user) => {
-                                const submission = user.submission;
-                                const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
-                                const pickIsLocked = isPickLocked(submission?.gameStatus ?? '', gameStartsAt);
-                                const canShowPick = pickIsLocked || user.userId === currentUserId;
-
+                            {usersWithSubmissions.map(({ userId, username, submission }) => {
                                 return (
-                                    <VStack key={user.userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
+                                    <VStack key={userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
                                         {/* Username and Score/Status */}
                                         <HStack justify="space-between" width="100%">
-                                            <Text fontSize="xs" fontWeight="medium">{user.username}</Text>
-                                            <HStack>
+                                            <VStack width="100%" gap={0} alignItems='flex-start'>
+                                                <Text fontSize="xs" fontWeight="medium">{username}</Text>
                                                 <Text
                                                     fontSize="xs"
                                                     color={submission ? "green.500" : "orange.500"}
                                                     fontWeight="medium"
                                                 >
-                                                    {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
+                                                    {!submission ? 'No Pick' : submission.playerName || "Hidden"}
                                                 </Text>
-                                                {isDayLocked && submission && (
-                                                    <Badge
-                                                        colorScheme={submission.score !== null ? "orange" : "gray"}
-                                                        visibility={canShowPick || submission.score !== null ? 'visible' : 'hidden'}
-                                                    >
-                                                        {submission.score !== null ? `${submission.score} pts` : 'N/A'}
-                                                    </Badge>
-                                                )}
-                                            </HStack>
+                                            </VStack>
+                                            {submission?.stats && (
+                                                <Badge colorScheme="orange">
+                                                    {submission.score} pts
+                                                </Badge>
+                                            )}
                                         </HStack>
                                     </VStack>
                                 );

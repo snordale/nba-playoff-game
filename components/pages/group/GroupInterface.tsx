@@ -2,9 +2,11 @@
 'use client';
 
 import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
+import { type SubmissionView } from '@/utils/submission-utils';
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
-import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { addDays, isBefore, isEqual } from 'date-fns';
+import { formatInTimeZone, format as formatTz, fromZonedTime } from 'date-fns-tz';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { queryClient, useGenerateInviteLink } from "../../../react-query/queries";
 import { Body1 } from "../../Body1";
@@ -13,7 +15,6 @@ import { DailySubmissionCard } from './DailySubmissionCard';
 import { DayModal } from "./DayModal";
 import { useGroup } from './GroupContext';
 import { Leaderboard } from './Leaderboard';
-import { type SubmissionView } from '@/utils/submission-utils';
 
 export const GroupInterface = () => {
     const {
@@ -23,7 +24,6 @@ export const GroupInterface = () => {
         selectedDate,
         search,
         setSearch,
-        handleDayClick: onCalendarDateClick,
         isDayModalOpen,
         setIsDayModalOpen,
         gameCountsByDate,
@@ -32,7 +32,8 @@ export const GroupInterface = () => {
         setViewMode,
         currentUserUsername,
         currentUserId,
-        previouslySubmittedPlayerIdsForCurrentUser
+        previouslySubmittedPlayerIdsForCurrentUser,
+        submissionsByDate
     } = useGroup();
 
     const { mutateAsync: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
@@ -87,18 +88,36 @@ export const GroupInterface = () => {
         }
     };
 
-    const sortedDates = useMemo(() => {
-        const startDate = parseISO(PLAYOFF_START_DATE);
-        const endDate = parseISO(PLAYOFF_END_DATE);
+    // Return date strings in YYYY-MM-DD format, starting from PLAYOFF_START_DATE and ending at PLAYOFF_END_DATE
+    // based on the America/New_York timezone.
+    const sortedDates = useMemo<string[]>(() => {
+        const TIMEZONE = 'America/New_York';
         try {
-            return eachDayOfInterval({ start: startDate, end: endDate })
-                .map(date => format(date, 'yyyy-MM-dd'))
-                .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-        } catch (e) {
-            console.error("Error calculating date interval:", e);
+            // Parse start and end dates in the NY timezone
+            const startNY = fromZonedTime(`${PLAYOFF_START_DATE}T00:00:00`, TIMEZONE);
+            const endNY = fromZonedTime(`${PLAYOFF_END_DATE}T00:00:00`, TIMEZONE);
+
+            if (isBefore(endNY, startNY)) {
+                console.error("Playoff end date is before start date.");
+                return [];
+            }
+
+            const dateStrings: string[] = [];
+            let currentDate = startNY;
+
+            // Manually iterate through dates within the NY timezone
+            while (isBefore(currentDate, endNY) || isEqual(currentDate, endNY)) {
+                dateStrings.push(formatInTimeZone(currentDate, TIMEZONE, 'yyyy-MM-dd'));
+                currentDate = addDays(currentDate, 1);
+            }
+
+            return dateStrings;
+        } catch (err) {
+            console.error('sortedDates failed:', err);
             return [];
         }
-    }, []);
+    }, [PLAYOFF_START_DATE, PLAYOFF_END_DATE]);
+
 
     useEffect(() => {
         if (viewMode === 'list' && todayRef.current && scrollContainerRef.current) {
@@ -115,8 +134,8 @@ export const GroupInterface = () => {
     const usersWithSubmissionsForSelectedDate = useMemo(() => {
         if (!leaderboardUsers) return [];
         return leaderboardUsers.map(user => {
-            const submission = user.submissions?.find(sub =>
-                format(new Date(sub.gameDate), 'yyyy-MM-dd') === selectedDate
+            const submission = user?.submissions?.find(sub =>
+                formatTz(new Date(sub.gameDate), 'yyyy-MM-dd', { timeZone: 'America/New_York' }) === selectedDate
             );
             const submissionView: SubmissionView | null = submission
                 ? { ...submission, userId: user.userId, username: user.username }
@@ -128,19 +147,6 @@ export const GroupInterface = () => {
             };
         });
     }, [selectedDate, leaderboardUsers]);
-
-    const currentSubmissionForSelectedDate = useMemo(() => {
-        if (!selectedDate || !leaderboardUsers || !currentUserId) return null;
-        const currentUserData = leaderboardUsers.find(u => u.userId === currentUserId);
-        const submission = currentUserData?.submissions?.find(sub =>
-            format(new Date(sub.gameDate), 'yyyy-MM-dd') === selectedDate
-        );
-        return submission ? { playerName: submission.playerName, playerId: submission.playerId } : null;
-    }, [selectedDate, leaderboardUsers, currentUserId]);
-
-    const handleCardClick = (date: string) => {
-        onCalendarDateClick(date);
-    };
 
     return (
         <Stack gap={6}>
@@ -202,34 +208,41 @@ export const GroupInterface = () => {
                         borderColor="gray.100"
                         pt={4}
                     >
-                        {sortedDates.map(date => {
-                            const isToday = new Date(date).toDateString() === new Date().toDateString();
-                            const usersWithSubmissionsForDate = leaderboardUsers?.map(user => {
-                                const submission = user.submissions?.find(sub =>
-                                    format(new Date(sub.gameDate), 'yyyy-MM-dd') === date
-                                );
-                                const submissionView: SubmissionView | null = submission
-                                    ? { ...submission, userId: user.userId, username: user.username }
-                                    : null;
-                                return {
-                                    userId: user.userId,
-                                    username: user.username,
-                                    submission: submissionView
-                                };
-                            }) || [];
+                        {(() => {
+                            return sortedDates.map(date => {
+                                const todayInNyStr = formatTz(new Date(), 'yyyy-MM-dd', { timeZone: 'America/New_York' });
 
-                            return (
-                                <div key={date} ref={isToday ? todayRef : null}>
-                                    <DailySubmissionCard
-                                        date={date}
-                                        hasGames={(gameCountsByDate?.[date] ?? 0) > 0}
-                                        gameCount={gameCountsByDate?.[date] ?? 0}
-                                        onClick={handleCardClick}
-                                        users={usersWithSubmissionsForDate}
-                                    />
-                                </div>
-                            );
-                        })}
+                                const endOfNyDay = fromZonedTime(`${date}T23:59:59.999`, 'America/New_York');
+
+                                const isInPast = isBefore(endOfNyDay, new Date());
+                                const isToday = date === todayInNyStr;
+                                console.log(date, todayInNyStr, endOfNyDay)
+                                console.log(isInPast, isToday)
+
+                                const usersWithSubmissions = submissionsByDate?.[date] ?? [];
+
+                                const allUsersWithSubmissions = leaderboardUsers.map(user => {
+                                    const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
+                                    return {
+                                        userId: user.userId,
+                                        username: user.username,
+                                        submission: submission ? submission.submission : null
+                                    }
+                                });
+
+                                return (
+                                    <div key={date} ref={isToday ? todayRef : undefined}>
+                                        <DailySubmissionCard
+                                            date={date}
+                                            gameCount={gameCountsByDate?.[date] ?? 0}
+                                            usersWithSubmissions={allUsersWithSubmissions}
+                                            isToday={isToday}
+                                            isInPast={isInPast}
+                                        />
+                                    </div>
+                                );
+                            });
+                        })()}
                     </VStack>
                 )}
             </VStack>
@@ -243,15 +256,9 @@ export const GroupInterface = () => {
                             queryClient.invalidateQueries({ queryKey: ["getGroup", groupId] });
                         }
                     }}
-                    selectedDate={selectedDate}
-                    loadingSubmissions={false}
                     onSubmit={onSubmit}
                     search={search}
                     onSearchChange={setSearch}
-                    currentSubmissionForUser={currentSubmissionForSelectedDate}
-                    previouslySubmittedPlayerIds={previouslySubmittedPlayerIdsForCurrentUser || []}
-                    currentUserUsername={currentUserUsername}
-                    usersWithSubmissionsForDate={usersWithSubmissionsForSelectedDate}
                 />
             )}
         </Stack>
