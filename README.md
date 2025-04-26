@@ -99,6 +99,7 @@ The database schema is defined in `prisma/schema.prisma` and managed by Prisma O
    npm run prisma:migrate
    ```
 
+
 3. **Environment Setup**
    Create a `.env` file with the following variables:
    ```
