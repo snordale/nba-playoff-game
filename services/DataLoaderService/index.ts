@@ -310,15 +310,6 @@ export const loadGamesForDate = async (
           continue;
         }
 
-        // Log competitor structure to understand player data
-        log('\nHome competitor data:');
-        log(JSON.stringify(homeComp, null, 2));
-        log('\nAway competitor data:');
-        log(JSON.stringify(awayComp, null, 2));
-        // Log status object to check for TBD indicators
-        log('\nEvent Status:');
-        log(JSON.stringify(event.status, null, 2));
-
         // 3. Create/Update Teams
         const homeTeam = await getOrCreateTeam(homeComp.team);
         const awayTeam = await getOrCreateTeam(awayComp.team);
