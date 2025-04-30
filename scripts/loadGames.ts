@@ -4,7 +4,7 @@ import { loadGamesForDate, logGameStats } from "../services/DataLoaderService";
  * Parses command line arguments for a date string.
  * Accepts formats like YYYY-MM-DD or --date=YYYY-MM-DD.
  * Defaults to today if no valid date is found.
- * Returns date set to midnight in local timezone.
+ * Returns date set to midnight UTC for the target calendar day.
  */
 function getTargetDate(): Date {
   const args = process.argv.slice(2); // Skip 'node' and script path
@@ -23,23 +23,26 @@ function getTargetDate(): Date {
   }
 
   if (dateArg) {
-    // Create date in local timezone at start of day
-    const [year, month, day] = dateArg.split('-').map(Number);
-    const parsedDate = new Date(year, month - 1, day); // month is 0-based
-    parsedDate.setHours(0, 0, 0, 0); // Set to midnight
-    
-    if (!isNaN(parsedDate.getTime())) {
-      console.log(`Using provided date: ${parsedDate.toLocaleDateString()}`);
-      return parsedDate;
+    const dateParts = dateArg.split('-').map(Number);
+    if (dateParts.length === 3) {
+      const [year, month, day] = dateParts;
+      // Create a Date object representing midnight UTC for the given YYYY-MM-DD
+      const utcTimestamp = Date.UTC(year, month - 1, day); // month is 0-based
+      if (!isNaN(utcTimestamp)) {
+        const parsedDate = new Date(utcTimestamp);
+        console.log(`Using provided date (UTC midnight): ${parsedDate.toISOString().split('T')[0]}`);
+        return parsedDate;
+      }
     }
-    console.warn(`Invalid date format provided: ${dateArg}. Defaulting to today.`);
+    console.warn(`Invalid date format provided: ${dateArg}. Defaulting to today (UTC midnight).`);
   }
 
-  // Use start of today in local timezone
+  // Default to start of today in UTC
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  console.log("No date provided or invalid format. Defaulting to today:", today.toLocaleDateString());
-  return today;
+  const todayUtcTimestamp = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const todayUtcMidnight = new Date(todayUtcTimestamp);
+  console.log(`No date provided or invalid format. Defaulting to today (UTC midnight): ${todayUtcMidnight.toISOString().split('T')[0]}`);
+  return todayUtcMidnight;
 }
 
 /**

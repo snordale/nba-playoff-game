@@ -266,6 +266,15 @@ export const loadGamesForDate = async (
   let gamesFailed = 0;
   const processedGames: LoadGamesResult['games'] = [];
 
+  const gamesIdsInDb = await prisma.game.findMany({
+    where: {
+      date,
+    },
+    select: {
+      espnId: true
+    }
+  });
+
   try {
     // 1. Fetch games for the date
     const events = await getGamesByDate({ date });
@@ -333,7 +342,7 @@ export const loadGamesForDate = async (
           year: 'numeric',
           month: '2-digit',
           day: '2-digit'
-        }); // Format: YYYY-MM-DD
+        });
 
         // Create a Date object representing midnight UTC on the calculated New York date
         // This ensures the correct DATE is stored by Prisma's @db.Date
@@ -341,10 +350,10 @@ export const loadGamesForDate = async (
 
         // Check the status details for TBD using type assertion for missing properties
         const statusType = event.status?.type as any; // Assert type here
-        const isTBD = statusType?.detail?.toUpperCase().includes('TBD') || 
-                      statusType?.shortDetail?.toUpperCase().includes('TBD') ||
-                      false; // Default to false if no TBD found
-                      
+        const isTBD = statusType?.detail?.toUpperCase().includes('TBD') ||
+          statusType?.shortDetail?.toUpperCase().includes('TBD') ||
+          false; // Default to false if no TBD found
+
         const startsAtValue = isTBD ? null : gameDate;
 
         const game = await prisma.game.upsert({
@@ -371,7 +380,7 @@ export const loadGamesForDate = async (
           },
         });
 
-        // 5. Fetch Box Score and Process Player Stats if game is not scheduled (i.e., in progress or completed)
+        // 5. Fetch Box Score and Process Player Stats if game is in progress or completed)
         if (event.status.type && (event.status.type as any).state !== 'pre') {
           log(`Fetching box score for game ${event.id} because status state is '${(event.status.type as any).state}'...`);
           const boxScore = await getEventBoxScore({ eventId: event.id });
@@ -462,6 +471,13 @@ export const loadGamesForDate = async (
         errors.push(`Error processing game ${event.id}: ${error.message}`);
         gamesFailed++;
       }
+    }
+
+    const espnIdsToDelete = gamesIdsInDb.filter(g => !processedGames.some(pg => pg.espnId === g.espnId)).map(g => g.espnId);
+
+    if (espnIdsToDelete.length > 0) {
+      log(`Found ${espnIdsToDelete.length} games in DB not present in today's API results for ${date}. Deleting...`);
+      await prisma.game.deleteMany({ where: { espnId: { in: espnIdsToDelete } } });
     }
 
     return { gamesProcessed, gamesFailed, errors, games: processedGames };
