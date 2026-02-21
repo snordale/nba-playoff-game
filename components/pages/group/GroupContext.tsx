@@ -19,6 +19,8 @@ interface GroupContextType {
       sequence: number;
       highSeedTeam: { id: string; name: string; abbreviation: string };
       lowSeedTeam: { id: string; name: string; abbreviation: string };
+      highSeedWins: number;
+      lowSeedWins: number;
       winnerTeamId: string | null;
       winnerWins: number | null;
       loserWins: number | null;
