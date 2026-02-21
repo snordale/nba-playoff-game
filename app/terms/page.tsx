@@ -103,7 +103,7 @@ export default function TermsPage() {
                         </ul>
 
                         <h2>7. Limitation of Liability</h2>
-                        <p>NBA Playoff Game is provided "as is" without warranties of any kind. We are not liable for:</p>
+                        <p>NBA Playoff Game is provided &quot;as is&quot; without warranties of any kind. We are not liable for:</p>
                         <ul>
                             <li>Service interruptions or data loss</li>
                             <li>Actions of other users</li>

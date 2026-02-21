@@ -49,7 +49,47 @@ Both games live in the **same group** and are **season-scoped** (e.g. 2024–25 
 - **Backwards compatibility:** Changes must support older data. Do not assume new fields exist, new enum values, or new relations; handle null/undefined and legacy shapes. Migrations should be additive or carefully backfilled so existing rows and older clients keep working.
 - **Update markdown as you develop:** When you change or add behavior, APIs, data, scripts, or config, update the relevant doc (README.md, AGENTS.md, or DATA.md) in the same work so documentation stays comprehensive. See the Documentation (markdown) section above for which file to edit.
 
+**Next.js server components & build-time DB access:**
+
+- `DATABASE_URL` is only set in the **Production** Vercel environment. Preview and CI builds have no DB.
+- **Never call Prisma directly in a server component's render body** unless the page is marked `export const dynamic = "force-dynamic"`. Static pages run at build time where there is no DB.
+- **`generateStaticParams`** must always wrap its Prisma call in try/catch and return `[]` on failure so Preview builds don't break:
+  ```ts
+  export async function generateStaticParams() {
+    try {
+      const rows = await prisma.foo.findMany({ select: { slug: true } });
+      return rows.map(r => ({ slug: r.slug }));
+    } catch {
+      return []; // no DB in Preview/CI — renders dynamically at request time
+    }
+  }
+  ```
+- **Pages that must query the DB at render time** (e.g. listing pages) should export `export const dynamic = "force-dynamic"` to opt out of static generation entirely.
+- **Pre-deploy checklist:** Run `npm run typecheck && npm run lint` before pushing. The `postinstall` script runs `prisma generate`; `prebuild` runs `prisma migrate deploy` only when `DATABASE_URL` is set. CI enforces these on every PR.
+
+**Prisma schema conventions:** Every camelCase scalar field must have `@map("snake_case")`; every model must have `@@map("snake_case_table")`. Relation fields (array or object, no DB column) do not get `@map`. See `.cursor/rules/prisma-schema.mdc`.
+
+**Making schema changes — IMPORTANT:** `prisma migrate dev` is broken for local development because historical migrations cannot be cleanly replayed by the shadow database (a migration from 2025-02 alters the `games` table before it is created). **Never run `prisma migrate dev`**; follow this workflow instead:
+
+1. Write the migration SQL manually (use `IF NOT EXISTS` / `IF EXISTS` for idempotency).
+2. Create the file at `prisma/migrations/<timestamp>_<name>/migration.sql`.
+3. Apply it directly to the local DB:
+   ```bash
+   npx prisma db execute --file prisma/migrations/<timestamp>_<name>/migration.sql --schema prisma/schema.prisma
+   ```
+4. Mark it as applied so Prisma knows not to re-run it:
+   ```bash
+   npx prisma migrate resolve --applied <timestamp>_<name>
+   ```
+5. Update `prisma/schema.prisma` to reflect the change.
+6. Run `npx prisma generate` to regenerate the client.
+7. Commit both the migration file and the updated schema together.
+
+**Node:** Project requires Node.js **≥24.0.0** (`package.json` `engines`). CI uses 24; local dev can use `.nvmrc` (24) with nvm.
+
 **Environment (required):** `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `JWT_INVITE_SECRET`, `CRON_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL` (or `ADMIN_EMAILS` comma-separated). `CRON_SECRET` is required for cron routes (`load-games`, `sync-bracket`, `load-teams`, `load-blog-posts`). Admin routes require the authenticated user’s email to be in `ADMIN_EMAIL`/`ADMIN_EMAILS`. See `.env.example` for a full checklist. Set all in production.
+
+**package.json overrides:** The `overrides.minimatch` entry forces a safe minimatch (≥10.2.1) for the whole tree. ESLint and eslint-config-next still depend on an older minimatch transitively; the override fixes the ReDoS advisory (GHSA-3ppc-4f35-3m26) without downgrading ESLint. Remove the override once upstream (eslint / eslint-config-next) ship a version that depends on minimatch ≥10.2.1.
 
 ---
 
@@ -145,7 +185,7 @@ Important constraints:
 **Cron (Bearer CRON_SECRET):**
 
 - `GET /api/cron/load-games?date=YYYY-MM-DD` – Load games for date (creates/finds Season from ESPN `season.year`). Scheduled 3am and 6am daily.
-- `GET /api/cron/sync-bracket` – Sync series outcomes and `firstGameStartsAt` from games, then advance bracket (create Semifinals → Conference Finals → Finals from winners). Scheduled 8am daily.
+- `GET /api/cron/sync-bracket` – Sync series outcomes and `firstGameStartsAt` from games, then advance bracket in a loop until full bracket exists (SF → CF → Finals). Idempotent. Scheduled 8am daily.
 - `GET /api/cron/load-teams` – Load teams/rosters.
 - `GET /api/cron/load-blog-posts` – Load blog.
 
@@ -155,8 +195,8 @@ Important constraints:
 - `GET/POST /api/admin/seasons` – List / create season.
 - `POST /api/admin/auto-seed` – **Primary seeding action.** Body `{ year }`. Fetches ESPN standings, upserts 16 PlayoffSeed records (8 East, 8 West using ESPN `playoffSeed` field), then seeds the first-round bracket. Safe to re-run (seeds upserted, bracket skipped if series already exist). Requires teams to be in DB first (run load-teams). Returns 422 if fewer than 16 seeds are available (standings not finalized).
 - `POST /api/admin/playoff-seeds` – Manual fallback: upsert a single seed (seasonId, teamId, seed, conference).
-- `POST /api/admin/seed-bracket` – Body `{ year }` – create first-round PlayoffSeries from existing PlayoffSeeds.
-- `POST /api/admin/sync-series-outcomes` – Body `{ year }` – set winnerTeamId/winnerWins/loserWins from completed games.
+- `POST /api/admin/seed-bracket` – Body `{ year }` – create **first-round only** PlayoffSeries from existing PlayoffSeeds. Idempotent (skips if any series exist). Use sync-series-outcomes to complete the bracket.
+- `POST /api/admin/sync-series-outcomes` – Body `{ year, advance?: boolean }` (default `advance: true`). Syncs winner/wins from completed games; when advance is true, runs advance in a loop until full bracket exists (SF → CF → Finals). Idempotent.
 - `GET /api/admin/users`, `POST /api/admin/submission` – User list, upsert submission.
 - `GET /api/teams` – List teams (for admin seeding).
 
@@ -193,8 +233,8 @@ Important constraints:
 - `npx tsx scripts/loadAllGames.ts [year]` – Load games for a season (uses Season from DB; default current).
 - `npx tsx scripts/loadGames.ts` – Load games for a single date (legacy; cron uses DataLoaderService).
 - `npx tsx scripts/loadTeamsAndPlayers.ts` – Sync teams and rosters from ESPN.
-- `npx tsx scripts/seedPlayoffBracket.ts [year]` – Create first-round PlayoffSeries from PlayoffSeeds.
-- `npx tsx scripts/syncSeriesOutcomes.ts [year]` – Sync outcomes and `firstGameStartsAt` from games, then advance bracket (auto-create Semifinals, Conference Finals, Finals from winners).
+- `npx tsx scripts/seedPlayoffBracket.ts [year]` – Create **first-round only** PlayoffSeries from PlayoffSeeds. Idempotent (skips if any series exist). Then run syncSeriesOutcomes to complete the bracket.
+- `npx tsx scripts/syncSeriesOutcomes.ts [year]` – Sync outcomes and `firstGameStartsAt` from games, then advance bracket in a loop until full bracket exists. Idempotent.
 
 ---
 
@@ -206,7 +246,7 @@ Important constraints:
 4. **Series pick:** User must be in group; series not locked (`firstGameStartsAt`); winner is one of the two teams; gamesCount 4–7. Pick keyed by `(groupUserId, seriesId)`.
 5. **Invite:** Link generated by `POST /api/groups/[groupId]/invites` (plural — the ApiService client must call `/invites`). Contains a JWT with `groupId`; expiry is 24h. Join endpoint validates token and rejects expired tokens with 400 "Invite link has expired". Unauthenticated user sees "Join Group" → sign-in with callback to `/invite?token=...`. Server decodes token, adds user to group, redirects to group. `POST /api/groups/[groupId]/join` with `{ token }` supports programmatic join.
 6. **Season auto-creation:** `SeasonService.getOrCreateSeason(year)` is called by `DataLoaderService` for every game loaded. If no `Season` row for that year exists it auto-creates one with `startDate = April 1` (conservative stub) and `endDate` fetched live from ESPN (`fetchEspnSeasonEndDate` reads `leagues[0].season.endDate`; falls back to June 30). On the same cron run, if any loaded events have `event.season.type === 3` (ESPN postseason flag), `DataLoaderService` calls `updateSeasonStartIfEarlier(year, date)` to narrow `startDate` to the actual first postseason game date. **No hardcoded table, no admin action — self-corrects on first playoff game load.**
-7. **Bracket setup (after regular season ends):** Season already exists (see above). Click **Auto-Seed** in the admin UI (enter the year) — this calls `POST /api/admin/auto-seed`, which fetches ESPN standings, upserts all 16 PlayoffSeed records, and creates the first-round bracket in one step. Re-runnable after play-in games to update seeds 7 & 8 (bracket creation is skipped if series already exist). After that everything is automated: load-games cron populates game data; sync-bracket cron sets `firstGameStartsAt`, derives outcomes, and advances the bracket through all rounds. **No manual data entry required.**
+7. **Bracket setup (after regular season ends):** Season already exists (see above). Click **Auto-Seed** in the admin UI (enter the year) — this calls `POST /api/admin/auto-seed`, which fetches ESPN standings, upserts all 16 PlayoffSeed records, and creates the **first-round only** bracket. Re-runnable after play-in games to update seeds 7 & 8 (bracket creation is skipped if series already exist). Run **Sync series outcomes** (or sync-bracket cron) to complete the bracket (SF → CF → Finals) in one idempotent run. After that: load-games cron populates game data; sync-bracket cron keeps outcomes and full bracket up to date. **No manual data entry required.**
 
 ---
 

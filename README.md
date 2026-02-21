@@ -89,7 +89,7 @@ The database schema is defined in `prisma/schema.prisma` and managed by Prisma O
 ## Getting Started
 
 1. **Prerequisites**
-   - Node.js (Latest LTS version)
+   - Node.js **24+** (see `engines` in package.json; use `.nvmrc` with nvm: `nvm use`)
    - npm or yarn
    - PostgreSQL database
 

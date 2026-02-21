@@ -1,12 +1,13 @@
 /**
  * Syncs series outcomes and firstGameStartsAt from games, then advances bracket
- * (creates Semifinals, Conference Finals, Finals from winners).
+ * in a loop until full bracket exists (Semifinals, Conference Finals, Finals).
+ * Idempotent: safe to run multiple times.
  *
  * Usage: npx tsx scripts/syncSeriesOutcomes.ts [year]
  */
 
 import { getSeasonByYear } from "../services/SeasonService";
-import { advanceBracket, syncSeriesOutcomes } from "../services/BracketService";
+import { syncAndAdvanceUntilComplete } from "../services/BracketService";
 
 async function main() {
   const yearArg = process.argv[2];
@@ -23,17 +24,15 @@ async function main() {
     process.exit(1);
   }
 
-  const { outcomesUpdated, firstGameUpdated } = await syncSeriesOutcomes(season.id);
-  console.log(`Outcomes updated: ${outcomesUpdated}, firstGameStartsAt set: ${firstGameUpdated}`);
-
-  const advanceResults = await advanceBracket(season.id);
-  const advanceCreated = advanceResults.reduce((sum, r) => sum + r.created, 0);
-  if (advanceCreated > 0) {
+  const result = await syncAndAdvanceUntilComplete(season.id);
+  console.log(
+    `Outcomes updated: ${result.outcomesUpdated}, firstGameStartsAt set: ${result.firstGameUpdated}, games linked: ${result.gamesLinked}`
+  );
+  if (result.advanceCreated > 0) {
     console.log(
-      `Advance bracket: created ${advanceCreated} new series (${advanceResults.map((r) => r.round).join(", ")})`
+      `Advance bracket: created ${result.advanceCreated} new series (${result.advanceRounds.map((r) => r.round).join(", ")})`
     );
   }
-
   console.log("Sync complete.");
 }
 

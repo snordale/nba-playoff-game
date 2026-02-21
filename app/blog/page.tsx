@@ -5,6 +5,9 @@ import { BlogCard } from "./BlogCard";
 import { BasketballBackground } from "@/components/BasketballBackground";
 import { prisma } from "@/prisma/client";
 
+// Always render at request time so DATABASE_URL is guaranteed to be available.
+export const dynamic = "force-dynamic";
+
 export const metadata = {
     title: "Blog | NBA Playoff Game",
     description: "Learn about NBA playoff strategies, scoring systems, and get the most out of your NBA Playoff Game experience.",

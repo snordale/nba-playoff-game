@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Typecheck, Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # tsc --noEmit catches type errors before they hit Vercel
+      - name: Typecheck
+        run: npm run typecheck
+
+      # next lint catches React/query anti-patterns
+      - name: Lint
+        run: npm run lint
+
+      # Build without DATABASE_URL — mirrors a Vercel Preview deployment.
+      # Catches any server component or generateStaticParams calling Prisma
+      # at build time without proper guards (force-dynamic or try/catch).
+      - name: Build (no DB)
+        run: npm run build
+        env:
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ci-secret-not-real
+          # DATABASE_URL intentionally omitted — must match Preview build behavior

@@ -100,7 +100,7 @@ export const useGetGroup = ({
   });
 };
 
-export const useGetPlayers = ({ date }) => {
+export const useGetPlayers = ({ date }: { date: string }) => {
   return useQuery({
     queryKey: ["getPlayers", date],
     queryFn: () => getPlayers({ date }),

@@ -51,7 +51,7 @@ export const HomeContent = () => {
             <Card variant="outline" mt={2}>
               <CardBody>
                 <Text textAlign="center" color="gray.500">
-                  No groups yet. Create one using the '+' button!
+                  No groups yet. Create one using the &apos;+&apos; button!
                 </Text>
               </CardBody>
             </Card>
@@ -59,7 +59,7 @@ export const HomeContent = () => {
 
           {!isLoading && groups && groups.length > 0 && (
             <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4} mt={2}>
-              {groups.map((group) => (
+              {groups.map((group: { id: string; name: string; _count?: { groupUsers: number } }) => (
                 <CustomLink key={group.id} href={`/groups/${group.id}`} _hover={{ textDecoration: 'none' }}>
                   <Card
                     variant="outline"

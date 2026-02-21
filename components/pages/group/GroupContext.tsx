@@ -93,7 +93,7 @@ export function GroupProvider({ children, groupId, season }: GroupProviderProps)
     const previouslySubmittedPlayerIdsForCurrentUser = groupData?.previouslySubmittedPlayerIdsForCurrentUser;
     
     const userInGroup = useMemo(() => {
-        return leaderboardUsers?.some(p => p.userId === currentUserId);
+        return leaderboardUsers?.some((p: ScoredGroupUser) => p.userId === currentUserId) ?? false;
     }, [leaderboardUsers, currentUserId]);
 
     // Actions
@@ -125,7 +125,7 @@ export function GroupProvider({ children, groupId, season }: GroupProviderProps)
         }
     };
 
-    const onSubmit = async ({ gameId, playerId }) => {
+    const onSubmit = async ({ gameId, playerId }: { gameId: string; playerId: string }) => {
         return new Promise<void>((resolve, reject) => {
             createSubmission({ gameId, playerId, groupId }, {
                 onSuccess: () => {
@@ -162,7 +162,7 @@ export function GroupProvider({ children, groupId, season }: GroupProviderProps)
 
         // Current User Info
         currentUserId,
-        currentUserUsername,
+        currentUserUsername: currentUserUsername ?? undefined,
         userInGroup,
 
         // Loading States
