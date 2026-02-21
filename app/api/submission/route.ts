@@ -13,15 +13,17 @@ export async function POST(req: NextRequest) {
 
   let gameId: string;
   let playerId: string;
+  let groupId: string;
 
   // 2. Get and Validate Input
   try {
     const body = await req.json();
     gameId = body.gameId;
     playerId = body.playerId;
+    groupId = body.groupId;
 
-    if (!gameId || !playerId) {
-      throw new Error("Missing gameId or playerId");
+    if (!gameId || !playerId || !groupId) {
+      throw new Error("Missing gameId, playerId, or groupId");
     }
   } catch (error) {
     console.error("Error validating request body:", error);
@@ -52,14 +54,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if game time has passed (game.startsAt is stored in America/New_York timezone)
+    // Check if game time has passed (game.startsAt may be null for TBD games)
     const now = new Date();
-    const gameStart = new Date(game.startsAt);
-    if (gameStart <= now) {
-      return NextResponse.json(
-        { error: `Cannot submit for this game because its start time (${gameStart.toLocaleString('en-US', { timeZone: 'America/New_York' })}) has passed.` },
-        { status: 400 }
-      );
+    if (game.startsAt != null) {
+      const gameStart = new Date(game.startsAt);
+      if (gameStart <= now) {
+        return NextResponse.json(
+          { error: `Cannot submit for this game because its start time (${gameStart.toLocaleString('en-US', { timeZone: 'America/New_York' })}) has passed.` },
+          { status: 400 }
+        );
+      }
     }
 
     // Find if a submission already exists for this user on this date
@@ -69,9 +73,21 @@ export async function POST(req: NextRequest) {
     const endOfDay = new Date(startOfDay);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
+    // Resolve group membership (submission is scoped per group)
+    const groupUser = await prisma.groupUser.findFirst({
+      where: { userId, groupId },
+      select: { id: true },
+    });
+    if (!groupUser) {
+      return NextResponse.json(
+        { error: "You are not a member of this group" },
+        { status: 403 }
+      );
+    }
+
     const existingDailySubmission = await prisma.submission.findFirst({
       where: {
-        userId,
+        groupUserId: groupUser.id,
         game: {
           date: {
             gte: startOfDay,
@@ -81,30 +97,20 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 5. Validate Unique Player Pick (across all *other* submissions for this user)
+    // 5. Validate Unique Player Pick (this group: one player per playoffs)
     const existingPlayerSubmission = await prisma.submission.findFirst({
       where: {
-        userId,
+        groupUserId: groupUser.id,
         playerId,
-        // Ensure we are not looking at the submission for *today* if it exists
-        NOT: {
-          id: existingDailySubmission?.id // Exclude today's submission from this check
-        }
+        ...(existingDailySubmission?.id && { NOT: { id: existingDailySubmission.id } }),
       },
     });
     if (existingPlayerSubmission) {
       return NextResponse.json(
-        { error: `Player ${player.name} already submitted previously on a different day.` },
-        { status: 409 } // 409 Conflict
+        { error: `Player ${player.name} already submitted previously in this group.` },
+        { status: 409 }
       );
     }
-
-    // Find the GroupUser record (assuming user is only in one active group context)
-    const groupUsers = await prisma.groupUser.findMany({ where: { userId } });
-    if (groupUsers.length === 0) {
-      return NextResponse.json({ error: "You are not a member of any groups" }, { status: 400 });
-    }
-    const groupUser = groupUsers[0]; // Use the first group found
 
     // 6. Create or Update Submission
     let resultSubmission;

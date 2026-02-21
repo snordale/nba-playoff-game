@@ -1,14 +1,10 @@
-import { auth } from "@/auth";
+import { getAdminSession } from "@/lib/admin";
 import { prisma } from "@/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
-const ADMIN_EMAIL = "snordale@gmail.com"; // Ensure this matches your admin email
-
 export async function GET(request: NextRequest) {
-    const session = await auth();
-
-    // 1. Check Authentication & Authorization
-    if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
+    const session = await getAdminSession();
+    if (!session) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -51,6 +47,6 @@ export async function GET(request: NextRequest) {
 
     } catch (error: any) {
         console.error("[ADMIN] Error fetching users:", error);
-        return NextResponse.json({ error: `Failed to fetch users: ${error.message}` }, { status: 500 });
+        return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
     }
 } 

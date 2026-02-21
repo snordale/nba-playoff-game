@@ -4,9 +4,15 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const session = await auth();
+  const pathname = request.nextUrl.pathname;
 
-  // Protect /groups routes
-  if (request.nextUrl.pathname.startsWith("/groups")) {
+  if (pathname.startsWith("/groups")) {
+    if (!session) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  if (pathname.startsWith("/admin")) {
     if (!session) {
       return NextResponse.redirect(new URL("/", request.url));
     }
@@ -18,5 +24,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/groups/:path*",
+    "/admin/:path*",
   ],
 };

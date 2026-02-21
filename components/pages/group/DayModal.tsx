@@ -44,9 +44,7 @@ export const DayModal = ({
     const { submissionsByDate, selectedDate, previouslySubmittedPlayerIdsForCurrentUser } = useGroup();
     const users = submissionsByDate?.[selectedDate] ?? [];
     const currentUserId = sessionData?.user?.id;
-    const TIMEZONE = 'America/New_York';
-    console.log(selectedDate)
-    console.log(users)
+    const TIMEZONE = "America/New_York";
 
     // Display date formatted correctly using formatInTimeZone
     const displayDate = selectedDate

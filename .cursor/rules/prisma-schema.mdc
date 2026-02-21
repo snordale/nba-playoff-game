@@ -1,0 +1,58 @@
+---
+description: Prisma schema conventions for this project
+globs: prisma/schema.prisma
+alwaysApply: false
+---
+
+# Prisma Schema Conventions
+
+## Field naming: always map camelCase to snake_case
+
+Every camelCase field **must** have an explicit `@map("snake_case")` annotation. The database column is always snake_case; the Prisma model field is always camelCase.
+
+```prisma
+// ❌ BAD — missing @map, column will be camelCase in DB
+model Game {
+  statsProcessed Boolean @default(false)
+  homeTeamId     String
+}
+
+// ✅ GOOD
+model Game {
+  statsProcessed Boolean @default(false) @map("stats_processed")
+  homeTeamId     String  @map("home_team_id")
+}
+```
+
+## Model naming: always map PascalCase to snake_case table name
+
+```prisma
+// ❌ BAD
+model PlayoffSeries { ... }
+
+// ✅ GOOD
+model PlayoffSeries {
+  ...
+  @@map("playoff_series")
+}
+```
+
+## Relation fields
+
+Bare relation fields (no column in DB) do **not** get `@map` — only scalar FK fields do.
+
+```prisma
+model Game {
+  playoffSeriesId String?        @map("playoff_series_id")  // ✅ scalar FK → @map
+  playoffSeries   PlayoffSeries? @relation(...)              // ✅ relation field → no @map
+}
+```
+
+## Timestamps
+
+All timestamp fields must use `@map`:
+
+```prisma
+createdAt DateTime @default(now()) @map("created_at")
+updatedAt DateTime @updatedAt      @map("updated_at")
+```

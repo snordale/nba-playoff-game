@@ -1,12 +1,7 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/load-games",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/load-games",
-      "schedule": "0 6 * * *"
-    }
+    { "path": "/api/cron/load-games", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/load-games", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/sync-bracket", "schedule": "0 8 * * *" }
   ]
 }

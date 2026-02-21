@@ -1,10 +1,15 @@
 # NBA Playoff Game
 
-NBA Playoff Game: Pick one player every day for the entire NBA Playoffs and maximize your points.
+NBA Playoff Game: Two group-based games during the NBA Playoffs—**Daily Picks** (one player per day, fantasy scoring) and **Series Bracket** (pick series winner + games, round-based points with underdog bonus).
 
 ## Overview
 
-This is a web game that occurs during the NBA Playoffs. Make a group, invite friends, then everyone picks one player per day for the NBA playoffs. You receive scores points based on your picks' points, assists, turnovers, rebounds, blocks, and steals. You cannot pick the same player twice. Whoever has the most points at the end of the playoffs wins. Submission lock in once the game starts, and you can only submit a player whose game has not started.
+- **Daily Picks:** Each day, each user picks one player from any game. One pick per player per playoffs; points from box stats (PTS, REB, AST, STL, BLK, TO). Submissions lock when the game starts.
+- **Series Bracket:** Before each series, pick the winner and total games (4–7). Points by round; correct games add a bonus; underdog picks get a 50% premium.
+
+Make a group, invite friends, then play both games for the selected season. Leaderboards are per game. Before a season is configured (pre-playoff), users can still create and join groups and invite friends; the group page shows a pre-playoff message until playoff dates and series are set.
+
+**Documentation:** **README.md** (this file) – getting started, env, scripts. **AGENTS.md** – product rules, APIs, conventions, key files (for agents and developers). **DATA.md** – data sources and pipelines (ESPN, DB, cron). Keep all three updated when you change behavior, APIs, or data.
 
 ## Scoring
 
@@ -78,6 +83,7 @@ The database schema is defined in `prisma/schema.prisma` and managed by Prisma O
 *   **`Game`**: Represents an NBA game (ESPN ID, date, start time, teams, score, status). Linked to `Team` (home/away), `PlayerGameStats`, and `Submission`.
 *   **`PlayerGameStats`**: Holds the statistical performance of a `Player` in a specific `Game` (points, rebounds, assists, etc.).
 *   **`Submission`**: The core gameplay entity, representing a `User`'s pick (`Player`) for a specific `Game` within the context of a `GroupUser` membership.
+*   **Bracket (Series) game:** **`Season`** (year, start/end dates), **`PlayoffSeed`** (conference + seed → team), **`PlayoffSeries`** (round, teams, winner, firstGameStartsAt), **`SeriesPick`** (user’s winner + games count per series). See **AGENTS.md** for full schema.
 *   **`BlogPost`**: For storing blog post content (likely separate from core game logic).
 
 ## Getting Started
@@ -107,9 +113,12 @@ The database schema is defined in `prisma/schema.prisma` and managed by Prisma O
    NEXTAUTH_SECRET="your-nextauth-secret" # Generate a strong secret: openssl rand -base64 32
    NEXTAUTH_URL="http://localhost:3000" # Adjust for production
    JWT_INVITE_SECRET="your-super-strong-random-secret-key-here" # Used for signing group invite links
+   CRON_SECRET="your-cron-secret" # Required for cron routes: load-games, sync-bracket, load-teams, load-blog-posts
    GOOGLE_CLIENT_ID="your-google-client-id" # From Google Cloud Console
    GOOGLE_CLIENT_SECRET="your-google-client-secret" # From Google Cloud Console
+   ADMIN_EMAIL="your-admin@example.com" # Admin panel and admin API access (or ADMIN_EMAILS for comma-separated list)
    ```
+   See `.env.example` for a full checklist (no secrets).
 
 4. **Development**
    ```bash
@@ -132,9 +141,12 @@ The database schema is defined in `prisma/schema.prisma` and managed by Prisma O
 - `npm run prisma:deploy` - Deploy database migrations
 - `npm run update-scores` - Fetch game and player stats from ESPN for today (equivalent to `npx tsx scripts/loadGames.ts`).
 - `npx tsx scripts/loadGames.ts [YYYY-MM-DD]` - Manually load game and player stats from ESPN for a specific date (defaults to today).
-- `npx tsx scripts/loadAllPlayoffGames.ts` - Load game and player stats from ESPN for the entire playoff date range defined in the script.
-- `npx tsx scripts/logDate.ts [YYYY-MM-DD]` - Log game and player stats from the database for a specific date (defaults to today).
-- `npx tsx scripts/loadTeamsAndPlayers.ts` - Fetch all teams and their full rosters from ESPN to populate/update the main Team and Player database tables. Should be run periodically (e.g., once before playoffs, occasionally if trades happen).
+- `npx tsx scripts/loadAllGames.ts [year]` - Load games for a full season (uses Season from DB; default current year).
+- `npx tsx scripts/loadTeamsAndPlayers.ts` - Fetch all teams and rosters from ESPN. Run before playoffs and occasionally for trades.
+- `npx tsx scripts/seedPlayoffBracket.ts [year]` - Create first-round PlayoffSeries from PlayoffSeeds.
+- `npx tsx scripts/syncSeriesOutcomes.ts [year]` - Sync series outcomes and first-game times from games, then auto-create Semifinals / Conference Finals / Finals.
+
+Cron (Vercel or similar): `GET /api/cron/load-games`, `GET /api/cron/sync-bracket` (Bearer `CRON_SECRET`). See **AGENTS.md** for full API and automation.
 
 ## Scoring System
 
@@ -149,16 +161,9 @@ The application processes game statistics fetched from ESPN for:
 Scores for user submissions are calculated dynamically when viewing group data based on the loaded player statistics.
 
 ## Requirements
-- Users login with Google
-- Users create groups
-- Users invite people to groups
-- Users pick one player for a each day that a game occurs during NBA playoffs
-- Users cannot pick the same player twice for a given group
-- Users receive points based on the players' stats for the day on which they are picked
-- Users can update their pick until the game of their current pick starts
-- Users can view a live leaderboard with total score of each user's picks
-- Users can view a list or calendar of all days during NBA playoffs so they can see the record of who picked what and the score of each pick.
-- Users cannot see pending picks of other users ie picks whose game has not started yet.
+- Users log in with Google; create groups; invite people via shareable links.
+- **Daily Picks:** One player per day; cannot pick the same player twice; points from box stats; pick locks when the game starts; leaderboard and list/calendar of days with picks and scores; pending picks of others are hidden until the game starts.
+- **Series Bracket:** Before each series, pick winner and total games (4–7); round-based scoring with underdog premium; separate bracket leaderboard. See AGENTS.md for scoring and locking.
 
 ## Key Concepts & Notes
 
@@ -170,7 +175,7 @@ Scores for user submissions are calculated dynamically when viewing group data b
 *   **Scoring:** Scores are calculated dynamically based on fetched `PlayerGameStats` using weights defined directly within the relevant API routes (e.g., `app/api/groups/[groupId]/route.ts` as of writing).
 *   **Authentication:** `NextAuth.js` with the Google Provider handles authentication. API routes typically verify the user session using the `auth()` helper from `@/auth`.
 *   **State Management:** `react-query` is used on the frontend to fetch and cache data from the Next.js API routes. Custom hooks for data fetching are often defined in `react-query/`.
-*   **Constants:** Important configuration like playoff dates (`PLAYOFF_START_DATE`, `PLAYOFF_END_DATE`) are stored in `@/constants`.
+*   **Seasons & dates:** Playoff date range is driven by the **Season** table (`startDate`, `endDate`). Create seasons in Admin; cron and scripts use the DB season. Legacy constants may exist in `@/constants` but are not the source of truth.
 
 ## Core Game Mechanics Verification
 

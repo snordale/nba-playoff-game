@@ -1,6 +1,6 @@
 // components/pages/group/DailySubmissionCard.tsx
 import { UserView } from '@/utils/submission-utils';
-import { Badge, Card, CardBody, HStack, Text, VStack } from "@chakra-ui/react";
+import { Badge, Card, CardBody, HStack, Text, VStack, Box } from "@chakra-ui/react";
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import React from 'react';
@@ -75,9 +75,13 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                             )}
                         </VStack>
                         {hasGames && (
-                            <Text fontSize="sm" color={isInPast ? "gray.600" : "orange.500"} fontWeight="medium">
+                            <Badge
+                                colorScheme={(isInPast && !isToday) ? "gray" : "orange"}
+                                variant={(isInPast && !isToday) ? "subtle" : "solid"}
+                                fontSize="xs"
+                            >
                                 {(isInPast && !isToday) ? "Final" : "Open"}
-                            </Text>
+                            </Badge>
                         )}
                     </HStack>
 

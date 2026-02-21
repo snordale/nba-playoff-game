@@ -1,6 +1,5 @@
 // components/pages/group/CalendarDisplay.tsx
-import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
-import { Box, Text, VStack } from '@chakra-ui/react';
+import { Box, Text, VStack } from "@chakra-ui/react";
 import { format, isToday, startOfDay } from 'date-fns';
 import React from 'react';
 import Calendar from 'react-calendar';
@@ -29,7 +28,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
 
   if (gameCount === 0) return null;
 
-  const allUsersWithSubmissions = leaderboardUsers.map(user => {
+  const allUsersWithSubmissions = (leaderboardUsers ?? []).map((user) => {
     const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
     return {
       userId: user.userId,
@@ -74,7 +73,10 @@ const TileContent = ({ date, view }: TileContentProps) => {
 };
 
 export const CalendarDisplay = () => {
-  const { handleDayClick } = useGroup();
+  const { handleDayClick, season } = useGroup();
+
+  const minDate = season?.startDate ? new Date(season.startDate) : undefined;
+  const maxDate = season?.endDate ? new Date(season.endDate) : undefined;
 
   return (
     <Box width="100%">
@@ -137,8 +139,8 @@ export const CalendarDisplay = () => {
       `}</style>
       <Calendar
         defaultActiveStartDate={new Date()}
-        maxDate={new Date(PLAYOFF_END_DATE)}
-        minDate={new Date(PLAYOFF_START_DATE)}
+        maxDate={maxDate}
+        minDate={minDate}
         onClickDay={handleDayClick}
         tileContent={({ date, view }) => (
           <TileContent

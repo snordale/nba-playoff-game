@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
-import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from "@/constants";
 import { prisma } from "@/prisma/client";
+import { getCurrentSeason, getSeasonByYear } from "@/services/SeasonService";
 import { calculateScore } from "@/services/ScoringService";
+import { calculateSeriesScore } from "@/services/SeriesScoringService";
 import {
   processSubmission,
   UserView,
@@ -20,6 +21,10 @@ export async function GET(request: Request, { params }: { params: Params }) {
   const { groupId } = await params;
   const session = await auth();
   const userId = session?.user?.id;
+
+  const url = new URL(request.url);
+  const seasonParam = url.searchParams.get("season");
+  const seasonYear = seasonParam ? parseInt(seasonParam, 10) : null;
 
   if (!userId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -67,6 +72,53 @@ export async function GET(request: Request, { params }: { params: Params }) {
         { status: 403 }
       );
 
+    const season =
+      seasonYear && !isNaN(seasonYear)
+        ? await getSeasonByYear(seasonYear)
+        : await getCurrentSeason();
+
+    // Pre-playoff: no season configured — return group + empty data so UI can show pre-playoff message
+    if (!season) {
+      const groupUsers = await prisma.groupUser.findMany({
+        where: {
+          groupId,
+          user: { deletedAt: null },
+        },
+        select: {
+          id: true,
+          userId: true,
+          isAdmin: true,
+          user: { select: { username: true } },
+        },
+        orderBy: { user: { username: "asc" } },
+      });
+      const leaderboardUsers = groupUsers.map((gu) => ({
+        groupUserId: gu.id,
+        userId: gu.userId,
+        username: gu.user.username,
+        isAdmin: gu.isAdmin,
+        score: 0,
+        submissions: [],
+      }));
+      return NextResponse.json({
+        group,
+        season: null,
+        leaderboardUsers,
+        gameCountsByDate: {},
+        submissionsByDate: {},
+        previouslySubmittedPlayerIdsForCurrentUser: [],
+        seriesLeaderboard: leaderboardUsers.map((gu) => ({
+          groupUserId: gu.groupUserId,
+          userId: gu.userId,
+          username: gu.username,
+          isAdmin: gu.isAdmin,
+          score: 0,
+        })),
+        playoffSeries: [],
+        seriesPicks: [],
+      });
+    }
+
     // --- 2. Fetch *Non-Deleted* Group Users (Basic Info) ---
     const groupUsers = await prisma.groupUser.findMany({
       where: {
@@ -84,13 +136,14 @@ export async function GET(request: Request, { params }: { params: Params }) {
     // Filter map to only include non-deleted users fetched above
     const groupUserMap = new Map(groupUsers.map((gu) => [gu.userId, gu]));
 
-    // --- 3. Fetch Submissions + Game + Player ---
+    // --- 3. Fetch Submissions + Game + Player (filter by season) ---
     const submissionsWithDetails = await prisma.submission.findMany({
       where: {
         groupUser: {
           groupId: groupId,
-          user: { deletedAt: null }, // Filter submissions by non-deleted user
+          user: { deletedAt: null },
         },
+        game: { seasonId: season.id },
       },
       include: {
         game: {
@@ -133,15 +186,13 @@ export async function GET(request: Request, { params }: { params: Params }) {
       );
     }
 
-    // --- 4. Fetch Game Counts (Optimized - use formatInTimeZone) ---
-    const playoffStartDateUTC = new Date(`${PLAYOFF_START_DATE}T00:00:00Z`);
-    const playoffEndDateUTC = new Date(`${PLAYOFF_END_DATE}T23:59:59Z`);
-
+    // --- 4. Fetch Game Counts (filter by season) ---
     const gamesInPlayoffs = await prisma.game.findMany({
       where: {
+        seasonId: season.id,
         date: {
-          gte: playoffStartDateUTC,
-          lte: playoffEndDateUTC,
+          gte: season.startDate,
+          lte: season.endDate,
         },
       },
       select: { id: true, date: true },
@@ -277,14 +328,94 @@ export async function GET(request: Request, { params }: { params: Params }) {
       }))
       .sort((a, b) => b.score - a.score);
 
+    // --- 7. Series Bracket Leaderboard ---
+    const playoffSeries = await prisma.playoffSeries.findMany({
+      where: { seasonId: season.id },
+      include: {
+        highSeedTeam: true,
+        lowSeedTeam: true,
+      },
+    });
+
+    const seriesPicks = await prisma.seriesPick.findMany({
+      where: {
+        groupUser: { groupId },
+        series: { seasonId: season.id },
+      },
+      include: {
+        series: true,
+        groupUser: { select: { userId: true } },
+      },
+    });
+
+    const seriesScoresByUser = new Map<string, number>();
+    seriesPicks.forEach((pick) => {
+      const userId = pick.groupUser.userId;
+      const series = pick.series;
+      const score =
+        calculateSeriesScore(
+          { winnerTeamId: pick.winnerTeamId, gamesCount: pick.gamesCount },
+          {
+            round: series.round,
+            highSeedTeamId: series.highSeedTeamId,
+            lowSeedTeamId: series.lowSeedTeamId,
+            winnerTeamId: series.winnerTeamId,
+            winnerWins: series.winnerWins,
+            loserWins: series.loserWins,
+          }
+        ) ?? 0;
+      seriesScoresByUser.set(
+        userId,
+        (seriesScoresByUser.get(userId) || 0) + score
+      );
+    });
+
+    const seriesLeaderboard = groupUsers
+      .map((gu) => ({
+        groupUserId: gu.id,
+        userId: gu.userId,
+        username: gu.user.username,
+        isAdmin: gu.isAdmin,
+        score: seriesScoresByUser.get(gu.userId) || 0,
+      }))
+      .sort((a, b) => b.score - a.score);
+
     return NextResponse.json({
       group,
+      season: {
+        id: season.id,
+        year: season.year,
+        displayName: season.displayName,
+        startDate: season.startDate,
+        endDate: season.endDate,
+      },
       leaderboardUsers,
       gameCountsByDate,
       submissionsByDate,
       previouslySubmittedPlayerIdsForCurrentUser: Array.from(
         previouslySubmittedPlayerIdsForCurrentUser
       ),
+      seriesLeaderboard,
+      playoffSeries: playoffSeries.map((s) => ({
+        id: s.id,
+        round: s.round,
+        conference: s.conference,
+        sequence: s.sequence,
+        highSeedTeam: s.highSeedTeam,
+        lowSeedTeam: s.lowSeedTeam,
+        highSeedWins: s.highSeedWins,
+        lowSeedWins: s.lowSeedWins,
+        winnerTeamId: s.winnerTeamId,
+        winnerWins: s.winnerWins,
+        loserWins: s.loserWins,
+        firstGameStartsAt: s.firstGameStartsAt,
+      })),
+      seriesPicks: seriesPicks.map((p) => ({
+        seriesId: p.seriesId,
+        groupUserId: p.groupUserId,
+        winnerTeamId: p.winnerTeamId,
+        gamesCount: p.gamesCount,
+      })),
     });
   } catch (error) {
     console.error(`Error fetching group ${groupId}:`, error);

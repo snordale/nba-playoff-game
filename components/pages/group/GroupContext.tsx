@@ -10,6 +10,21 @@ interface GroupContextType {
     // Data
     group: any;
     groupId: string;
+    season: { id: string; year: number; displayName: string; startDate: string; endDate: string } | undefined;
+    seriesLeaderboard: { userId: string; username: string; score: number }[] | undefined;
+    playoffSeries: Array<{
+      id: string;
+      round: string;
+      conference: string | null;
+      sequence: number;
+      highSeedTeam: { id: string; name: string; abbreviation: string };
+      lowSeedTeam: { id: string; name: string; abbreviation: string };
+      winnerTeamId: string | null;
+      winnerWins: number | null;
+      loserWins: number | null;
+      firstGameStartsAt: string | null;
+    }> | undefined;
+    seriesPicks: Array<{ seriesId: string; groupUserId: string; winnerTeamId: string; gamesCount: number }> | undefined;
     leaderboardUsers: ScoredGroupUser[] | undefined;
     gameCountsByDate: { [key: string]: number } | undefined;
     submissionsByDate: { [key: string]: UserView[] } | undefined;
@@ -19,7 +34,8 @@ interface GroupContextType {
     selectedDate: string;
     search: string;
     isDayModalOpen: boolean;
-    viewMode: 'calendar' | 'list';
+    viewMode: "calendar" | "list";
+    gameMode: "daily" | "bracket";
 
     // Current User Info
     currentUserId: string | undefined;
@@ -33,7 +49,8 @@ interface GroupContextType {
     setSelectedDate: (date: string) => void;
     setSearch: (search: string) => void;
     setIsDayModalOpen: (isOpen: boolean) => void;
-    setViewMode: (mode: 'calendar' | 'list') => void;
+    setViewMode: (mode: "calendar" | "list") => void;
+    setGameMode: (mode: "daily" | "bracket") => void;
     handleDayClick: (date: Date | string) => void;
     onSubmit: (data: { gameId: string; playerId: string }) => Promise<void>;
 }
@@ -42,9 +59,10 @@ const GroupContext = createContext<GroupContextType | undefined>(undefined);
 
 interface GroupProviderProps extends PropsWithChildren {
     groupId: string;
+    season?: number;
 }
 
-export function GroupProvider({ children, groupId }: GroupProviderProps) {
+export function GroupProvider({ children, groupId, season }: GroupProviderProps) {
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
     const currentUserUsername = sessionData?.user?.name;
@@ -58,10 +76,11 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
     });
     const [search, setSearch] = useState('');
     const [isDayModalOpen, setIsDayModalOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
+    const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
+    const [gameMode, setGameMode] = useState<"daily" | "bracket">("daily");
 
     // Data Fetching
-    const { data: groupData, isLoading: isLoadingGroup } = useGetGroup({ groupId });
+    const { data: groupData, isLoading: isLoadingGroup } = useGetGroup({ groupId, season });
     const { mutate: createSubmission } = useCreateSubmission();
 
     // Derived Data from API Response
@@ -83,7 +102,6 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
         } else {
             dateKey = formatInTimeZone(date, TIMEZONE, 'yyyy-MM-dd');
         }
-        console.log(dateKey)
 
         const hasGames = groupData?.gameCountsByDate?.[dateKey] > 0;
         const now = new Date();
@@ -107,7 +125,7 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
 
     const onSubmit = async ({ gameId, playerId }) => {
         return new Promise<void>((resolve, reject) => {
-            createSubmission({ gameId, playerId }, {
+            createSubmission({ gameId, playerId, groupId }, {
                 onSuccess: () => {
                     queryClient.invalidateQueries({ queryKey: ["getGroup", groupId] });
                     setIsDayModalOpen(false);
@@ -124,6 +142,10 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
         // Data
         group,
         groupId,
+        season: groupData?.season,
+        seriesLeaderboard: groupData?.seriesLeaderboard,
+        playoffSeries: groupData?.playoffSeries,
+        seriesPicks: groupData?.seriesPicks,
         leaderboardUsers,
         gameCountsByDate,
         submissionsByDate,
@@ -134,6 +156,7 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
         search,
         isDayModalOpen,
         viewMode,
+        gameMode,
 
         // Current User Info
         currentUserId,
@@ -148,6 +171,7 @@ export function GroupProvider({ children, groupId }: GroupProviderProps) {
         setSearch,
         setIsDayModalOpen,
         setViewMode,
+        setGameMode,
         handleDayClick,
         onSubmit,
     };

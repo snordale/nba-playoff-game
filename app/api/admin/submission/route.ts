@@ -1,16 +1,13 @@
-import { auth } from "@/auth";
+import { getAdminSession } from "@/lib/admin";
 import { prisma } from "@/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 
-const ADMIN_EMAIL = "snordale@gmail.com"; // Define the admin email
 const TIMEZONE = "America/New_York";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-
-  // 1. Check Authentication & Authorization
-  if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
+  const session = await getAdminSession();
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const adminUserId = session.user.id; // For logging purposes
@@ -38,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("[ADMIN] Error validating request body:", error);
-    return NextResponse.json({ error: `Invalid request body: ${error.message}` }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
   try {
@@ -156,6 +153,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("[ADMIN] Error creating/updating submission:", error);
-    return NextResponse.json({ error: `Failed to create or update submission: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create or update submission" }, { status: 500 });
   }
 } 

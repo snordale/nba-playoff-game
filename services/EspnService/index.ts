@@ -396,7 +396,96 @@ export interface ESPNApiRosterResponse {
 }
 
 
+// --- Season date helpers ---
+
+/**
+ * Fetches the actual playoff end date for a given season year from the ESPN
+ * scoreboard API. Returns null if the call fails or data is unavailable.
+ *
+ * Uses `leagues[0].season.endDate` which ESPN keeps accurate through the Finals.
+ */
+export async function fetchEspnSeasonEndDate(year: number): Promise<Date | null> {
+  try {
+    // Query mid-April of `year` — reliably within the playoff window for any year.
+    const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${year}0420`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const endDateStr = data?.leagues?.[0]?.season?.endDate;
+    if (!endDateStr) return null;
+    return new Date(endDateStr);
+  } catch {
+    return null;
+  }
+}
+
+// --- Standings types ---
+
+export interface ESPNPlayoffSeed {
+  espnTeamId: string;
+  teamName: string;
+  abbreviation: string;
+  conference: "EAST" | "WEST";
+  seed: number; // 1–8
+}
+
 // --- NEW API Functions ---
+
+/**
+ * Fetches NBA playoff standings for a given season year and returns the top-8
+ * seeds per conference (EAST and WEST). Uses the `playoffSeed` stat field from
+ * the ESPN standings API, so results reflect the current projected seedings
+ * (including play-in movement once play-in games complete). Safe to call
+ * multiple times — the auto-seed route upserts so re-running updates seeds.
+ *
+ * @param year - Season year (e.g. 2025 for the 2024-25 season).
+ * @returns Array of up to 16 entries (8 East, 8 West) with ESPN team id and seed.
+ */
+export const getPlayoffStandings = async (year: number): Promise<ESPNPlayoffSeed[]> => {
+  const url = `https://site.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${year}`;
+  console.log(`Fetching ESPN standings from ${url}`);
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`ESPN standings API returned ${response.status}: ${response.statusText}`);
+  }
+  const data = await response.json();
+
+  const confMap: Record<string, "EAST" | "WEST"> = {
+    "Eastern Conference": "EAST",
+    "Western Conference": "WEST",
+  };
+
+  const results: ESPNPlayoffSeed[] = [];
+
+  const children: any[] = data?.children ?? [];
+  for (const conf of children) {
+    const conference = confMap[conf.name];
+    if (!conference) continue;
+
+    const entries: any[] = conf?.standings?.entries ?? [];
+    for (const entry of entries) {
+      const stats: any[] = entry?.stats ?? [];
+      const seedStat = stats.find((s: any) => s.name === "playoffSeed");
+      const seed = seedStat ? parseInt(seedStat.displayValue, 10) : null;
+      if (!seed || seed < 1 || seed > 8) continue; // skip play-in / eliminated
+
+      const team = entry.team;
+      results.push({
+        espnTeamId: team.id,
+        teamName: team.displayName,
+        abbreviation: team.abbreviation,
+        conference,
+        seed,
+      });
+    }
+  }
+
+  return results.sort((a, b) =>
+    a.conference === b.conference
+      ? a.seed - b.seed
+      : a.conference.localeCompare(b.conference)
+  );
+};
 
 /**
  * Fetches all NBA teams from the ESPN API.

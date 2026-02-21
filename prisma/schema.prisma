@@ -41,21 +41,101 @@ model GroupUser {
   group       Group        @relation(fields: [groupId], references: [id])
   user        User         @relation(fields: [userId], references: [id])
   submissions Submission[]
+  seriesPicks SeriesPick[]
 
   @@map("group_users")
 }
 
+model Season {
+  id            String         @id @default(uuid())
+  year          Int            @unique
+  startDate     DateTime       @map("start_date")
+  endDate       DateTime       @map("end_date")
+  displayName   String         @map("display_name")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  games         Game[]
+  playoffSeeds  PlayoffSeed[]
+  playoffSeries PlayoffSeries[]
+
+  @@map("seasons")
+}
+
+model PlayoffSeed {
+  id         String  @id @default(uuid())
+  seasonId   String  @map("season_id")
+  teamId     String  @map("team_id")
+  seed       Int
+  conference String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  season     Season  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team       Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, conference, seed])
+  @@map("playoff_seeds")
+}
+
+model PlayoffSeries {
+  id               String       @id @default(uuid())
+  seasonId         String       @map("season_id")
+  round            String
+  conference       String?
+  highSeedTeamId   String       @map("high_seed_team_id")
+  lowSeedTeamId    String       @map("low_seed_team_id")
+  sequence         Int
+  firstGameStartsAt DateTime?   @map("first_game_starts_at")
+  highSeedWins     Int          @default(0) @map("high_seed_wins")
+  lowSeedWins      Int          @default(0) @map("low_seed_wins")
+  winnerTeamId     String?      @map("winner_team_id")
+  winnerWins       Int?         @map("winner_wins")
+  loserWins        Int?         @map("loser_wins")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  season           Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  highSeedTeam     Team         @relation("PlayoffSeriesHighSeed", fields: [highSeedTeamId], references: [id])
+  lowSeedTeam      Team         @relation("PlayoffSeriesLowSeed", fields: [lowSeedTeamId], references: [id])
+  winnerTeam       Team?        @relation("PlayoffSeriesWinner", fields: [winnerTeamId], references: [id])
+  seriesPicks      SeriesPick[]
+  games            Game[]
+
+  @@index([seasonId])
+  @@map("playoff_series")
+}
+
+model SeriesPick {
+  id           String        @id @default(uuid())
+  groupUserId  String        @map("group_user_id")
+  seriesId     String        @map("series_id")
+  winnerTeamId String        @map("winner_team_id")
+  gamesCount   Int           @map("games_count")
+  lockedAt     DateTime?     @map("locked_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  groupUser    GroupUser    @relation(fields: [groupUserId], references: [id], onDelete: Cascade)
+  series       PlayoffSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([groupUserId, seriesId])
+  @@index([groupUserId])
+  @@index([seriesId])
+  @@map("series_picks")
+}
+
 model Team {
-  id           String   @id @default(uuid())
-  espnId       String?  @unique
-  name         String   @unique
-  abbreviation String   @unique
+  id           String        @id @default(uuid())
+  espnId       String?       @unique
+  name         String        @unique
+  abbreviation String        @unique
   image        String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  homeGames    Game[]   @relation("HomeTeamGames")
-  awayGames    Game[]   @relation("AwayTeamGames")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  homeGames    Game[]        @relation("HomeTeamGames")
+  awayGames    Game[]        @relation("AwayTeamGames")
   players      Player[]
+  playoffSeeds PlayoffSeed[]
+  playoffSeriesHighSeed  PlayoffSeries[] @relation("PlayoffSeriesHighSeed")
+  playoffSeriesLowSeed   PlayoffSeries[] @relation("PlayoffSeriesLowSeed")
+  playoffSeriesWinner    PlayoffSeries[] @relation("PlayoffSeriesWinner")
 
   @@map("teams")
 }
@@ -76,24 +156,30 @@ model Player {
 }
 
 model Game {
-  id             String            @id @default(uuid())
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
-  espnId         String            @unique
-  date           DateTime          @db.Date
-  startsAt       DateTime?         @map("starts_at")
-  homeTeamId     String            @map("home_team_id")
-  awayTeamId     String            @map("away_team_id")
-  homeScore      Int?              @map("home_score")
-  awayScore      Int?              @map("away_score")
-  status         String
-  statsProcessed Boolean           @default(false) @map("stats_processed")
-  homeTeam       Team              @relation("HomeTeamGames", fields: [homeTeamId], references: [id])
-  awayTeam       Team              @relation("AwayTeamGames", fields: [awayTeamId], references: [id])
-  playerStats    PlayerGameStats[]
-  submissions    Submission[]
+  id                String            @id @default(uuid())
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  espnId            String            @unique
+  seasonId          String            @map("season_id")
+  playoffSeriesId   String?           @map("playoff_series_id")
+  date              DateTime          @db.Date
+  startsAt          DateTime?         @map("starts_at")
+  homeTeamId        String            @map("home_team_id")
+  awayTeamId        String            @map("away_team_id")
+  homeScore         Int?              @map("home_score")
+  awayScore         Int?              @map("away_score")
+  status            String
+  statsProcessed    Boolean           @default(false) @map("stats_processed")
+  season            Season            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  playoffSeries     PlayoffSeries?    @relation(fields: [playoffSeriesId], references: [id])
+  homeTeam          Team              @relation("HomeTeamGames", fields: [homeTeamId], references: [id])
+  awayTeam          Team              @relation("AwayTeamGames", fields: [awayTeamId], references: [id])
+  playerStats       PlayerGameStats[]
+  submissions       Submission[]
 
   @@index([date])
+  @@index([seasonId, date])
+  @@index([playoffSeriesId])
   @@map("games")
 }
 
@@ -145,7 +231,7 @@ model BlogPost {
   updatedAt   DateTime @updatedAt @map("updated_at")
   slug        String   @unique
   title       String
-  publishedAt DateTime
+  publishedAt DateTime  @map("published_at")
   excerpt     String
   content     String   @db.Text
 

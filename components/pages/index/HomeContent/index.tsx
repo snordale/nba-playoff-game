@@ -8,17 +8,28 @@ import {
 import { AddIcon } from '@chakra-ui/icons';
 import { useState } from "react";
 import { CreateGroupModal } from "./CreateGroupModal";
-import { useGetGroups } from "@/react-query/queries";
+import { useGetGroups, useGetSeasons } from "@/react-query/queries";
+import { Box } from "@chakra-ui/react";
 
 export const HomeContent = () => {
   const { data: groups, isLoading } = useGetGroups();
+  const { data: seasons = [] } = useGetSeasons();
   const [modalVariant, setModalVariant] = useState("");
   const onCreateLeagueClose = () => setModalVariant("");
+
+  const isPrePlayoff = !isLoading && seasons.length === 0;
 
   return (
     <>
       <Container maxW="container.xl" p={{ base: 4, md: 6 }}>
         <Stack spacing={4}>
+          {isPrePlayoff && (
+            <Box p={3} borderRadius="md" borderWidth={1} borderColor="orange.200" bg="orange.50">
+              <Text fontSize="sm" color="gray.700">
+                No playoff season is set up yet. You can still create and join groups and invite friends—once the season and bracket are configured, you&apos;ll make daily and series picks in your group.
+              </Text>
+            </Box>
+          )}
           <HStack alignItems="center" gap={2}>
             <Heading size="lg">Groups</Heading>
             <IconButton

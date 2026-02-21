@@ -1,6 +1,6 @@
-import { PLAYOFF_START_DATE } from '@/constants';
-import { Game, Player, PrismaClient } from '@prisma/client';
-import { format, isBefore, parseISO, startOfDay, subDays } from 'date-fns';
+import { Game, Player, PrismaClient } from "@prisma/client";
+import { format, isBefore, subDays } from "date-fns";
+import { getCurrentSeason } from "../services/SeasonService";
 
 const prisma = new PrismaClient();
 
@@ -25,8 +25,14 @@ async function populatePastSubmissions(groupId: string) {
 
   console.log(`Found ${groupUsers.length} users in group ${groupId}.`);
 
-  const startDate = parseISO(PLAYOFF_START_DATE);
-  const yesterday = subDays(new Date(), 1); // Go up to yesterday
+  const season = await getCurrentSeason();
+  if (!season) {
+    console.error("No season found.");
+    return;
+  }
+
+  const startDate = new Date(season.startDate);
+  const yesterday = subDays(new Date(), 1);
 
   console.log(`Processing dates from ${format(startDate, 'yyyy-MM-dd')} to ${format(yesterday, 'yyyy-MM-dd')}`);
 
@@ -35,12 +41,13 @@ async function populatePastSubmissions(groupId: string) {
     const dateStr = format(currentDate, 'yyyy-MM-dd');
     console.log(`\n--- ${dateStr} ---`);
 
-    // Find games that occurred on this specific calendar date
+    // Find games that occurred on this specific calendar date (for the season)
     const gamesOnDate = await prisma.game.findMany({
       where: {
+        seasonId: season.id,
         date: {
           equals: new Date(dateStr),
-        }
+        },
       },
       include: {
         playerStats: {

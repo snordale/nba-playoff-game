@@ -1,4 +1,5 @@
 import { prisma } from "../../prisma/client";
+import { getOrCreateSeason, updateSeasonStartIfEarlier } from "../SeasonService";
 import { getGamesByDate, getEventBoxScore, getAllTeams, getTeamRoster, ESPNApiTeam } from "../EspnService";
 import { Game, Player, PlayerGameStats, PrismaClient, Team } from '@prisma/client';
 import { Prisma } from '@prisma/client';
@@ -267,12 +268,8 @@ export const loadGamesForDate = async (
   const processedGames: LoadGamesResult['games'] = [];
 
   const gamesIdsInDb = await prisma.game.findMany({
-    where: {
-      date,
-    },
-    select: {
-      espnId: true
-    }
+    where: { date },
+    select: { espnId: true },
   });
 
   try {
@@ -285,6 +282,10 @@ export const loadGamesForDate = async (
     }
 
     log(`Found ${events.length} events. Processing...`);
+
+    // Track earliest postseason game date seen this run so we can narrow
+    // season.startDate away from the Apr 1 stub to the real first playoff date.
+    let earliestPostseason: { year: number; date: Date } | null = null;
 
     // 2. Process each game
     for (const event of events) {
@@ -347,9 +348,40 @@ export const loadGamesForDate = async (
 
         const startsAtValue = isTBD ? null : gameDate;
 
+        const seasonYear = (event as any).season?.year ?? new Date(event.date).getFullYear();
+        const season = await getOrCreateSeason(seasonYear);
+
+        const isPostseason = (event as any).season?.type === 3;
+
+        // If this is a postseason event, track the earliest date so we can
+        // narrow season.startDate from its Apr 1 stub to the real playoff start.
+        if (isPostseason) {
+          if (!earliestPostseason || dbDateForNY < earliestPostseason.date) {
+            earliestPostseason = { year: seasonYear, date: dbDateForNY };
+          }
+        }
+
+        // For postseason games, find the matching PlayoffSeries so we can link
+        // the game and keep series win counts accurate.
+        let playoffSeriesId: string | null = null;
+        if (isPostseason) {
+          const matchingSeries = await prisma.playoffSeries.findFirst({
+            where: {
+              seasonId: season.id,
+              OR: [
+                { highSeedTeamId: homeTeam.id, lowSeedTeamId: awayTeam.id },
+                { highSeedTeamId: awayTeam.id, lowSeedTeamId: homeTeam.id },
+              ],
+            },
+            select: { id: true },
+          });
+          playoffSeriesId = matchingSeries?.id ?? null;
+        }
+
         const game = await prisma.game.upsert({
           where: { espnId: event.id },
           update: {
+            seasonId: season.id,
             date: dbDateForNY,
             startsAt: startsAtValue,
             status: event.status.type.name,
@@ -357,9 +389,11 @@ export const loadGamesForDate = async (
             awayTeamId: awayTeam.id,
             homeScore: homeComp.score ? parseInt(homeComp.score) : null,
             awayScore: awayComp.score ? parseInt(awayComp.score) : null,
+            ...(playoffSeriesId !== null && { playoffSeriesId }),
           },
           create: {
             espnId: event.id,
+            seasonId: season.id,
             date: dbDateForNY,
             startsAt: startsAtValue,
             status: event.status.type.name,
@@ -368,6 +402,7 @@ export const loadGamesForDate = async (
             homeScore: homeComp.score ? parseInt(homeComp.score) : null,
             awayScore: awayComp.score ? parseInt(awayComp.score) : null,
             statsProcessed: false,
+            playoffSeriesId,
           },
         });
 
@@ -462,6 +497,12 @@ export const loadGamesForDate = async (
         errors.push(`Error processing game ${event.id}: ${error.message}`);
         gamesFailed++;
       }
+    }
+
+    // Narrow the season's startDate to the actual first postseason game date
+    // if we encountered any postseason events. No-op if startDate is already ≤ candidateDate.
+    if (earliestPostseason) {
+      await updateSeasonStartIfEarlier(earliestPostseason.year, earliestPostseason.date);
     }
 
     const espnIdsToDelete = gamesIdsInDb.filter(g => !processedGames.some(pg => pg.espnId === g.espnId)).map(g => g.espnId);

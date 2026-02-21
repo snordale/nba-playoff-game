@@ -1,5 +1,6 @@
 import axios from "axios";
 
+/** Optional: set API_URL for server-side absolute requests. Client uses relative fetch (fetchAPI). */
 const apiService = axios.create({
   baseURL: process.env.API_URL,
 });
@@ -47,14 +48,31 @@ export const createGroup = async ({ groupName }: { groupName: string }) => {
   });
 };
 
-export const joinGroup = async ({ groupId }: { groupId: string }) => {
-  return fetchAPI(`/api/groups/${groupId}/join`, { method: 'POST' });
+export const joinGroup = async ({
+  groupId,
+  token,
+}: {
+  groupId: string;
+  token: string;
+}) => {
+  return fetchAPI(`/api/groups/${groupId}/join`, {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
 };
 
-export const createSubmission = async ({ gameId, playerId }: { gameId: string; playerId: string }) => {
+export const createSubmission = async ({
+  gameId,
+  playerId,
+  groupId,
+}: {
+  gameId: string;
+  playerId: string;
+  groupId: string;
+}) => {
   return fetchAPI('/api/submission', {
     method: 'POST',
-    body: JSON.stringify({ gameId, playerId }),
+    body: JSON.stringify({ gameId, playerId, groupId }),
   });
 };
 
@@ -62,8 +80,15 @@ export const getGroups = async () => {
   return fetchAPI('/api/groups');
 };
 
-export const getGroup = async ({ groupId }: { groupId: string }) => {
-  return fetchAPI(`/api/groups/${groupId}`);
+export const getGroup = async ({
+  groupId,
+  season,
+}: {
+  groupId: string;
+  season?: number;
+}) => {
+  const params = season != null ? `?season=${season}` : "";
+  return fetchAPI(`/api/groups/${groupId}${params}`);
 };
 
 export const getPlayers = async ({ date }: { date: string | null }) => {
@@ -80,8 +105,30 @@ export const getBlogPosts = async () => {
 };
 
 export const generateInviteLink = async ({ groupId }: { groupId: string }) => {
-  return fetchAPI(`/api/groups/${groupId}/invite`, {
-    method: 'POST',
+  return fetchAPI(`/api/groups/${groupId}/invites`, {
+    method: "POST",
+  });
+};
+
+export const createSeriesPick = async ({
+  groupId,
+  seriesId,
+  winnerTeamId,
+  gamesCount,
+}: {
+  groupId: string;
+  seriesId: string;
+  winnerTeamId: string;
+  gamesCount: number;
+}) => {
+  return fetchAPI("/api/series-pick", {
+    method: "POST",
+    body: JSON.stringify({
+      groupId,
+      seriesId,
+      winnerTeamId,
+      gamesCount,
+    }),
   });
 };
 

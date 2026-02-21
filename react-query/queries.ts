@@ -1,6 +1,7 @@
 import {
   createGroup,
   createSubmission,
+  createSeriesPick,
   generateInviteLink,
   getBlogPosts,
   getGames,
@@ -12,6 +13,7 @@ import {
   adminGetAllUsers,
   adminUpsertSubmission,
 } from "@/services/ApiService";
+import type { Season } from "@prisma/client";
 import type { BlogPost } from "@prisma/client";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
@@ -19,8 +21,14 @@ export const queryClient = new QueryClient();
 
 // Define types for mutation variables
 interface CreateGroupVariables { groupName: string }
-interface JoinGroupVariables { groupId: string }
-interface CreateSubmissionVariables { gameId: string; playerId: string }
+interface JoinGroupVariables { groupId: string; token: string }
+interface CreateSubmissionVariables { gameId: string; playerId: string; groupId: string }
+interface CreateSeriesPickVariables {
+  groupId: string;
+  seriesId: string;
+  winnerTeamId: string;
+  gamesCount: number;
+}
 interface GenerateInviteVariables { groupId: string }
 interface GenerateInviteResponse { inviteUrl: string }
 interface AdminUpsertSubmissionVariables {
@@ -40,7 +48,7 @@ export const useCreateGroup = () =>
 
 export const useJoinGroup = () =>
   useMutation<unknown, Error, JoinGroupVariables>({
-    mutationFn: joinGroup,
+    mutationFn: ({ groupId, token }) => joinGroup({ groupId, token }),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["getGroup", variables.groupId] });
     },
@@ -54,16 +62,40 @@ export const useCreateSubmission = () =>
     },
   });
 
+export const useCreateSeriesPick = () =>
+  useMutation<unknown, Error, CreateSeriesPickVariables>({
+    mutationFn: createSeriesPick,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["getGroup", variables.groupId] });
+    },
+  });
+
 export const useGetGroups = () =>
   useQuery({
     queryKey: ["getGroups"],
     queryFn: getGroups,
   });
 
-export const useGetGroup = ({ groupId }) => {
+export const useGetSeasons = () =>
+  useQuery<Season[]>({
+    queryKey: ["getSeasons"],
+    queryFn: async () => {
+      const res = await fetch("/api/seasons");
+      if (!res.ok) throw new Error("Failed to fetch seasons");
+      return res.json();
+    },
+  });
+
+export const useGetGroup = ({
+  groupId,
+  season,
+}: {
+  groupId: string;
+  season?: number;
+}) => {
   return useQuery({
-    queryKey: ["getGroup", groupId],
-    queryFn: () => getGroup({ groupId }),
+    queryKey: ["getGroup", groupId, season],
+    queryFn: () => getGroup({ groupId, season }),
     enabled: !!groupId,
   });
 };

@@ -93,7 +93,7 @@ const PublicContent = () => {
             Pick one player each day during the NBA Playoffs. Maximize your points based on real game stats (Points, Rebounds, Assists, Steals, Blocks, Turnovers) and compete against your friends!
           </Text>
           <Text fontSize="md" color="gray.600">
-            Can you pick the top performers consistently? Sign up or log in to create or join a group!
+            Create or join a group now—you can invite friends before the playoffs start. Once the season begins, make daily player picks and series bracket picks to compete for the top spot.
           </Text>
         </VStack>
       </Container>

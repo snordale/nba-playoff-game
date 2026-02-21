@@ -1,10 +1,9 @@
 // components/pages/group/GroupInterface.tsx
-'use client';
+"use client";
 
-import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from '@/constants';
-import { type SubmissionView } from '@/utils/submission-utils';
+import { type SubmissionView } from "@/utils/submission-utils";
 import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
-import { Button, ButtonGroup, HStack, Stack, useToast, VStack } from "@chakra-ui/react";
+import { Box, Button, ButtonGroup, HStack, Stack, Text, useToast, VStack } from "@chakra-ui/react";
 import { addDays, isBefore, isEqual } from 'date-fns';
 import { formatInTimeZone, format as formatTz, fromZonedTime } from 'date-fns-tz';
 import React, { useEffect, useMemo, useRef } from 'react';
@@ -14,7 +13,9 @@ import { CalendarDisplay } from './CalendarDisplay';
 import { DailySubmissionCard } from './DailySubmissionCard';
 import { DayModal } from "./DayModal";
 import { useGroup } from './GroupContext';
-import { Leaderboard } from './Leaderboard';
+import { Leaderboard } from "./Leaderboard";
+import { SeasonSelector } from "./SeasonSelector";
+import { BracketView } from "./BracketView";
 
 export const GroupInterface = () => {
     const {
@@ -33,7 +34,11 @@ export const GroupInterface = () => {
         currentUserUsername,
         currentUserId,
         previouslySubmittedPlayerIdsForCurrentUser,
-        submissionsByDate
+        submissionsByDate,
+        season,
+        gameMode,
+        setGameMode,
+        playoffSeries,
     } = useGroup();
 
     const { mutateAsync: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
@@ -88,35 +93,30 @@ export const GroupInterface = () => {
         }
     };
 
-    // Return date strings in YYYY-MM-DD format, starting from PLAYOFF_START_DATE and ending at PLAYOFF_END_DATE
-    // based on the America/New_York timezone.
+    // Return date strings in YYYY-MM-DD format from season start to end (America/New_York).
     const sortedDates = useMemo<string[]>(() => {
-        const TIMEZONE = 'America/New_York';
+        const TIMEZONE = "America/New_York";
+        if (!season?.startDate || !season?.endDate) return [];
         try {
-            // Parse start and end dates in the NY timezone
-            const startNY = fromZonedTime(`${PLAYOFF_START_DATE}T00:00:00`, TIMEZONE);
-            const endNY = fromZonedTime(`${PLAYOFF_END_DATE}T00:00:00`, TIMEZONE);
+            const startNY = new Date(season.startDate);
+            const endNY = new Date(season.endDate);
 
-            if (isBefore(endNY, startNY)) {
-                console.error("Playoff end date is before start date.");
-                return [];
-            }
+            if (isBefore(endNY, startNY)) return [];
 
             const dateStrings: string[] = [];
             let currentDate = startNY;
 
-            // Manually iterate through dates within the NY timezone
             while (isBefore(currentDate, endNY) || isEqual(currentDate, endNY)) {
-                dateStrings.push(formatInTimeZone(currentDate, TIMEZONE, 'yyyy-MM-dd'));
+                dateStrings.push(formatInTimeZone(currentDate, TIMEZONE, "yyyy-MM-dd"));
                 currentDate = addDays(currentDate, 1);
             }
 
             return dateStrings;
         } catch (err) {
-            console.error('sortedDates failed:', err);
+            console.error("sortedDates failed:", err);
             return [];
         }
-    }, [PLAYOFF_START_DATE, PLAYOFF_END_DATE]);
+    }, [season?.startDate, season?.endDate]);
 
 
     useEffect(() => {
@@ -148,40 +148,138 @@ export const GroupInterface = () => {
         });
     }, [selectedDate, leaderboardUsers]);
 
+    // Pre-playoff: no season configured — show message and invite only
+    if (!season) {
+        return (
+            <Stack gap={6}>
+                <HStack justifyContent="space-between" flexWrap="wrap" gap={2}>
+                    <Body1 fontWeight="semibold" fontSize="2xl">
+                        {group?.name}
+                    </Body1>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleGenerateInvite}
+                        isLoading={isGeneratingLink}
+                        colorScheme="orange"
+                        aria-label={didCopy ? "Invite link copied" : "Copy invite link to clipboard"}
+                    >
+                        {didCopy ? "Copied!" : "Copy Invite Link"}
+                    </Button>
+                </HStack>
+                <Box
+                    p={5}
+                    borderRadius="lg"
+                    borderWidth={1}
+                    borderColor="orange.200"
+                    bg="orange.50"
+                >
+                    <Text fontWeight="semibold" color="orange.800" mb={2}>
+                        Pre-playoff
+                    </Text>
+                    <Text color="gray.700" fontSize="sm" mb={3}>
+                        The playoff season and bracket aren&apos;t set up yet. You can create and join groups and invite friends now. Once playoff dates and series are configured by an admin, you&apos;ll be able to make <strong>daily picks</strong> and <strong>series bracket picks</strong> here.
+                    </Text>
+                    <Text color="gray.600" fontSize="xs">
+                        In the meantime, share the invite link above so your group is ready when the playoffs start.
+                    </Text>
+                </Box>
+                {leaderboardUsers && leaderboardUsers.length > 0 && (
+                    <Box>
+                        <Text fontWeight="medium" fontSize="sm" mb={2}>Group members ({leaderboardUsers.length})</Text>
+                        <VStack align="stretch" spacing={1}>
+                            {leaderboardUsers.map((u) => (
+                                <Text key={u.userId} fontSize="sm" color="gray.600">{u.username}</Text>
+                            ))}
+                        </VStack>
+                    </Box>
+                )}
+            </Stack>
+        );
+    }
+
     return (
         <Stack gap={6}>
-            <HStack justifyContent='space-between'>
-                <Body1 fontWeight="semibold" fontSize="2xl">
-                    {group?.name}
-                </Body1>
+            {/* Header: group name + season + invite */}
+            <HStack justifyContent="space-between" flexWrap="wrap" gap={2}>
+                <HStack>
+                    <Body1 fontWeight="semibold" fontSize="2xl">
+                        {group?.name}
+                    </Body1>
+                    <SeasonSelector currentSeason={season} />
+                </HStack>
                 <Button
                     size="sm"
                     variant="outline"
                     onClick={handleGenerateInvite}
                     isLoading={isGeneratingLink}
                     colorScheme="orange"
+                    aria-label={didCopy ? "Invite link copied" : "Copy invite link to clipboard"}
                 >
                     {didCopy ? "Copied!" : "Copy Invite Link"}
                 </Button>
             </HStack>
 
-            <Leaderboard />
+            {/* Primary game-mode tabs */}
+            <HStack role="tablist" aria-label="Game mode">
+                <ButtonGroup size="sm" isAttached variant="outline">
+                    <Button
+                        role="tab"
+                        aria-selected={gameMode === "daily"}
+                        onClick={() => setGameMode("daily")}
+                        colorScheme="orange"
+                        variant={gameMode === "daily" ? "solid" : "outline"}
+                    >
+                        Daily Picks
+                    </Button>
+                    <Button
+                        role="tab"
+                        aria-selected={gameMode === "bracket"}
+                        onClick={() => setGameMode("bracket")}
+                        colorScheme="orange"
+                        variant={gameMode === "bracket" ? "solid" : "outline"}
+                    >
+                        Bracket
+                    </Button>
+                </ButtonGroup>
+            </HStack>
 
-            <VStack alignItems='stretch'>
-                <HStack>
+            {/* Tab content */}
+            {gameMode === "bracket" ? (
+                <BracketView />
+            ) : (
+            <VStack alignItems="stretch" spacing={4}>
+                {/* Leaderboard lives inside the daily tab */}
+                <Leaderboard />
+
+                {/* Empty state: season exists but no data yet */}
+                {season && Object.keys(gameCountsByDate ?? {}).length === 0 && (
+                    <Box p={3} borderRadius="md" borderWidth={1} borderColor="gray.200" bg="gray.50">
+                        <Text fontSize="sm" color="gray.700">
+                            No games loaded yet for this season. Once the playoff schedule is set, you&apos;ll be able to make daily picks here.
+                        </Text>
+                    </Box>
+                )}
+
+                {/* Secondary view-mode toggle */}
+                <HStack role="tablist" aria-label="Daily view">
                     <ButtonGroup size="sm" isAttached variant="outline">
                         <Button
-                            onClick={() => setViewMode('list')}
+                            role="tab"
+                            aria-selected={viewMode === "list"}
+                            onClick={() => setViewMode("list")}
                             colorScheme="orange"
-                            variant={viewMode === 'list' ? 'solid' : 'outline'}
+                            variant={viewMode === "list" ? "solid" : "outline"}
                             leftIcon={<HamburgerIcon />}
                         >
                             List
                         </Button>
                         <Button
-                            onClick={() => setViewMode('calendar')}
+                            role="tab"
+                            aria-selected={viewMode === "calendar"}
+                            onClick={() => setViewMode("calendar")}
                             colorScheme="orange"
-                            variant={viewMode === 'calendar' ? 'solid' : 'outline'}
+                            variant={viewMode === "calendar" ? "solid" : "outline"}
                             leftIcon={<CalendarIcon />}
                         >
                             Calendar
@@ -189,7 +287,7 @@ export const GroupInterface = () => {
                     </ButtonGroup>
                 </HStack>
 
-                {viewMode === 'calendar' ? (
+                {viewMode === "calendar" ? (
                     <CalendarDisplay />
                 ) : (
                     <VStack
@@ -208,44 +306,36 @@ export const GroupInterface = () => {
                         borderColor="gray.100"
                         pt={4}
                     >
-                        {(() => {
-                            return sortedDates.map(date => {
-                                const todayInNyStr = formatTz(new Date(), 'yyyy-MM-dd', { timeZone: 'America/New_York' });
-
-                                const endOfNyDay = fromZonedTime(`${date}T23:59:59.999`, 'America/New_York');
-
-                                const isInPast = isBefore(endOfNyDay, new Date());
-                                const isToday = date === todayInNyStr;
-                                console.log(date, todayInNyStr, endOfNyDay)
-                                console.log(isInPast, isToday)
-
-                                const usersWithSubmissions = submissionsByDate?.[date] ?? [];
-
-                                const allUsersWithSubmissions = leaderboardUsers.map(user => {
-                                    const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
-                                    return {
-                                        userId: user.userId,
-                                        username: user.username,
-                                        submission: submission ? submission.submission : null
-                                    }
-                                });
-
-                                return (
-                                    <div key={date} ref={isToday ? todayRef : undefined}>
-                                        <DailySubmissionCard
-                                            date={date}
-                                            gameCount={gameCountsByDate?.[date] ?? 0}
-                                            usersWithSubmissions={allUsersWithSubmissions}
-                                            isToday={isToday}
-                                            isInPast={isInPast}
-                                        />
-                                    </div>
-                                );
+                        {sortedDates.map(date => {
+                            const todayInNyStr = formatTz(new Date(), 'yyyy-MM-dd', { timeZone: 'America/New_York' });
+                            const endOfNyDay = fromZonedTime(`${date}T23:59:59.999`, 'America/New_York');
+                            const isInPast = isBefore(endOfNyDay, new Date());
+                            const isToday = date === todayInNyStr;
+                            const usersWithSubmissions = submissionsByDate?.[date] ?? [];
+                            const allUsersWithSubmissions = leaderboardUsers.map(user => {
+                                const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
+                                return {
+                                    userId: user.userId,
+                                    username: user.username,
+                                    submission: submission ? submission.submission : null
+                                };
                             });
-                        })()}
+                            return (
+                                <div key={date} ref={isToday ? todayRef : undefined}>
+                                    <DailySubmissionCard
+                                        date={date}
+                                        gameCount={gameCountsByDate?.[date] ?? 0}
+                                        usersWithSubmissions={allUsersWithSubmissions}
+                                        isToday={isToday}
+                                        isInPast={isInPast}
+                                    />
+                                </div>
+                            );
+                        })}
                     </VStack>
                 )}
             </VStack>
+            )}
 
             {selectedDate && currentUserId && currentUserUsername && (
                 <DayModal

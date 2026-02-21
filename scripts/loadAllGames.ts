@@ -1,26 +1,32 @@
 // scripts/loadAllGames.ts
-import { PLAYOFF_END_DATE, PLAYOFF_START_DATE } from "@/constants";
-import { addDays, differenceInDays, format } from 'date-fns';
+import { addDays, differenceInDays, format } from "date-fns";
+import { getCurrentSeason, getOrCreateSeason } from "../services/SeasonService";
 import { loadGamesForDate } from "../services/DataLoaderService";
 
-// Helper to parse YYYY-MM-DD into a Date object (start of day UTC)
-function parseDateUTC(dateString: string): Date {
-    const [year, month, day] = dateString.split('-').map(Number);
-    // Month is 0-indexed for Date constructor
-    return new Date(Date.UTC(year, month - 1, day));
-}
-
 // Define batch size for concurrent processing
-const BATCH_SIZE = 10; // Process 10 days concurrently
+const BATCH_SIZE = 10;
 
 /**
  * Main function to iterate through playoff dates and load games concurrently in batches.
+ * Uses season from DB (default: current season). Pass YEAR as first arg to load a specific season.
  */
 async function main() {
-    console.log(`Starting to load playoff games from ${PLAYOFF_START_DATE} to ${PLAYOFF_END_DATE} using concurrent batches of ${BATCH_SIZE}...`);
+  const yearArg = process.argv[2];
+  const season = yearArg
+    ? await getOrCreateSeason(parseInt(yearArg, 10))
+    : await getCurrentSeason();
 
-    const startDate = parseDateUTC(PLAYOFF_START_DATE);
-    const endDate = parseDateUTC(PLAYOFF_END_DATE);
+  if (!season) {
+    console.error("No season found. Create a season first or pass a year (e.g. npx tsx scripts/loadAllGames.ts 2025)");
+    process.exit(1);
+  }
+
+  const startDate = new Date(season.startDate);
+  const endDate = new Date(season.endDate);
+
+  console.log(
+    `Starting to load playoff games for ${season.displayName} (${format(startDate, "yyyy-MM-dd")} to ${format(endDate, "yyyy-MM-dd")}) using batches of ${BATCH_SIZE}...`
+  );
     const totalDays = differenceInDays(endDate, startDate) + 1; // Include end date
 
     // Generate all dates

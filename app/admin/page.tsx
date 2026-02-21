@@ -3,31 +3,57 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Container, Heading, Text } from '@chakra-ui/react';
-import AdminInterface from '@/components/pages/admin/AdminInterface';
+import AdminInterface from "@/components/pages/admin/AdminInterface";
+import AdminSeasonBracket from "@/components/pages/admin/AdminSeasonBracket";
 
-// Define the required admin email
-const ADMIN_EMAIL = "snordale@gmail.com";
+type AdminAccess = 'pending' | 'admin' | 'denied';
 
 export default function AdminPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
+  const [adminAccess, setAdminAccess] = useState<AdminAccess>('pending');
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/admin/me')
+      .then((res) => {
+        if (res.ok) setAdminAccess('admin');
+        else {
+          setAdminAccess('denied');
+          router.replace('/');
+        }
+      })
+      .catch(() => {
+        setAdminAccess('denied');
+        router.replace('/');
+      });
+  }, [status, router]);
 
   if (status === 'loading') {
     return <Container centerContent py={10}><Text>Loading session...</Text></Container>;
   }
 
-  // Redirect if not authenticated or not the admin user
-  if (status === 'unauthenticated' || session?.user?.email !== ADMIN_EMAIL) {
-    router.replace('/'); // Redirect to home page
+  if (status === 'unauthenticated') {
+    router.replace('/');
     return <Container centerContent py={10}><Text>Access Denied. Redirecting...</Text></Container>;
   }
 
-  // If authenticated and is the admin user, render the admin interface
+  if (status === 'authenticated' && adminAccess === 'pending') {
+    return <Container centerContent py={10}><Text>Checking access...</Text></Container>;
+  }
+
+  if (status === 'authenticated' && adminAccess === 'denied') {
+    return <Container centerContent py={10}><Text>Access Denied. Redirecting...</Text></Container>;
+  }
+
+  // status === 'authenticated' && adminAccess === 'admin'
   return (
     <Container maxW="container.lg" py={10}>
       <Heading mb={6}>Admin Panel</Heading>
       <AdminInterface />
+      <AdminSeasonBracket />
     </Container>
   );
-} 
+}
