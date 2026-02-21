@@ -141,15 +141,17 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
   return { outcomesUpdated, firstGameUpdated, gamesLinked: gamesToLink.length };
 }
 
-/** NBA bracket: R1 sequence 1 = 1v8, 2 = 2v7, 3 = 3v6, 4 = 4v5. SF: (1v8 winner vs 4v5 winner), (2v7 winner vs 3v6 winner). */
-const SEMIFINAL_MATCHUPS: [number, number][] = [
-  [1, 4], // winner of series 1 vs winner of series 4
-  [2, 3],
+/** Bracket slots: 0=1v8, 1=2v7, 2=3v6, 3=4v5. SF: slot 0 vs 3, slot 1 vs 2 (by index). */
+const SEMIFINAL_MATCHUP_INDICES: [number, number][] = [
+  [0, 3], // 1v8 winner vs 4v5 winner
+  [1, 2], // 2v7 winner vs 3v6 winner
 ];
 
 /**
  * Creates next-round series from completed series. Idempotent: skips creating if already exists.
  * Order: Semifinals (per conference) → Conference Finals (per conference) → Finals.
+ * Uses conference-relative slot order: first-round series are sorted by sequence, so East gets
+ * sequence 1..4 and West 5..8; we use index 0..3 within each conference for matchup logic.
  */
 export async function advanceBracket(seasonId: string): Promise<{ created: number; round: string }[]> {
   const results: { created: number; round: string }[] = [];
@@ -162,23 +164,23 @@ export async function advanceBracket(seasonId: string): Promise<{ created: numbe
   });
 
   const byRound = (round: string) => allSeries.filter((s) => s.round === round);
-  const withWinners = (round: string) => byRound(round).filter((s) => s.winnerTeamId);
 
-  // --- Semifinals: from FIRST_ROUND winners (per conference)
+  // --- Semifinals: from FIRST_ROUND winners (per conference), using slot index not global sequence
   for (const conf of ["EAST", "WEST"] as const) {
-    const r1 = byRound("FIRST_ROUND").filter((s) => s.conference === conf);
+    const r1 = byRound("FIRST_ROUND")
+      .filter((s) => s.conference === conf)
+      .sort((a, b) => a.sequence - b.sequence);
     if (r1.length !== 4) continue;
-    const winners = r1.filter((s) => s.winnerTeamId);
-    if (winners.length !== 4) continue;
+    const slotWinners = r1.map((s) => s.winnerTeamId);
+    if (slotWinners.some((w) => !w)) continue;
 
     const existingSF = byRound("SEMIFINALS").filter((s) => s.conference === conf);
     if (existingSF.length >= 2) continue;
 
-    const getWinner = (seq: number) => r1.find((s) => s.sequence === seq)?.winnerTeamId;
     let seqBase = allSeries.filter((s) => s.round === "SEMIFINALS").length;
-    for (const [highSeq, lowSeq] of SEMIFINAL_MATCHUPS) {
-      const highTeamId = getWinner(highSeq);
-      const lowTeamId = getWinner(lowSeq);
+    for (const [highIdx, lowIdx] of SEMIFINAL_MATCHUP_INDICES) {
+      const highTeamId = slotWinners[highIdx] ?? null;
+      const lowTeamId = slotWinners[lowIdx] ?? null;
       if (!highTeamId || !lowTeamId) continue;
       const already = await prisma.playoffSeries.findFirst({
         where: {
@@ -262,4 +264,36 @@ export async function advanceBracket(seasonId: string): Promise<{ created: numbe
   }
 
   return results;
+}
+
+/**
+ * Runs syncSeriesOutcomes then advanceBracket in a loop until advance creates no new series.
+ * One call completes the full bracket (SF → CF → Finals) and is idempotent on re-run.
+ */
+export async function syncAndAdvanceUntilComplete(seasonId: string): Promise<{
+  outcomesUpdated: number;
+  firstGameUpdated: number;
+  gamesLinked: number;
+  advanceCreated: number;
+  advanceRounds: { created: number; round: string }[];
+}> {
+  const syncResult = await syncSeriesOutcomes(seasonId);
+  let totalAdvanceCreated = 0;
+  const allAdvanceRounds: { created: number; round: string }[] = [];
+
+  for (;;) {
+    const advanceResults = await advanceBracket(seasonId);
+    const created = advanceResults.reduce((sum, r) => sum + r.created, 0);
+    totalAdvanceCreated += created;
+    allAdvanceRounds.push(...advanceResults);
+    if (created === 0) break;
+    // New series were created; sync again to fill their outcomes before next advance
+    await syncSeriesOutcomes(seasonId);
+  }
+
+  return {
+    ...syncResult,
+    advanceCreated: totalAdvanceCreated,
+    advanceRounds: allAdvanceRounds,
+  };
 }

@@ -1,10 +1,11 @@
 import { getCurrentSeason } from "@/services/SeasonService";
-import { advanceBracket, syncSeriesOutcomes } from "@/services/BracketService";
+import { syncAndAdvanceUntilComplete } from "@/services/BracketService";
 import { NextResponse } from "next/server";
 
 /**
- * Cron: sync series outcomes and firstGameStartsAt, then advance bracket for current season.
- * Call after load-games (e.g. daily). Auth: Bearer CRON_SECRET.
+ * Cron: sync series outcomes and firstGameStartsAt, then advance bracket in a loop until
+ * full bracket exists for current season. Idempotent. Call after load-games (e.g. daily).
+ * Auth: Bearer CRON_SECRET.
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -17,22 +18,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No current season" }, { status: 404 });
   }
 
-  const { outcomesUpdated, firstGameUpdated } = await syncSeriesOutcomes(season.id);
-  const advanceResults = await advanceBracket(season.id);
-  const advanceCreated = advanceResults.reduce((sum, r) => sum + r.created, 0);
+  const result = await syncAndAdvanceUntilComplete(season.id);
 
-  const body: {
-    season: string;
-    outcomesUpdated: number;
-    firstGameUpdated: number;
-    advanceCreated: number;
-    advanceRounds: string[];
-  } = {
+  const body = {
     season: season.displayName,
-    outcomesUpdated,
-    firstGameUpdated,
-    advanceCreated,
-    advanceRounds: advanceResults.filter((r) => r.created > 0).map((r) => r.round),
+    outcomesUpdated: result.outcomesUpdated,
+    firstGameUpdated: result.firstGameUpdated,
+    gamesLinked: result.gamesLinked,
+    advanceCreated: result.advanceCreated,
+    advanceRounds: result.advanceRounds.filter((r) => r.created > 0).map((r) => r.round),
   };
   return NextResponse.json(body);
 }
