@@ -89,7 +89,7 @@ Both games live in the **same group** and are **season-scoped** (e.g. 2024–25 
 
 **Environment (required):** `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `JWT_INVITE_SECRET`, `CRON_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL` (or `ADMIN_EMAILS` comma-separated). `CRON_SECRET` is required for cron routes (`load-games`, `sync-bracket`, `load-teams`, `load-blog-posts`). Admin routes require the authenticated user’s email to be in `ADMIN_EMAIL`/`ADMIN_EMAILS`. See `.env.example` for a full checklist. Set all in production.
 
-**package.json overrides:** The `overrides.minimatch` entry forces a safe minimatch (≥10.2.1) for the whole tree. ESLint and eslint-config-next still depend on an older minimatch transitively; the override fixes the ReDoS advisory (GHSA-3ppc-4f35-3m26) without downgrading ESLint. Remove the override once upstream (eslint / eslint-config-next) ship a version that depends on minimatch ≥10.2.1.
+**package.json overrides:** `minimatch` — forces ≥10.2.1 for the whole tree (ReDoS fix; ESLint still pulls older minimatch). Remove when eslint upgrades. (No @types/react-dom override; explicit @types/react and @types/react-dom at 18.x resolve peer conflicts.)
 
 ---
 
