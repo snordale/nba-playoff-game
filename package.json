@@ -1,5 +1,8 @@
 {
   "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "description": "NBA Playoff Game",
   "scripts": {
     "dev": "next",
@@ -61,5 +64,9 @@
     "tailwindcss": "^3.3.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
-  }
+  },
+  "overrides": {
+    "minimatch": "^10.2.1"
+  },
+  "//overrides": "minimatch is a transitive dep of eslint; override forces >=10.2.1 for GHSA-3ppc-4f35-3m26 (ReDoS). Remove when eslint upgrades."
 }
