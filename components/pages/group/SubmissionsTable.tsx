@@ -6,7 +6,6 @@ import { Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-
 export const SubmissionsTable = ({ groupId }: { groupId: string }) => {
   const { data: groupData } = useGetGroup({ groupId });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const oldSubmissions = (groupData as any)?.players?.flatMap((player: any) => {
     return player.submissions.flatMap((submission: any) => {
       return {
@@ -43,7 +42,7 @@ export const SubmissionsTable = ({ groupId }: { groupId: string }) => {
             )}
             {oldSubmissions?.map((submission: any) => {
               return (
-                <Tr>
+                <Tr key={submission.id}>
                   <Td>{new Date(submission.createdAt).toLocaleDateString()}</Td>
                   <Td>{submission.username}</Td>
                   <Td>{submission.playerName}</Td>

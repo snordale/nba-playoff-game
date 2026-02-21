@@ -127,7 +127,7 @@ export default function PrivacyPage() {
                             <li>Improve user experience</li>
                         </ul>
 
-                        <h2>8. Children's Privacy</h2>
+                        <h2>8. Children&apos;s Privacy</h2>
                         <p>Our service is not intended for users under 18 years of age. We do not knowingly collect information from children under 18.</p>
 
                         <h2>9. Changes to Privacy Policy</h2>

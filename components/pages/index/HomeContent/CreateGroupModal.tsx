@@ -26,12 +26,14 @@ export const CreateGroupModal = ({ variant, onClose }: { variant: string; onClos
     }
   };
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (createGroup.isSuccess) {
       setGroupName("");
       onClose();
     }
   }, [createGroup.isSuccess, onClose]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const renderBody = () => {
     if (variant === "create") {

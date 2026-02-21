@@ -51,7 +51,7 @@ export const HomeContent = () => {
             <Card variant="outline" mt={2}>
               <CardBody>
                 <Text textAlign="center" color="gray.500">
-                  No groups yet. Create one using the '+' button!
+                  No groups yet. Create one using the &apos;+&apos; button!
                 </Text>
               </CardBody>
             </Card>

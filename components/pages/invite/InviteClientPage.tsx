@@ -118,10 +118,10 @@ export default function InviteClientPage({
                     {needsLogin && groupName && (
                         <>
                             <Heading as="h2" size="lg" color="orange.600">
-                                You're Invited!
+                                You&apos;re Invited!
                             </Heading>
                             <Text fontSize="lg" color="gray.700">
-                                You've been invited to join the group: <strong>{groupName}</strong>.
+                                You&apos;ve been invited to join the group: <strong>{groupName}</strong>.
                             </Text>
                             <HStack spacing={5}>
                                 <AuthButton token={token} text="Join Group" />

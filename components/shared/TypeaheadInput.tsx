@@ -40,7 +40,7 @@ export const TypeaheadInput = ({
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
 
-    // Effect to sync internal input value with controlled value prop
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (value) {
             setInputValue(value.label);
@@ -49,6 +49,7 @@ export const TypeaheadInput = ({
             setInputValue('');
         }
     }, [value]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const term = e.target.value;

@@ -4,7 +4,6 @@ async function main() {
   // Find all submissions without groupUserId
   const submissions = await prisma.submission.findMany({
     where: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       groupUserId: null as any,
     },
     include: {

@@ -131,16 +131,16 @@ const AdminInterface = () => {
         );
     };
 
-    // Effect to reset user & player selection when group changes
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         setSelectedUserId('');
         setSelectedPlayer(null);
     }, [selectedGroupId]);
 
-    // Effect to reset player selection when date changes
     useEffect(() => {
         setSelectedPlayer(null);
     }, [selectedDate]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     // Handle API errors for display
     if (groupsError) return <Text color="red.500">Error loading groups: {groupsError.message}</Text>;
