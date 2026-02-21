@@ -49,6 +49,26 @@ Both games live in the **same group** and are **season-scoped** (e.g. 2024–25 
 - **Backwards compatibility:** Changes must support older data. Do not assume new fields exist, new enum values, or new relations; handle null/undefined and legacy shapes. Migrations should be additive or carefully backfilled so existing rows and older clients keep working.
 - **Update markdown as you develop:** When you change or add behavior, APIs, data, scripts, or config, update the relevant doc (README.md, AGENTS.md, or DATA.md) in the same work so documentation stays comprehensive. See the Documentation (markdown) section above for which file to edit.
 
+**Next.js server components & build-time DB access:**
+
+- `DATABASE_URL` is only set in the **Production** Vercel environment. Preview and CI builds have no DB.
+- **Never call Prisma directly in a server component's render body** unless the page is marked `export const dynamic = "force-dynamic"`. Static pages run at build time where there is no DB.
+- **`generateStaticParams`** must always wrap its Prisma call in try/catch and return `[]` on failure so Preview builds don't break:
+  ```ts
+  export async function generateStaticParams() {
+    try {
+      const rows = await prisma.foo.findMany({ select: { slug: true } });
+      return rows.map(r => ({ slug: r.slug }));
+    } catch {
+      return []; // no DB in Preview/CI — renders dynamically at request time
+    }
+  }
+  ```
+- **Pages that must query the DB at render time** (e.g. listing pages) should export `export const dynamic = "force-dynamic"` to opt out of static generation entirely.
+- **Pre-deploy checklist:** Before pushing, run `npx tsc --noEmit` to catch type errors. The `postinstall` script runs `prisma generate`; `prebuild` runs `prisma migrate deploy` only when `DATABASE_URL` is set.
+
+**Prisma schema conventions:** Every camelCase scalar field must have `@map("snake_case")`; every model must have `@@map("snake_case_table")`. Relation fields (array or object, no DB column) do not get `@map`. See `.cursor/rules/prisma-schema.mdc`.
+
 **Environment (required):** `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `JWT_INVITE_SECRET`, `CRON_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL` (or `ADMIN_EMAILS` comma-separated). `CRON_SECRET` is required for cron routes (`load-games`, `sync-bracket`, `load-teams`, `load-blog-posts`). Admin routes require the authenticated user’s email to be in `ADMIN_EMAIL`/`ADMIN_EMAILS`. See `.env.example` for a full checklist. Set all in production.
 
 ---
