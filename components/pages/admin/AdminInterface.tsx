@@ -148,6 +148,12 @@ const AdminInterface = () => {
     return (
         <Box as="form" onSubmit={handleSubmit} borderWidth="1px" borderRadius="lg" p={6} shadow="sm">
             <VStack spacing={4} align="stretch">
+                <Box>
+                    <Text fontSize="md" fontWeight="semibold" mb={1}>Upsert Submission</Text>
+                    <Text fontSize="sm" color="gray.600">
+                        Create or update a daily pick for a user in a group: choose group, user, date, and player. Use this to fix missing picks or correct mistakes (e.g. wrong player entered).
+                    </Text>
+                </Box>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                     {/* Group Selection */}
                     <FormControl isRequired>

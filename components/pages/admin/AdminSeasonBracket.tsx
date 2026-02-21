@@ -181,9 +181,12 @@ export default function AdminSeasonBracket() {
       <VStack spacing={6} align="stretch">
         <form onSubmit={handleCreateSeason}>
           <Stack spacing={3}>
-            <Text fontSize="sm" fontWeight="medium">
-              Create Season
-            </Text>
+            <Box>
+              <Text fontSize="sm" fontWeight="medium">Create Season</Text>
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Add a new playoff season with display year and date range. Needed before loading games or setting up the bracket; seasons are also auto-created when loading games from ESPN.
+              </Text>
+            </Box>
             <FormControl>
               <FormLabel fontSize="xs">Year</FormLabel>
               <Input
@@ -336,9 +339,12 @@ export default function AdminSeasonBracket() {
         <Divider />
 
         <Stack spacing={3}>
-          <Text fontSize="sm" fontWeight="medium">
-            Seed Bracket (from seeds)
-          </Text>
+          <Box>
+            <Text fontSize="sm" fontWeight="medium">Seed Bracket (from seeds)</Text>
+            <Text fontSize="xs" color="gray.500" mt={1}>
+              Create first-round PlayoffSeries (8 matchups) from existing PlayoffSeed records. Run after you have 16 seeds (e.g. from Auto-Seed or manual Add Seed). Idempotent — skips if any series already exist for that year.
+            </Text>
+          </Box>
           <HStack>
             <Input
               type="number"
@@ -368,9 +374,12 @@ export default function AdminSeasonBracket() {
         </Stack>
 
         <Stack spacing={3}>
-          <Text fontSize="sm" fontWeight="medium">
-            Sync Series Outcomes (from games)
-          </Text>
+          <Box>
+            <Text fontSize="sm" fontWeight="medium">Sync Series Outcomes (from games)</Text>
+            <Text fontSize="xs" color="gray.500" mt={1}>
+              Update winner and win counts on all series from completed games, set first-game times, and advance the bracket (create Semifinals, Conference Finals, Finals) in one run. Safe to run multiple times; use after loading games or when series finish.
+            </Text>
+          </Box>
           <HStack>
             <Input
               type="number"
