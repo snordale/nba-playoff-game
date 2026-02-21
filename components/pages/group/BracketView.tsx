@@ -49,12 +49,10 @@ function SeriesCard({ series, currentPick, groupId, currentGroupUserId }: Series
   const [winnerTeamId, setWinnerTeamId] = useState(currentPick?.winnerTeamId ?? "");
   const [gamesCount, setGamesCount] = useState(currentPick?.gamesCount ?? 4);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setWinnerTeamId(currentPick?.winnerTeamId ?? "");
     setGamesCount(currentPick?.gamesCount ?? 4);
   }, [currentPick?.winnerTeamId, currentPick?.gamesCount]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const { mutateAsync: createPick, isPending } = useCreateSeriesPick();
   const toast = useToast();

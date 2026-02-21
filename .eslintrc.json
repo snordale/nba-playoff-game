@@ -1,0 +1,8 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "plugins": ["@tanstack/query"],
+  "rules": {
+    "@tanstack/query/exhaustive-deps": "warn",
+    "@tanstack/query/no-rest-destructuring": "warn"
+  }
+}
