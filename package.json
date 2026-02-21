@@ -3,8 +3,9 @@
   "description": "NBA Playoff Game",
   "scripts": {
     "dev": "next",
-    "prebuild": "npx prisma generate && npx prisma migrate deploy",
+    "postinstall": "npx prisma generate",
     "build": "next build",
+    "prebuild": "if [ -n \"$DATABASE_URL\" ]; then npx prisma migrate deploy; fi",
     "start": "next start",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
