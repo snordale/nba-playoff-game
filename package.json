@@ -8,7 +8,7 @@
     "prebuild": "if [ -n \"$DATABASE_URL\" ]; then npx prisma migrate deploy; fi",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint",
+    "lint": "eslint .",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:deploy": "npx prisma migrate deploy",
