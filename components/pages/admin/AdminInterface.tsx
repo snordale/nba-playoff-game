@@ -131,13 +131,11 @@ const AdminInterface = () => {
         );
     };
 
-    // Effect to reset user & player selection when group changes
     useEffect(() => {
         setSelectedUserId('');
         setSelectedPlayer(null);
     }, [selectedGroupId]);
 
-    // Effect to reset player selection when date changes
     useEffect(() => {
         setSelectedPlayer(null);
     }, [selectedDate]);

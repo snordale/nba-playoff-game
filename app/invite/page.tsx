@@ -103,8 +103,9 @@ async function handleInvite(token: string, userId: string | undefined): Promise<
 
 
 // This Server Component handles the initial logic
-export default async function InvitePage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
-  const token = typeof searchParams?.token === 'string' ? searchParams.token : undefined;
+export default async function InvitePage({ searchParams }: { searchParams?: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const sp = await searchParams;
+  const token = typeof sp?.token === 'string' ? sp.token : undefined;
 
   if (!token) {
     // Render client page with error if no token

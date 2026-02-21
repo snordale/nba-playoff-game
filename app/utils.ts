@@ -6,7 +6,13 @@ export const scoringKey = {
   blocks: 4,
 };
 
-export const scoreSubmission = (submission) => {
+export const scoreSubmission = (submission: {
+  points: number;
+  assists: number;
+  rebounds: number;
+  steals: number;
+  blocks: number;
+}) => {
   let score = 0;
   score += submission.points * scoringKey.points;
   score += submission.assists * scoringKey.assists;

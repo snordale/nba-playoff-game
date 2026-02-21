@@ -111,7 +111,7 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
 
     const [winnerId, winnerW] = Object.entries(wins).find(([, w]) => w >= 4) ?? [];
 
-    if (winnerId && winnerW >= 4) {
+    if (winnerId && winnerW !== undefined && winnerW >= 4) {
       const loserId = s.highSeedTeamId === winnerId ? s.lowSeedTeamId : s.highSeedTeamId;
       const loserWins = wins[loserId] ?? 0;
       // Always write win counts; only set winnerTeamId once (idempotent)

@@ -3,17 +3,17 @@ import { Body1 } from '../../Body1';
 import { useGetGroup } from '../../../react-query/queries';
 import { Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
 
-export const SubmissionsTable = ({ groupId }) => {
+export const SubmissionsTable = ({ groupId }: { groupId: string }) => {
   const { data: groupData } = useGetGroup({ groupId });
 
-  const oldSubmissions = groupData?.players.flatMap(player => {
-    return player.submissions.flatMap(submission => {
+  const oldSubmissions = (groupData as any)?.players?.flatMap((player: any) => {
+    return player.submissions.flatMap((submission: any) => {
       return {
         ...submission,
         username: player.user.username,
-      }
-    })
-  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      };
+    });
+  })?.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <Stack>
@@ -40,9 +40,9 @@ export const SubmissionsTable = ({ groupId }) => {
                 <Td colSpan={10} py={4}>No submissions yet</Td>
               </Tr>
             )}
-            {oldSubmissions?.map(submission => {
+            {oldSubmissions?.map((submission: any) => {
               return (
-                <Tr>
+                <Tr key={submission.id}>
                   <Td>{new Date(submission.createdAt).toLocaleDateString()}</Td>
                   <Td>{submission.username}</Td>
                   <Td>{submission.playerName}</Td>

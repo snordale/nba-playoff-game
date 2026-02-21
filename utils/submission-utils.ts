@@ -46,7 +46,7 @@ export function isPickLocked(
   gameStartsAt: Date | string | null
 ): boolean {
   const now = new Date();
-  return (
+  return Boolean(
     gameStatus !== "STATUS_SCHEDULED" ||
     (gameStartsAt && new Date(gameStartsAt) <= now)
   );

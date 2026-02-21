@@ -40,7 +40,6 @@ export const TypeaheadInput = ({
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
 
-    // Effect to sync internal input value with controlled value prop
     useEffect(() => {
         if (value) {
             setInputValue(value.label);

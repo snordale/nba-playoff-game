@@ -172,15 +172,13 @@ export default async function BlogPost({ params }: { params: Params }) {
     );
 }
 
-// Re-add generateStaticParams for SSG
+// Pre-render known slugs at build time. Falls back to empty (dynamic rendering)
+// when DATABASE_URL isn't available (e.g. Vercel Preview builds).
 export async function generateStaticParams() {
-    // Fetch all slugs from the database
-    const posts = await prisma.blogPost.findMany({
-        select: { slug: true }, // Only select the slug field
-    });
-
-    // Return the format Next.js expects: { slug: string }[]
-    return posts.map((post) => ({
-        slug: post.slug,
-    }));
+    try {
+        const posts = await prisma.blogPost.findMany({ select: { slug: true } });
+        return posts.map((post) => ({ slug: post.slug }));
+    } catch {
+        return [];
+    }
 }

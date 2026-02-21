@@ -312,7 +312,7 @@ export const GroupInterface = () => {
                             const isInPast = isBefore(endOfNyDay, new Date());
                             const isToday = date === todayInNyStr;
                             const usersWithSubmissions = submissionsByDate?.[date] ?? [];
-                            const allUsersWithSubmissions = leaderboardUsers.map(user => {
+                            const allUsersWithSubmissions = (leaderboardUsers ?? []).map(user => {
                                 const submission = usersWithSubmissions.find(sub => sub.userId === user.userId);
                                 return {
                                     userId: user.userId,

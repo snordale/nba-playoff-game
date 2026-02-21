@@ -4,11 +4,11 @@ async function main() {
   // Find all submissions without groupUserId
   const submissions = await prisma.submission.findMany({
     where: {
-      groupUserId: null
+      groupUserId: null as any,
     },
     include: {
-      user: true
-    }
+      user: true,
+    },
   });
 
   console.log(`Found ${submissions.length} submissions without groupUserId`);
@@ -22,7 +22,7 @@ async function main() {
     });
 
     if (!groupUser) {
-      console.log(`Could not find group for user ${submission.user.username}`);
+      console.log(`Could not find group for user ${(submission as any).user?.username}`);
       continue;
     }
 
@@ -36,7 +36,7 @@ async function main() {
       }
     });
 
-    console.log(`Updated submission ${submission.id} for user ${submission.user.username}`);
+    console.log(`Updated submission ${submission.id} for user ${(submission as any).user?.username}`);
   }
 
   console.log('Done!');

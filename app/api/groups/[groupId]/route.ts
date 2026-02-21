@@ -317,7 +317,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
         groupUserId: gu.id,
         userId: gu.userId,
         username: gu.user.username,
-        isAdmin: gu.isAdmin,
+        isAdmin: gu.isAdmin ?? false,
         score: userScores.get(gu.userId) || 0,
         submissions: Array.from(
           processedSubmissionsByUser.get(gu.userId)?.values() || []

@@ -21,7 +21,7 @@ const AuthButton = ({ token, text = "Login" }: { token?: string, text?: string }
     return (
       <Menu>
         <MenuButton>
-          <Avatar name={session.user.name} src={session.user.image} size="sm" />
+          <Avatar name={session.user.name ?? undefined} src={session.user.image ?? undefined} size="sm" />
         </MenuButton>
         <MenuList>
           <MenuItem fontWeight={600} onClick={() => signOut()}>
