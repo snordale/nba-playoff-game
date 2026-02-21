@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const adminUserId = session.user.id; // For logging purposes
+  const adminUserId = session.user?.id; // For logging purposes
 
   let targetUserId: string;
   let groupId: string;

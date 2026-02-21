@@ -158,7 +158,7 @@ export const getGamesByDate = async ({ date }: { date: Date }): Promise<ESPNEven
     return events as ESPNEvent[]; // Cast to our refined interface
   } catch (error) {
     console.error("Error fetching ESPN game events:", error);
-    throw new Error(`Failed to fetch ESPN game events: ${error.message}`);
+    throw new Error(`Failed to fetch ESPN game events: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -192,7 +192,7 @@ export const getEventBoxScore = async ({ eventId }: { eventId: string }): Promis
 
     // Transform the data using the boxscore.players structure
     const transformedBoxScore: ESPNBoxScore = {
-      teams: data.boxscore.players.map(playerTeamGroup => {
+      teams: data.boxscore.players.map((playerTeamGroup: any) => {
         // Assuming the statistics array always holds one object with keys and athletes
         const statsDefinition = playerTeamGroup.statistics?.[0];
         if (!statsDefinition?.athletes) {
@@ -220,7 +220,7 @@ export const getEventBoxScore = async ({ eventId }: { eventId: string }): Promis
             abbreviation: playerTeamGroup.team.abbreviation
           },
           statistics: [], // We don't currently store the definitions, could add if needed
-          athletes: statsDefinition.athletes.map(athleteData => ({
+          athletes: statsDefinition.athletes.map((athleteData: any) => ({
             active: athleteData.active,
             athlete: {
               id: athleteData.athlete.id,
@@ -245,7 +245,7 @@ export const getEventBoxScore = async ({ eventId }: { eventId: string }): Promis
     return transformedBoxScore;
   } catch (error) {
     console.error(`Error fetching ESPN box score for event ${eventId}:`, error);
-    throw new Error(`Failed to fetch ESPN box score for event ${eventId}: ${error.message}`);
+    throw new Error(`Failed to fetch ESPN box score for event ${eventId}: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -281,7 +281,7 @@ export const getBoxScoresByDate = async ({ date }: { date: Date }): Promise<Arra
 
   } catch (error) {
     console.error("Error fetching multiple box scores:", error);
-    throw new Error(`Failed to fetch box scores by date: ${error.message}`);
+    throw new Error(`Failed to fetch box scores by date: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -513,7 +513,7 @@ export const getAllTeams = async (): Promise<ESPNApiTeam[]> => {
         return teams;
     } catch (error) {
         console.error("Error fetching all ESPN teams:", error);
-        throw new Error(`Failed to fetch all ESPN teams: ${error.message}`);
+        throw new Error(`Failed to fetch all ESPN teams: ${error instanceof Error ? error.message : String(error)}`);
     }
 };
 

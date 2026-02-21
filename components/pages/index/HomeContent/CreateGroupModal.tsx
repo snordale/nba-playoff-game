@@ -1,3 +1,4 @@
+import React from "react";
 import { useCreateGroup } from "@/react-query/queries";
 import {
   Button,
@@ -12,11 +13,11 @@ import {
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
-export const CreateGroupModal = ({ variant, onClose }) => {
+export const CreateGroupModal = ({ variant, onClose }: { variant: string; onClose: () => void }) => {
   const createGroup = useCreateGroup();
   const [groupName, setGroupName] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (variant === "create") {

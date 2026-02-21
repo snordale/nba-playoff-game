@@ -59,7 +59,7 @@ export const HomeContent = () => {
 
           {!isLoading && groups && groups.length > 0 && (
             <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4} mt={2}>
-              {groups.map((group) => (
+              {groups.map((group: { id: string; name: string; _count?: { groupUsers: number } }) => (
                 <CustomLink key={group.id} href={`/groups/${group.id}`} _hover={{ textDecoration: 'none' }}>
                   <Card
                     variant="outline"

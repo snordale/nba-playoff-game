@@ -65,9 +65,25 @@ Both games live in the **same group** and are **season-scoped** (e.g. 2024–25 
   }
   ```
 - **Pages that must query the DB at render time** (e.g. listing pages) should export `export const dynamic = "force-dynamic"` to opt out of static generation entirely.
-- **Pre-deploy checklist:** Before pushing, run `npx tsc --noEmit` to catch type errors. The `postinstall` script runs `prisma generate`; `prebuild` runs `prisma migrate deploy` only when `DATABASE_URL` is set.
+- **Pre-deploy checklist:** Run `npm run typecheck && npm run lint` before pushing. The `postinstall` script runs `prisma generate`; `prebuild` runs `prisma migrate deploy` only when `DATABASE_URL` is set. CI enforces these on every PR.
 
 **Prisma schema conventions:** Every camelCase scalar field must have `@map("snake_case")`; every model must have `@@map("snake_case_table")`. Relation fields (array or object, no DB column) do not get `@map`. See `.cursor/rules/prisma-schema.mdc`.
+
+**Making schema changes — IMPORTANT:** `prisma migrate dev` is broken for local development because historical migrations cannot be cleanly replayed by the shadow database (a migration from 2025-02 alters the `games` table before it is created). **Never run `prisma migrate dev`**; follow this workflow instead:
+
+1. Write the migration SQL manually (use `IF NOT EXISTS` / `IF EXISTS` for idempotency).
+2. Create the file at `prisma/migrations/<timestamp>_<name>/migration.sql`.
+3. Apply it directly to the local DB:
+   ```bash
+   npx prisma db execute --file prisma/migrations/<timestamp>_<name>/migration.sql --schema prisma/schema.prisma
+   ```
+4. Mark it as applied so Prisma knows not to re-run it:
+   ```bash
+   npx prisma migrate resolve --applied <timestamp>_<name>
+   ```
+5. Update `prisma/schema.prisma` to reflect the change.
+6. Run `npx prisma generate` to regenerate the client.
+7. Commit both the migration file and the updated schema together.
 
 **Environment (required):** `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `JWT_INVITE_SECRET`, `CRON_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL` (or `ADMIN_EMAILS` comma-separated). `CRON_SECRET` is required for cron routes (`load-games`, `sync-bracket`, `load-teams`, `load-blog-posts`). Admin routes require the authenticated user’s email to be in `ADMIN_EMAIL`/`ADMIN_EMAILS`. See `.env.example` for a full checklist. Set all in production.
 

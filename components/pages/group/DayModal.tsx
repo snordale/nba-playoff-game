@@ -62,7 +62,7 @@ export const DayModal = ({
 
     // Fetch players available for selection ONLY if the date is not locked
     const { data: playersForSelectionData, isLoading: loadingPlayers } = useGetPlayers({
-        date: !isLocked ? selectedDate : null,
+        date: !isLocked ? selectedDate : "",
     });
 
     // Memoize processing players for selection list
