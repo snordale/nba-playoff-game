@@ -38,7 +38,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
   });
 
   return (
-    <VStack spacing={0.5} align="stretch" mt={1} width='100%'>
+    <VStack gap={0.5} align="stretch" mt={1} width='100%'>
       {/* Game Count */}
       <Text fontSize='2xs' color="gray.600">
         {gameCount} Game{gameCount > 1 ? 's' : ''}
@@ -48,7 +48,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
       {isPast ? (
         // Past or Today: Show scores
         allUsersWithSubmissions.map((user, i) => (
-          <Text key={i} fontSize="2xs" color="green.600" isTruncated>
+          <Text key={i} fontSize="2xs" color="green.600" truncate>
             {user.username}: {user.submission ? user.submission.score : 'N/A'}
           </Text>
         ))
@@ -61,7 +61,7 @@ const TileContent = ({ date, view }: TileContentProps) => {
               fontSize="2xs"
               color={user.submission ? "green.500" : "gray.400"}
               fontWeight={user.submission ? "medium" : "normal"}
-              isTruncated
+              truncate
             >
               {user.username}
             </Text>

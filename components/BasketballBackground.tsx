@@ -32,7 +32,7 @@ export const BasketballBackground = ({ children }: BasketballBackgroundProps) =>
         position="absolute"
         inset={0}
         zIndex={1}
-        sx={{
+        css={{
           "&::before": {
             content: '""',
             position: "absolute",

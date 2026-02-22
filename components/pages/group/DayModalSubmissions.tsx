@@ -19,14 +19,14 @@ export const DayModalSubmissions = ({
     currentUserId,
 }: DayModalSubmissionsProps) => {
     return (
-        <Stack spacing={3}>
+        <Stack gap={3}>
             <Heading size="sm" color="gray.700">Player Picks</Heading>
             {isLoading ? (
                 <HStack py={2} justifyContent='center'><Spinner color="orange.500" size="sm" /></HStack>
             ) : submissions.length === 0 ? (
                 <Text color="gray.500">No submissions yet for this day.</Text>
             ) : (
-                <Stack spacing={3} pr={2}>
+                <Stack gap={3} pr={2}>
                     {submissions.map((user, index) => {
                         const submission = user?.submission;
                         const gameStartsAt = submission?.gameStartsAt ? new Date(submission.gameStartsAt) : null;
@@ -42,9 +42,9 @@ export const DayModalSubmissions = ({
                                 borderColor='gray.200'
                             >
                                 <HStack justify="space-between" align="flex-start">
-                                    <VStack align="start" spacing={1} flex={1} mr={2}>
+                                    <VStack align="start" gap={1} flex={1} mr={2}>
                                         <Text fontWeight="bold">{isLocked ? `${index + 1}. ` : ''}{user.username}</Text>
-                                        <Text fontSize="sm" color={submission ? "green.500" : "orange.500"} noOfLines={1}>
+                                        <Text fontSize="sm" color={submission ? "green.500" : "orange.500"} lineClamp={1}>
                                             {!submission ? 'No Pick' : canShowPick ? submission.playerName : "Hidden"}
                                         </Text>
                                         {canShowPick && submission?.stats && (

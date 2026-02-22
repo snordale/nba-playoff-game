@@ -1,13 +1,14 @@
 'use client';
 
 import AuthButton from "@/components/AuthButton";
+import CustomLink from "@/components/CustomLink";
 import {
-    Alert,
-    AlertDescription,
-    AlertIcon,
+    AlertRoot,
+    AlertContent,
     AlertTitle,
+    AlertDescription,
+    AlertIndicator,
     Box,
-    Button,
     Container,
     Heading,
     HStack,
@@ -16,7 +17,6 @@ import {
     VStack,
 } from "@chakra-ui/react";
 import { keyframes } from "@emotion/react";
-import NextLink from "next/link";
 
 const basketballTextureAnimation = keyframes`
   0% { background-position: 0 0; }
@@ -57,7 +57,7 @@ export default function InviteClientPage({
             <Box
                 position="absolute"
                 inset={0}
-                sx={{
+                css={{
                     "&::before": {
                         content: '""',
                         position: "absolute",
@@ -73,7 +73,7 @@ export default function InviteClientPage({
             />
             <Container maxW="container.md" centerContent position="relative" zIndex={2}>
                 <VStack 
-                    spacing={6} 
+                    gap={6} 
                     textAlign="center" 
                     p={10} 
                     borderRadius="xl"
@@ -82,7 +82,7 @@ export default function InviteClientPage({
                     w="full"
                     position="relative"
                     boxShadow="0 0 40px rgba(0, 0, 0, 0.05)"
-                    sx={{
+                    css={{
                         position: 'relative',
                         border: '2px solid transparent',
                         backgroundClip: 'padding-box',
@@ -101,18 +101,20 @@ export default function InviteClientPage({
                     }}
                 >
                     {error && (
-                        <Alert status='error' variant='subtle' flexDirection='column' alignItems='center' justifyContent='center' textAlign='center' borderRadius="md">
-                            <AlertIcon boxSize='40px' mr={0} />
-                            <AlertTitle mt={4} mb={1} fontSize='lg'>
-                                Invite Error
-                            </AlertTitle>
-                            <AlertDescription maxWidth='sm'>
-                                {error} Please check the link or ask for a new invite.
-                                <Button as={NextLink} href="/" colorScheme="orange" variant="link" mt={4}>
+                        <AlertRoot status='error' variant='subtle'>
+                            <AlertContent flexDirection='column' alignItems='center' justifyContent='center' textAlign='center' borderRadius="md">
+                                <AlertIndicator boxSize='40px' />
+                                <AlertTitle mt={4} mb={1} fontSize='lg'>
+                                    Invite Error
+                                </AlertTitle>
+                                <AlertDescription maxWidth='sm'>
+                                    {error} Please check the link or ask for a new invite.
+                                    <CustomLink href="/" mt={4} color="orange.600" _hover={{ color: "orange.700" }}>
                                     Go Home
-                                </Button>
-                            </AlertDescription>
-                        </Alert>
+                                </CustomLink>
+                                </AlertDescription>
+                            </AlertContent>
+                        </AlertRoot>
                     )}
 
                     {needsLogin && groupName && (
@@ -123,7 +125,7 @@ export default function InviteClientPage({
                             <Text fontSize="lg" color="gray.700">
                                 You&apos;ve been invited to join the group: <strong>{groupName}</strong>.
                             </Text>
-                            <HStack spacing={5}>
+                            <HStack gap={5}>
                                 <AuthButton token={token} text="Join Group" />
                             </HStack>
                         </>

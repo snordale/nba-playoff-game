@@ -3,9 +3,9 @@
 import { Body1 } from "@/components/Body1";
 import CustomLink from "@/components/CustomLink";
 import {
-  Button, HStack, Stack, Card, CardBody, Heading, IconButton, Text, Center, Spinner, SimpleGrid, Container
+  Button, HStack, Stack, CardRoot, CardBody, Heading, IconButton, Text, Center, Spinner, SimpleGrid, Container
 } from "@chakra-ui/react";
-import { AddIcon } from '@chakra-ui/icons';
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { useGetGroups, useGetSeasons } from "@/react-query/queries";
@@ -22,7 +22,7 @@ export const HomeContent = () => {
   return (
     <>
       <Container maxW="container.xl" p={{ base: 4, md: 6 }}>
-        <Stack spacing={4}>
+        <Stack gap={4}>
           {isPrePlayoff && (
             <Box p={3} borderRadius="md" borderWidth={1} borderColor="orange.200" bg="orange.50">
               <Text fontSize="sm" color="gray.700">
@@ -33,14 +33,15 @@ export const HomeContent = () => {
           <HStack alignItems="center" gap={2}>
             <Heading size="lg">Groups</Heading>
             <IconButton
-              icon={<AddIcon />}
               aria-label="Create Group"
               size="xs"
               colorScheme="orange"
-              isRound={true}
+              borderRadius="full"
               variant="solid"
               onClick={() => setModalVariant("create")}
-            />
+            >
+              <Plus size={16} />
+            </IconButton>
           </HStack>
 
           {isLoading && (
@@ -48,20 +49,20 @@ export const HomeContent = () => {
           )}
 
           {!isLoading && groups?.length === 0 && (
-            <Card variant="outline" mt={2}>
+            <CardRoot variant="outline" mt={2}>
               <CardBody>
                 <Text textAlign="center" color="gray.500">
                   No groups yet. Create one using the &apos;+&apos; button!
                 </Text>
               </CardBody>
-            </Card>
+            </CardRoot>
           )}
 
           {!isLoading && groups && groups.length > 0 && (
-            <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4} mt={2}>
+            <SimpleGrid columns={{ base: 2, md: 3 }} gap={4} mt={2}>
               {groups.map((group: { id: string; name: string; _count?: { groupUsers: number } }) => (
                 <CustomLink key={group.id} href={`/groups/${group.id}`} _hover={{ textDecoration: 'none' }}>
-                  <Card
+                  <CardRoot
                     variant="outline"
                     _hover={{
                       borderColor: "orange.400",
@@ -69,7 +70,7 @@ export const HomeContent = () => {
                       cursor: "pointer"
                     }}
                     transition="all 0.2s ease-in-out"
-                    height="100%" // Ensure cards in the same row have equal height
+                    height="100%"
                   >
                     <CardBody p={4}>
                       <Heading size="md">{group.name}</Heading>
@@ -79,7 +80,7 @@ export const HomeContent = () => {
                         </Text>
                       )}
                     </CardBody>
-                  </Card>
+                  </CardRoot>
                 </CustomLink>
               ))}
             </SimpleGrid>

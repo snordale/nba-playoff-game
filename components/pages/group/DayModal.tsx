@@ -1,5 +1,6 @@
 import { useGetGames, useGetPlayers } from '@/react-query/queries';
-import { Divider, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack, useToast } from '@chakra-ui/react';
+import { Separator, DialogRoot, DialogBackdrop, DialogPositioner, DialogContent, DialogHeader, DialogTitle, DialogCloseTrigger, DialogBody, Stack } from '@chakra-ui/react';
+import { toaster } from '@/lib/toaster';
 import { isBefore } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
@@ -52,7 +53,6 @@ export const DayModal = ({
         : 'Selected Date';
 
     const { data: games, isLoading: loadingGames } = useGetGames({ date: selectedDate });
-    const toast = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const now = new Date();
 
@@ -120,7 +120,7 @@ export const DayModal = ({
                 }
             }
 
-            toast({
+            toaster.create({
                 title: 'Submission Successful',
                 description: `You picked ${playerName}.`,
                 status: 'success',
@@ -131,7 +131,7 @@ export const DayModal = ({
         } catch (error: any) {
             console.error("Submission failed:", error);
             const errorMessage = error?.response?.data?.error || error.message || 'Could not submit your pick. The game might have started, or an error occurred.';
-            toast({
+            toaster.create({
                 title: 'Submission Failed',
                 description: errorMessage,
                 status: 'error',
@@ -150,31 +150,34 @@ export const DayModal = ({
     }, [users]);
 
     return (
-        <Modal isOpen={isOpen} onClose={() => onClose(false)} size="xl" scrollBehavior="inside">
-            <ModalOverlay />
-            <ModalContent maxH="90vh">
-                <ModalHeader borderBottomWidth={1} borderColor="orange.600">{displayDate}</ModalHeader>
-                <ModalCloseButton onClick={() => onClose(false)} />
-                <ModalBody pb={6} overflowY="auto">
-                    <Stack gap={4}>
-                        {/* Games Section */}
-                        <DayModalGames games={games} isLoading={loadingGames} />
+        <DialogRoot open={isOpen} onOpenChange={(e: { open: boolean }) => { if (!e.open) onClose(false); }}>
+            <DialogBackdrop />
+            <DialogPositioner>
+                <DialogContent maxH="90vh">
+                    <DialogHeader borderBottomWidth={1} borderColor="orange.600">
+                        <DialogTitle>{displayDate}</DialogTitle>
+                    </DialogHeader>
+                    <DialogCloseTrigger />
+                    <DialogBody pb={6} overflowY="auto">
+                        <Stack gap={4}>
+                            {/* Games Section */}
+                            <DayModalGames games={games} isLoading={loadingGames} />
 
-                        <Divider />
+                            <Separator />
 
-                        {/* Submissions Display Section */}
-                        <DayModalSubmissions
-                            submissions={sortedSubmissions}
-                            isLoading={false}
-                            isLocked={isLocked}
-                            currentUserId={currentUserId}
-                        />
+                            {/* Submissions Display Section */}
+                            <DayModalSubmissions
+                                submissions={sortedSubmissions}
+                                isLoading={false}
+                                isLocked={isLocked}
+                                currentUserId={currentUserId}
+                            />
 
-                        {/* Conditional Submission Section */}
-                        {!isLocked && (
-                            <>
-                                <Divider />
-                                <DayModalSubmissionInput
+                            {/* Conditional Submission Section */}
+                            {!isLocked && (
+                                <>
+                                    <Separator />
+                                    <DayModalSubmissionInput
                                     search={search}
                                     onSearchChange={onSearchChange}
                                     filteredPlayersByTeam={filteredPlayersByTeam}
@@ -182,11 +185,12 @@ export const DayModal = ({
                                     isSubmitting={isSubmitting}
                                     handleSubmit={handleSubmit}
                                 />
-                            </>
-                        )}
-                    </Stack>
-                </ModalBody>
-            </ModalContent>
-        </Modal>
+                                </>
+                            )}
+                        </Stack>
+                    </DialogBody>
+                </DialogContent>
+            </DialogPositioner>
+        </DialogRoot>
     );
 }; 

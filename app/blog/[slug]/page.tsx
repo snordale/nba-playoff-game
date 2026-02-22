@@ -66,7 +66,7 @@ export default async function BlogPost({ params }: { params: Params }) {
                     </Text>
                     <Box
                         className="prose prose-lg prose-slate max-w-none"
-                        sx={{
+                        css={{
                             'h1': {
                                 display: 'none',
                                 color: 'gray.900',

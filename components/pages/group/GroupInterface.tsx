@@ -2,8 +2,9 @@
 "use client";
 
 import { type SubmissionView } from "@/utils/submission-utils";
-import { CalendarIcon, HamburgerIcon } from '@chakra-ui/icons';
-import { Box, Button, ButtonGroup, HStack, Stack, Text, useToast, VStack } from "@chakra-ui/react";
+import { Calendar, Menu } from "lucide-react";
+import { Box, Button, ButtonGroup, HStack, Stack, Text, VStack } from "@chakra-ui/react";
+import { toaster } from "@/lib/toaster";
 import { addDays, isBefore, isEqual } from 'date-fns';
 import { formatInTimeZone, format as formatTz, fromZonedTime } from 'date-fns-tz';
 import React, { useEffect, useMemo, useRef } from 'react';
@@ -42,7 +43,6 @@ export const GroupInterface = () => {
     } = useGroup();
 
     const { mutateAsync: generateLink, isPending: isGeneratingLink } = useGenerateInviteLink();
-    const toast = useToast();
     const todayRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [didCopy, setDidCopy] = React.useState(false);
@@ -55,7 +55,7 @@ export const GroupInterface = () => {
                 const urlToCopy = response.inviteUrl;
                 navigator.clipboard.writeText(urlToCopy).then(() => {
                     setDidCopy(true);
-                    toast({
+                    toaster.create({
                         title: "Invite link copied!",
                         description: "Share the link with your friends.",
                         status: "success",
@@ -65,7 +65,7 @@ export const GroupInterface = () => {
                     setTimeout(() => setDidCopy(false), 3000);
                 }).catch(err => {
                     console.error('Failed to copy link: ', err);
-                    toast({
+                    toaster.create({
                         title: "Auto-copy failed",
                         description: "Could not copy the link automatically. You may need to copy it manually.",
                         status: "error",
@@ -74,7 +74,7 @@ export const GroupInterface = () => {
                     });
                 });
             } else {
-                toast({
+                toaster.create({
                     title: "Error generating link",
                     description: "Could not retrieve invite link.",
                     status: "error",
@@ -83,7 +83,7 @@ export const GroupInterface = () => {
                 });
             }
         } catch (error: any) {
-            toast({
+            toaster.create({
                 title: "Error generating link",
                 description: error.message || "An unexpected error occurred.",
                 status: "error",
@@ -160,7 +160,7 @@ export const GroupInterface = () => {
                         size="sm"
                         variant="outline"
                         onClick={handleGenerateInvite}
-                        isLoading={isGeneratingLink}
+                        loading={isGeneratingLink}
                         colorScheme="orange"
                         aria-label={didCopy ? "Invite link copied" : "Copy invite link to clipboard"}
                     >
@@ -187,7 +187,7 @@ export const GroupInterface = () => {
                 {leaderboardUsers && leaderboardUsers.length > 0 && (
                     <Box>
                         <Text fontWeight="medium" fontSize="sm" mb={2}>Group members ({leaderboardUsers.length})</Text>
-                        <VStack align="stretch" spacing={1}>
+                        <VStack align="stretch" gap={1}>
                             {leaderboardUsers.map((u) => (
                                 <Text key={u.userId} fontSize="sm" color="gray.600">{u.username}</Text>
                             ))}
@@ -212,7 +212,7 @@ export const GroupInterface = () => {
                     size="sm"
                     variant="outline"
                     onClick={handleGenerateInvite}
-                    isLoading={isGeneratingLink}
+                    loading={isGeneratingLink}
                     colorScheme="orange"
                     aria-label={didCopy ? "Invite link copied" : "Copy invite link to clipboard"}
                 >
@@ -222,7 +222,7 @@ export const GroupInterface = () => {
 
             {/* Primary game-mode tabs */}
             <HStack role="tablist" aria-label="Game mode">
-                <ButtonGroup size="sm" isAttached variant="outline">
+                <ButtonGroup size="sm" attached variant="outline">
                     <Button
                         role="tab"
                         aria-selected={gameMode === "daily"}
@@ -248,7 +248,7 @@ export const GroupInterface = () => {
             {gameMode === "bracket" ? (
                 <BracketView />
             ) : (
-            <VStack alignItems="stretch" spacing={4}>
+            <VStack alignItems="stretch" gap={4}>
                 {/* Leaderboard lives inside the daily tab */}
                 <Leaderboard />
 
@@ -263,15 +263,15 @@ export const GroupInterface = () => {
 
                 {/* Secondary view-mode toggle */}
                 <HStack role="tablist" aria-label="Daily view">
-                    <ButtonGroup size="sm" isAttached variant="outline">
+                    <ButtonGroup size="sm" attached variant="outline">
                         <Button
                             role="tab"
                             aria-selected={viewMode === "list"}
                             onClick={() => setViewMode("list")}
                             colorScheme="orange"
                             variant={viewMode === "list" ? "solid" : "outline"}
-                            leftIcon={<HamburgerIcon />}
-                        >
+                            >
+                            <Menu size={16} style={{ marginRight: 6 }} />
                             List
                         </Button>
                         <Button
@@ -280,8 +280,8 @@ export const GroupInterface = () => {
                             onClick={() => setViewMode("calendar")}
                             colorScheme="orange"
                             variant={viewMode === "calendar" ? "solid" : "outline"}
-                            leftIcon={<CalendarIcon />}
-                        >
+                            >
+                            <Calendar size={16} style={{ marginRight: 6 }} />
                             Calendar
                         </Button>
                     </ButtonGroup>
@@ -292,7 +292,7 @@ export const GroupInterface = () => {
                 ) : (
                     <VStack
                         ref={scrollContainerRef}
-                        spacing={3}
+                        gap={3}
                         align="stretch"
                         maxH="600px"
                         overflowY="auto"

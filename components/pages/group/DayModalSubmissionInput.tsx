@@ -1,4 +1,4 @@
-import { CheckCircleIcon } from '@chakra-ui/icons';
+import { CheckCircle } from "lucide-react";
 import { Button, HStack, Heading, Input, Spinner, Stack, Text } from '@chakra-ui/react';
 import { useGroup } from './GroupContext';
 
@@ -67,11 +67,11 @@ export const DayModalSubmissionInput = ({
                     <>
                         {filteredPlayersByTeam && filteredPlayersByTeam.length > 0 ? (
                             filteredPlayersByTeam.map((team) => (
-                                <Stack key={team.teamId} pl={2} mb={2} spacing={1}>
+                                <Stack key={team.teamId} pl={2} mb={2} gap={1}>
                                     <Text fontWeight="semibold" fontSize="sm" color="gray.600">
                                         {team.name}
                                     </Text>
-                                    <Stack pl={2} spacing={0.5}>
+                                    <Stack pl={2} gap={0.5}>
                                         {team.players?.map((player) => {
                                             const isCurrentPick = user?.submission?.playerName === player.id;
                                             const isPreviouslySubmitted = player.alreadySubmitted && !isCurrentPick;
@@ -83,8 +83,8 @@ export const DayModalSubmissionInput = ({
                                                     colorScheme='orange'
                                                     flexShrink={0}
                                                     key={player.id}
-                                                    isDisabled={!player.gameId || isPreviouslySubmitted || isSubmitting}
-                                                    isLoading={isSubmitting && isCurrentPick}
+                                                    disabled={!player.gameId || isPreviouslySubmitted || isSubmitting}
+                                                    loading={isSubmitting && isCurrentPick}
                                                     onClick={() => player.gameId && handleSubmit({ gameId: player.gameId, playerId: player.id })}
                                                     justifyContent='space-between'
                                                     gap={2}
@@ -96,12 +96,12 @@ export const DayModalSubmissionInput = ({
                                                     }}
                                                 >
                                                     <Text>{player.name} – {team.abbreviation}</Text>
-                                                    <HStack spacing={2}>
+                                                    <HStack gap={2}>
                                                         {isPreviouslySubmitted &&
                                                             <Text as="span" fontSize="xs" color="gray.500">(Used)</Text>
                                                         }
                                                         {isCurrentPick && (
-                                                            <CheckCircleIcon color={isCurrentPick ? 'white' : 'orange.500'} boxSize={4} />
+                                                            <CheckCircle size={16} color={isCurrentPick ? 'white' : 'var(--chakra-colors-orange-500)'} />
                                                         )}
                                                     </HStack>
                                                 </Button>

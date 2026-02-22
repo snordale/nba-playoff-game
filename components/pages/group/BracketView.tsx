@@ -5,15 +5,16 @@ import {
   Box,
   Button,
   HStack,
-  Select,
+  NativeSelectRoot,
+  NativeSelectField,
   SimpleGrid,
   Text,
-  useToast,
   VStack,
 } from "@chakra-ui/react";
 import { formatInTimeZone } from "date-fns-tz";
 import { useEffect, useState } from "react";
 import { queryClient, useCreateSeriesPick } from "@/react-query/queries";
+import { toaster } from "@/lib/toaster";
 import { useGroup } from "./GroupContext";
 import { Leaderboard } from "./Leaderboard";
 
@@ -55,7 +56,6 @@ function SeriesCard({ series, currentPick, groupId, currentGroupUserId }: Series
   }, [currentPick?.winnerTeamId, currentPick?.gamesCount]);
 
   const { mutateAsync: createPick, isPending } = useCreateSeriesPick();
-  const toast = useToast();
 
   const now = new Date();
   const isLocked = !!series.firstGameStartsAt && new Date(series.firstGameStartsAt) <= now;
@@ -80,15 +80,15 @@ function SeriesCard({ series, currentPick, groupId, currentGroupUserId }: Series
 
   const handleSave = async () => {
     if (!winnerTeamId) {
-      toast({ title: "Select a winner", status: "warning", duration: 3000 });
+      toaster.create({ title: "Select a winner", status: "warning", duration: 3000 });
       return;
     }
     try {
       await createPick({ groupId, seriesId: series.id, winnerTeamId, gamesCount });
-      toast({ title: "Pick saved", status: "success", duration: 2000 });
+      toaster.create({ title: "Pick saved", status: "success", duration: 2000 });
       queryClient.invalidateQueries({ queryKey: ["getGroup", groupId] });
     } catch (err: unknown) {
-      toast({
+      toaster.create({
         title: "Failed to save pick",
         description: err instanceof Error ? err.message : "Unknown error",
         status: "error",
@@ -107,7 +107,7 @@ function SeriesCard({ series, currentPick, groupId, currentGroupUserId }: Series
     >
       {/* Round + conference + lock status */}
       <HStack mb={3} justify="space-between" flexWrap="wrap" gap={1}>
-        <HStack spacing={1}>
+        <HStack gap={1}>
           <Badge colorScheme="orange">{ROUND_LABELS[series.round] ?? series.round}</Badge>
           {series.conference && (
             <Badge variant="outline" colorScheme="gray">{series.conference}</Badge>
@@ -121,14 +121,14 @@ function SeriesCard({ series, currentPick, groupId, currentGroupUserId }: Series
       </HStack>
 
       {/* Matchup: underdog (left) vs favorite (right) */}
-      <HStack justify="space-around" mb={3} align="flex-end" spacing={2}>
-        <VStack spacing={0} flex={1} align="center">
+      <HStack justify="space-around" mb={3} align="flex-end" gap={2}>
+        <VStack gap={0} flex={1} align="center">
           <Text fontSize="xs" color="gray.400" fontWeight="normal">Underdog</Text>
           <Text fontSize="xl" fontWeight="semibold" lineHeight="short">
             {series.lowSeedTeam.abbreviation}
           </Text>
         </VStack>
-        <VStack spacing={0} align="center" pb={1}>
+        <VStack gap={0} align="center" pb={1}>
           {(() => {
             const hw = series.highSeedWins;
             const lw = series.lowSeedWins;
@@ -142,7 +142,7 @@ function SeriesCard({ series, currentPick, groupId, currentGroupUserId }: Series
               : series.lowSeedTeam.abbreviation;
             const isTied = hw === lw;
             return (
-              <VStack spacing={0} align="center">
+              <VStack gap={0} align="center">
                 <Text fontSize="xs" color="blue.600" fontWeight="semibold">
                   {isTied
                     ? `Tied ${leaderWins}-${leaderWins}`
@@ -152,7 +152,7 @@ function SeriesCard({ series, currentPick, groupId, currentGroupUserId }: Series
             );
           })()}
         </VStack>
-        <VStack spacing={0} flex={1} align="center">
+        <VStack gap={0} flex={1} align="center">
           <Text fontSize="xs" color="gray.400" fontWeight="normal">Favorite</Text>
           <Text
             fontSize="xl"
@@ -176,31 +176,33 @@ function SeriesCard({ series, currentPick, groupId, currentGroupUserId }: Series
 
       {/* Pick form (unlocked) or locked pick summary */}
       {!isLocked && currentGroupUserId ? (
-        <VStack align="stretch" spacing={2} pt={1}>
-          <Select
-            size="sm"
-            value={winnerTeamId}
-            onChange={(e) => setWinnerTeamId(e.target.value)}
-            placeholder="Pick winner"
-          >
-            <option value={series.highSeedTeam.id}>{series.highSeedTeam.name}</option>
-            <option value={series.lowSeedTeam.id}>{series.lowSeedTeam.name}</option>
-          </Select>
-          <Select
-            size="sm"
-            value={gamesCount}
-            onChange={(e) => setGamesCount(parseInt(e.target.value, 10))}
-          >
-            {[4, 5, 6, 7].map((n) => (
-              <option key={n} value={n}>{n} games</option>
-            ))}
-          </Select>
+        <VStack align="stretch" gap={2} pt={1}>
+          <NativeSelectRoot size="sm">
+            <NativeSelectField
+              value={winnerTeamId}
+              onChange={(e) => setWinnerTeamId(e.target.value)}
+              placeholder="Pick winner"
+            >
+              <option value={series.highSeedTeam.id}>{series.highSeedTeam.name}</option>
+              <option value={series.lowSeedTeam.id}>{series.lowSeedTeam.name}</option>
+            </NativeSelectField>
+          </NativeSelectRoot>
+          <NativeSelectRoot size="sm">
+            <NativeSelectField
+              value={String(gamesCount)}
+              onChange={(e) => setGamesCount(parseInt(e.target.value, 10))}
+            >
+              {[4, 5, 6, 7].map((n) => (
+                <option key={n} value={n}>{n} games</option>
+              ))}
+            </NativeSelectField>
+          </NativeSelectRoot>
           <Button
             size="sm"
             colorScheme="orange"
             onClick={handleSave}
-            isLoading={isPending}
-            isDisabled={!winnerTeamId}
+            loading={isPending}
+            disabled={!winnerTeamId}
           >
             Save Pick
           </Button>
@@ -242,7 +244,7 @@ export function BracketView() {
   );
 
   return (
-    <VStack align="stretch" spacing={6}>
+    <VStack align="stretch" gap={6}>
       {/* Series leaderboard — reuses Leaderboard table */}
       <Leaderboard
         users={seriesLeaderboard}
@@ -262,7 +264,7 @@ export function BracketView() {
             </Text>
           </Box>
         ) : (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
             {playoffSeries.map((series) => (
               <SeriesCard
                 key={series.id}

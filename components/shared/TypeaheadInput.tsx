@@ -1,15 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import {
     Input,
-    List,
+    ListRoot,
     ListItem,
     Box,
     InputGroup,
-    InputRightElement,
+    InputElement,
     Spinner,
-    Text
 } from '@chakra-ui/react';
-import { CloseIcon } from '@chakra-ui/icons';
+import { X } from "lucide-react";
 
 export interface TypeaheadOption {
     id: string;
@@ -134,36 +133,40 @@ export const TypeaheadInput = ({
 
     return (
         <Box position="relative">
-            <InputGroup>
+            <InputGroup
+                endElement={
+                    isLoading ? (
+                        <InputElement placement="end">
+                            <Spinner size="sm" />
+                        </InputElement>
+                    ) : inputValue ? (
+                        <InputElement placement="end">
+                            <button
+                                type="button"
+                                onClick={handleClear}
+                                aria-label="Clear input"
+                                style={{ cursor: 'pointer', color: 'var(--chakra-colors-gray-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0 }}
+                            >
+                                <X size={16} />
+                            </button>
+                        </InputElement>
+                    ) : undefined
+                }
+                endOffset="3rem"
+            >
                 <Input
                     ref={inputRef}
                     placeholder={placeholder}
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
-                    onFocus={() => {
-                        // Optionally show suggestions on focus even if input is empty
-                        // if (inputValue) setShowOptions(true);
-                    }}
-                    pr="3rem" // Make space for clear/spinner
+                    onFocus={() => {}}
+                    pr="3rem"
                     aria-label={label}
                     aria-autocomplete="list"
                     aria-expanded={showOptions}
                     aria-controls="typeahead-list"
                 />
-                <InputRightElement width="3rem">
-                    {isLoading ? (
-                        <Spinner size="sm" />
-                    ) : inputValue ? (
-                        <CloseIcon
-                            boxSize={3}
-                            cursor="pointer"
-                            color="gray.500"
-                            onClick={handleClear}
-                            aria-label="Clear input"
-                        />
-                    ) : null}
-                </InputRightElement>
             </InputGroup>
             {showOptions && (
                 <Box
@@ -180,7 +183,7 @@ export const TypeaheadInput = ({
                     boxShadow="sm"
                     id="typeahead-list"
                 >
-                    <List ref={listRef} spacing={0}>
+                    <ListRoot ref={listRef} gap={0}>
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map((option, index) => (
                                 <ListItem
@@ -201,7 +204,7 @@ export const TypeaheadInput = ({
                                 No results found.
                             </ListItem>
                         )}
-                    </List>
+                    </ListRoot>
                 </Box>
             )}
         </Box>

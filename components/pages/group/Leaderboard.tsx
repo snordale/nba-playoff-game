@@ -1,4 +1,4 @@
-import { Stack, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from '@chakra-ui/react';
+import { Stack, TableRoot, TableHeader, TableBody, TableRow, TableCell, TableColumnHeader, Text, Box } from '@chakra-ui/react';
 import { useGroup } from './GroupContext';
 
 interface LeaderboardUser {
@@ -28,34 +28,34 @@ export const Leaderboard = ({
   return (
     <Stack maxWidth="500px">
       <Text fontWeight="semibold">{title}</Text>
-      <TableContainer>
-        <Table variant="simple" size="sm" aria-label={title}>
-          <Thead>
-            <Tr>
-              <Th px={2} py={1}>Rank</Th>
-              <Th px={2} py={1}>Player</Th>
-              <Th px={2} py={1} isNumeric>Score</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
+      <Box overflowX="auto">
+        <TableRoot variant="outline" size="sm" aria-label={title}>
+          <TableHeader>
+            <TableRow>
+              <TableColumnHeader px={2} py={1}>Rank</TableColumnHeader>
+              <TableColumnHeader px={2} py={1}>Player</TableColumnHeader>
+              <TableColumnHeader px={2} py={1} textAlign="end">Score</TableColumnHeader>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {hasUsers ? (
               users.map((player, index) => (
-                <Tr key={player.userId}>
-                  <Td px={2} py={1} width="50px" textAlign="center">{index + 1}</Td>
-                  <Td px={2} py={1}>{player.username}</Td>
-                  <Td px={2} py={1} isNumeric>{player.score}</Td>
-                </Tr>
+                <TableRow key={player.userId}>
+                  <TableCell px={2} py={1} width="50px" textAlign="center">{index + 1}</TableCell>
+                  <TableCell px={2} py={1}>{player.username}</TableCell>
+                  <TableCell px={2} py={1} textAlign="end">{player.score}</TableCell>
+                </TableRow>
               ))
             ) : (
-              <Tr>
-                <Td colSpan={3} py={4} textAlign="center" color="gray.500" fontSize="sm">
+              <TableRow>
+                <TableCell colSpan={3} py={4} textAlign="center" color="gray.500" fontSize="sm">
                   {emptyText}
-                </Td>
-              </Tr>
+                </TableCell>
+              </TableRow>
             )}
-          </Tbody>
-        </Table>
-      </TableContainer>
+          </TableBody>
+        </TableRoot>
+      </Box>
     </Stack>
   );
 }

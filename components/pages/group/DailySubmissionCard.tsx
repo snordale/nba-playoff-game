@@ -1,6 +1,6 @@
 // components/pages/group/DailySubmissionCard.tsx
 import { UserView } from '@/utils/submission-utils';
-import { Badge, Card, CardBody, HStack, Text, VStack, Box } from "@chakra-ui/react";
+import { Badge, CardRoot, CardBody, HStack, Text, VStack, Box } from "@chakra-ui/react";
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { useSession } from 'next-auth/react';
 import React from 'react';
@@ -47,7 +47,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
     )
 
     return (
-        <Card
+        <CardRoot
             variant="outline"
             w="full"
             cursor="pointer"
@@ -60,10 +60,10 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
             }}
         >
             <CardBody>
-                <VStack align="start" spacing={2} width="100%">
+                <VStack align="start" gap={2} width="100%">
                     {/* Header: Date and Status */}
                     <HStack justify="space-between" width="100%">
-                        <VStack align="start" spacing={0}>
+                        <VStack align="start" gap={0}>
                             <Text fontWeight={isToday ? "bold" : "semibold"} color={isToday ? "orange.500" : undefined}>
                                 {formattedDateString}
                                 {isToday && " (Today)"}
@@ -87,7 +87,7 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
 
                     {/* Body: Player Submissions */}
                     {hasGames ? (
-                        <VStack align="stretch" width="100%" spacing={1}>
+                        <VStack align="stretch" width="100%" gap={1}>
                             {usersWithSubmissions.map(({ userId, username, submission }) => {
                                 return (
                                     <VStack key={userId} align="stretch" borderTopWidth={1} borderColor="gray.100" pt={2} mt={1} gap={0}>
@@ -118,6 +118,6 @@ export const DailySubmissionCard: React.FC<DailySubmissionCardProps> = ({
                     )}
                 </VStack>
             </CardBody>
-        </Card>
+        </CardRoot>
     );
 };

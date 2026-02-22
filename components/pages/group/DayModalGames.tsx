@@ -48,7 +48,7 @@ export const DayModalGames = ({ games, isLoading }: DayModalGamesProps) => {
                                     <Text fontSize="2xs" color="gray.600">{game.homeTeam.abbreviation} {game.homeScore !== null ? `- ${game.homeScore}` : ''}</Text>
                                     <Text fontSize="2xs" color="gray.600">{game.awayTeam.abbreviation} {game.awayScore !== null ? `- ${game.awayScore}` : ''}</Text>
                                 </VStack>
-                                <VStack alignItems='flex-end' spacing={0}>
+                                <VStack alignItems='flex-end' gap={0}>
                                     <Text fontSize="2xs" color={getStatusColor(game.status)}>
                                         {game.starts_at ? format(parseISO(game.starts_at), 'h:mm a') : 'TBD'}
                                     </Text>

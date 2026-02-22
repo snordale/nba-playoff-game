@@ -4,7 +4,7 @@ import { isBefore, parseISO } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { useGetGroup, useCreateSubmission, queryClient } from '@/react-query/queries';
 import { type UserView, type ScoredGroupUser } from '@/utils/submission-utils';
-import { useToast } from '@chakra-ui/react';
+import { toaster } from '@/lib/toaster';
 
 interface GroupContextType {
     // Data
@@ -68,7 +68,6 @@ export function GroupProvider({ children, groupId, season }: GroupProviderProps)
     const { data: sessionData } = useSession();
     const currentUserId = sessionData?.user?.id;
     const currentUserUsername = sessionData?.user?.name;
-    const toast = useToast();
 
     const TIMEZONE = 'America/New_York';
 
@@ -115,7 +114,7 @@ export function GroupProvider({ children, groupId, season }: GroupProviderProps)
             setSelectedDate(dateKey);
             setIsDayModalOpen(true);
         } else {
-            toast({
+            toaster.create({
                 title: "No games scheduled",
                 description: "There are no games scheduled for this date.",
                 status: "info",

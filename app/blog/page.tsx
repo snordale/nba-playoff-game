@@ -29,7 +29,7 @@ export default async function BlogPage() {
             >
                 <Box p={6} >
                     <Heading mb={8} size="lg">NBA Playoff Game Blog</Heading>
-                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={8}>
                         {posts.map((post) => (
                             <BlogCard key={post.slug} post={post} />
                         ))}

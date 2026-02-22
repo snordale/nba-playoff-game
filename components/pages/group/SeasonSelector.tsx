@@ -1,10 +1,12 @@
 "use client";
 
 import {
-  Menu,
-  MenuButton,
+  MenuRoot,
+  MenuTrigger,
+  MenuContent,
+  MenuPositioner,
   MenuItem,
-  MenuList,
+  MenuItemText,
   Button,
   Spinner,
 } from "@chakra-ui/react";
@@ -29,7 +31,7 @@ export function SeasonSelector({ currentSeason }: SeasonSelectorProps) {
 
   if (isLoading) {
     return (
-      <Button size="sm" variant="outline" colorScheme="orange" isDisabled leftIcon={<Spinner size="sm" />}>
+      <Button size="sm" variant="outline" colorScheme="orange" disabled spinner={<Spinner size="sm" />}>
         Season
       </Button>
     );
@@ -38,27 +40,28 @@ export function SeasonSelector({ currentSeason }: SeasonSelectorProps) {
   if (seasons.length === 0) return null;
 
   return (
-    <Menu>
-      <MenuButton
-        as={Button}
-        size="sm"
-        variant="outline"
-        colorScheme="orange"
-        aria-label="Select season"
-      >
-        {currentSeason?.displayName ?? "Select Season"}
-      </MenuButton>
-      <MenuList>
-        {seasons.map((s) => (
-          <MenuItem
-            key={s.id}
-            onClick={() => handleSelect(s.year)}
-            fontWeight={s.year === currentSeason?.year ? "semibold" : "normal"}
-          >
-            {s.displayName}
-          </MenuItem>
-        ))}
-      </MenuList>
-    </Menu>
+    <MenuRoot>
+      <MenuTrigger asChild>
+        <Button
+          size="sm"
+          variant="outline"
+          colorScheme="orange"
+          aria-label="Select season"
+        >
+          {currentSeason?.displayName ?? "Select Season"}
+        </Button>
+      </MenuTrigger>
+      <MenuPositioner>
+        <MenuContent>
+          {seasons.map((s) => (
+            <MenuItem key={s.id} onClick={() => handleSelect(s.year)}>
+              <MenuItemText fontWeight={s.year === currentSeason?.year ? "semibold" : "normal"}>
+                {s.displayName}
+              </MenuItemText>
+            </MenuItem>
+          ))}
+        </MenuContent>
+      </MenuPositioner>
+    </MenuRoot>
   );
 }

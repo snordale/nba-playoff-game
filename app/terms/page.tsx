@@ -27,7 +27,7 @@ export default function TermsPage() {
                     <Heading as="h1" size="xl" mb={8}>Terms of Service</Heading>
                     <Box
                         className="prose prose-lg prose-slate max-w-none"
-                        sx={{
+                        css={{
                             'h2': {
                                 color: 'gray.800',
                                 fontWeight: '600',

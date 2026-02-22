@@ -3,18 +3,21 @@ import { useCreateGroup } from "@/react-query/queries";
 import {
   Button,
   Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
+  DialogRoot,
+  DialogBackdrop,
+  DialogPositioner,
+  DialogContent,
+  DialogCloseTrigger,
+  DialogHeader,
+  DialogTitle,
+  DialogBody,
   Stack
 } from "@chakra-ui/react";
 
 export const CreateGroupModal = ({ variant, onClose }: { variant: string; onClose: () => void }) => {
   const createGroup = useCreateGroup();
   const [groupName, setGroupName] = useState("");
+  const open = variant !== "";
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -46,7 +49,7 @@ export const CreateGroupModal = ({ variant, onClose }: { variant: string; onClos
           <Button
             type="submit"
             colorScheme="orange"
-            isDisabled={!groupName.trim()}
+            disabled={!groupName.trim()}
           >
             Create Group
           </Button>
@@ -56,15 +59,19 @@ export const CreateGroupModal = ({ variant, onClose }: { variant: string; onClos
   };
 
   return (
-    <Modal isOpen={variant !== ""} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalCloseButton />
-        <ModalHeader>Create Group</ModalHeader>
-        <ModalBody>
-          <form onSubmit={handleSubmit}>{renderBody()}</form>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+    <DialogRoot open={open} onOpenChange={(e: { open: boolean }) => { if (!e.open) onClose(); }}>
+      <DialogBackdrop />
+      <DialogPositioner>
+        <DialogContent>
+          <DialogCloseTrigger />
+          <DialogHeader>
+            <DialogTitle>Create Group</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <form onSubmit={handleSubmit}>{renderBody()}</form>
+          </DialogBody>
+        </DialogContent>
+      </DialogPositioner>
+    </DialogRoot>
   );
 };

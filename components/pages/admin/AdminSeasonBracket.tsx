@@ -4,17 +4,18 @@ import { useState } from "react";
 import {
   Box,
   Button,
-  FormControl,
-  FormLabel,
+  FieldRoot,
+  FieldLabel,
   HStack,
   Input,
-  Select,
+  NativeSelectRoot,
+  NativeSelectField,
   Stack,
-  useToast,
   VStack,
   Text,
-  Divider,
+  Separator,
 } from "@chakra-ui/react";
+import { toaster } from "@/lib/toaster";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const fetchAPI = async (url: string, options?: RequestInit) => {
@@ -27,7 +28,6 @@ const fetchAPI = async (url: string, options?: RequestInit) => {
 };
 
 export default function AdminSeasonBracket() {
-  const toast = useToast();
   const queryClient = useQueryClient();
   const [seasonYear, setSeasonYear] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -64,10 +64,10 @@ export default function AdminSeasonBracket() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminSeasons"] });
       queryClient.invalidateQueries({ queryKey: ["getSeasons"] });
-      toast({ title: "Season created", status: "success" });
+      toaster.create({ title: "Season created", status: "success" });
     },
     onError: (e: Error) => {
-      toast({ title: "Failed", description: e.message, status: "error" });
+      toaster.create({ title: "Failed", description: e.message, status: "error" });
     },
   });
 
@@ -79,12 +79,12 @@ export default function AdminSeasonBracket() {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      toast({ title: "Playoff seed saved", status: "success" });
+      toaster.create({ title: "Playoff seed saved", status: "success" });
       setSeedTeamId("");
       setSeed("");
     },
     onError: (e: Error) => {
-      toast({ title: "Failed", description: e.message, status: "error" });
+      toaster.create({ title: "Failed", description: e.message, status: "error" });
     },
   });
 
@@ -96,11 +96,11 @@ export default function AdminSeasonBracket() {
         body: JSON.stringify({ year }),
       }),
     onSuccess: (data: { message: string }) => {
-      toast({ title: data.message, status: "success" });
+      toaster.create({ title: data.message, status: "success" });
       setBracketYear("");
     },
     onError: (e: Error) => {
-      toast({ title: "Failed", description: e.message, status: "error" });
+      toaster.create({ title: "Failed", description: e.message, status: "error" });
     },
   });
 
@@ -114,11 +114,11 @@ export default function AdminSeasonBracket() {
     onSuccess: (data: { message: string }) => {
       queryClient.invalidateQueries({ queryKey: ["adminSeasons"] });
       queryClient.invalidateQueries({ queryKey: ["getSeasons"] });
-      toast({ title: "Auto-seed complete", description: data.message, status: "success", duration: 6000 });
+      toaster.create({ title: "Auto-seed complete", description: data.message, status: "success", duration: 6000 });
       setAutoSeedYear("");
     },
     onError: (e: Error) => {
-      toast({ title: "Auto-seed failed", description: e.message, status: "error", duration: 8000 });
+      toaster.create({ title: "Auto-seed failed", description: e.message, status: "error", duration: 8000 });
     },
   });
 
@@ -130,11 +130,11 @@ export default function AdminSeasonBracket() {
         body: JSON.stringify({ year }),
       }),
     onSuccess: (data: { message: string }) => {
-      toast({ title: data.message, status: "success" });
+      toaster.create({ title: data.message, status: "success" });
       setSyncYear("");
     },
     onError: (e: Error) => {
-      toast({ title: "Failed", description: e.message, status: "error" });
+      toaster.create({ title: "Failed", description: e.message, status: "error" });
     },
   });
 
@@ -142,7 +142,7 @@ export default function AdminSeasonBracket() {
     e.preventDefault();
     const year = parseInt(seasonYear, 10);
     if (isNaN(year) || !startDate || !endDate) {
-      toast({ title: "Fill all fields", status: "warning" });
+      toaster.create({ title: "Fill all fields", status: "warning" });
       return;
     }
     createSeason.mutate({ year, startDate, endDate });
@@ -152,7 +152,7 @@ export default function AdminSeasonBracket() {
     e.preventDefault();
     const seedNum = parseInt(seed, 10);
     if (!seedSeasonId || !seedTeamId || isNaN(seedNum) || seedNum < 1 || seedNum > 8) {
-      toast({ title: "Select season, team, and seed (1-8)", status: "warning" });
+      toaster.create({ title: "Select season, team, and seed (1-8)", status: "warning" });
       return;
     }
     createSeed.mutate({
@@ -170,7 +170,7 @@ export default function AdminSeasonBracket() {
       <Text fontWeight="semibold" fontSize="lg" mb={4}>
         Season & Bracket Management
       </Text>
-      <Divider mb={4} />
+      <Separator mb={4} />
 
       {seasons.length === 0 && (
         <Text fontSize="sm" color="gray.600" mb={2}>
@@ -178,17 +178,17 @@ export default function AdminSeasonBracket() {
         </Text>
       )}
 
-      <VStack spacing={6} align="stretch">
+      <VStack gap={6} align="stretch">
         <form onSubmit={handleCreateSeason}>
-          <Stack spacing={3}>
+          <Stack gap={3}>
             <Box>
               <Text fontSize="sm" fontWeight="medium">Create Season</Text>
               <Text fontSize="xs" color="gray.500" mt={1}>
                 Add a new playoff season with display year and date range. Needed before loading games or setting up the bracket; seasons are also auto-created when loading games from ESPN.
               </Text>
             </Box>
-            <FormControl>
-              <FormLabel fontSize="xs">Year</FormLabel>
+            <FieldRoot>
+              <FieldLabel fontSize="xs">Year</FieldLabel>
               <Input
                 type="number"
                 placeholder="2025"
@@ -196,40 +196,40 @@ export default function AdminSeasonBracket() {
                 onChange={(e) => setSeasonYear(e.target.value)}
                 size="sm"
               />
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="xs">Start Date</FormLabel>
+            </FieldRoot>
+            <FieldRoot>
+              <FieldLabel fontSize="xs">Start Date</FieldLabel>
               <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 size="sm"
               />
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="xs">End Date</FormLabel>
+            </FieldRoot>
+            <FieldRoot>
+              <FieldLabel fontSize="xs">End Date</FieldLabel>
               <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 size="sm"
               />
-            </FormControl>
+            </FieldRoot>
             <Button
               type="submit"
               size="sm"
               colorScheme="orange"
-              isLoading={createSeason.isPending}
+              loading={createSeason.isPending}
             >
               Create Season
             </Button>
           </Stack>
         </form>
 
-        <Divider />
+        <Separator />
 
         {/* Auto-seed: primary workflow */}
-        <Stack spacing={3}>
+        <Stack gap={3}>
           <Box>
             <Text fontSize="sm" fontWeight="medium">Auto-Seed from ESPN Standings</Text>
             <Text fontSize="xs" color="gray.500" mt={1}>
@@ -252,59 +252,61 @@ export default function AdminSeasonBracket() {
               onClick={() => {
                 const y = parseInt(autoSeedYear, 10);
                 if (isNaN(y) || y < 2000 || y > 2100) {
-                  toast({ title: "Enter a valid year (e.g. 2025)", status: "warning" });
+                  toaster.create({ title: "Enter a valid year (e.g. 2025)", status: "warning" });
                   return;
                 }
                 autoSeed.mutate(y);
               }}
-              isLoading={autoSeed.isPending}
+              loading={autoSeed.isPending}
             >
               Auto-Seed
             </Button>
           </HStack>
         </Stack>
 
-        <Divider />
+        <Separator />
 
         {/* Manual seed fallback */}
         <form onSubmit={handleCreateSeed}>
-          <Stack spacing={3}>
+          <Stack gap={3}>
             <Box>
               <Text fontSize="sm" fontWeight="medium">Add Playoff Seed (Manual)</Text>
               <Text fontSize="xs" color="gray.500" mt={1}>Fallback if ESPN data is unavailable or incorrect.</Text>
             </Box>
-            <FormControl>
-              <FormLabel fontSize="xs">Season</FormLabel>
-              <Select
-                size="sm"
-                value={seedSeasonId}
-                onChange={(e) => setSeedSeasonId(e.target.value)}
-                placeholder="Select season"
-              >
-                {seasons.map((s: { id: string; year: number; displayName: string }) => (
-                  <option key={s.id} value={s.id}>
-                    {s.displayName}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="xs">Team</FormLabel>
-              <Select
-                size="sm"
-                value={seedTeamId}
-                onChange={(e) => setSeedTeamId(e.target.value)}
-                placeholder="Select team"
-              >
-                {teamsList.map((t: { id: string; name: string; abbreviation: string }) => (
-                  <option key={t.id} value={t.id}>
-                    {t.abbreviation} - {t.name}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="xs">Seed (1-8)</FormLabel>
+            <FieldRoot>
+              <FieldLabel fontSize="xs">Season</FieldLabel>
+              <NativeSelectRoot size="sm">
+                <NativeSelectField
+                  value={seedSeasonId}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSeedSeasonId(e.target.value)}
+                  placeholder="Select season"
+                >
+                  {seasons.map((s: { id: string; year: number; displayName: string }) => (
+                    <option key={s.id} value={s.id}>
+                      {s.displayName}
+                    </option>
+                  ))}
+                </NativeSelectField>
+              </NativeSelectRoot>
+            </FieldRoot>
+            <FieldRoot>
+              <FieldLabel fontSize="xs">Team</FieldLabel>
+              <NativeSelectRoot size="sm">
+                <NativeSelectField
+                  value={seedTeamId}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSeedTeamId(e.target.value)}
+                  placeholder="Select team"
+                >
+                  {teamsList.map((t: { id: string; name: string; abbreviation: string }) => (
+                    <option key={t.id} value={t.id}>
+                      {t.abbreviation} - {t.name}
+                    </option>
+                  ))}
+                </NativeSelectField>
+              </NativeSelectRoot>
+            </FieldRoot>
+            <FieldRoot>
+              <FieldLabel fontSize="xs">Seed (1-8)</FieldLabel>
               <Input
                 type="number"
                 min={1}
@@ -313,32 +315,33 @@ export default function AdminSeasonBracket() {
                 onChange={(e) => setSeed(e.target.value)}
                 size="sm"
               />
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="xs">Conference</FormLabel>
-              <Select
-                size="sm"
-                value={conference}
-                onChange={(e) => setConference(e.target.value as "EAST" | "WEST")}
-              >
-                <option value="EAST">EAST</option>
-                <option value="WEST">WEST</option>
-              </Select>
-            </FormControl>
+            </FieldRoot>
+            <FieldRoot>
+              <FieldLabel fontSize="xs">Conference</FieldLabel>
+              <NativeSelectRoot size="sm">
+                <NativeSelectField
+                  value={conference}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConference(e.target.value as "EAST" | "WEST")}
+                >
+                  <option value="EAST">EAST</option>
+                  <option value="WEST">WEST</option>
+                </NativeSelectField>
+              </NativeSelectRoot>
+            </FieldRoot>
             <Button
               type="submit"
               size="sm"
               colorScheme="orange"
-              isLoading={createSeed.isPending}
+              loading={createSeed.isPending}
             >
               Add Seed
             </Button>
           </Stack>
         </form>
 
-        <Divider />
+        <Separator />
 
-        <Stack spacing={3}>
+        <Stack gap={3}>
           <Box>
             <Text fontSize="sm" fontWeight="medium">Seed Bracket (from seeds)</Text>
             <Text fontSize="xs" color="gray.500" mt={1}>
@@ -361,19 +364,19 @@ export default function AdminSeasonBracket() {
               onClick={() => {
                 const y = parseInt(bracketYear, 10);
                 if (isNaN(y) || y < 2000 || y > 2100) {
-                  toast({ title: "Enter a valid year (e.g. 2025)", status: "warning" });
+                  toaster.create({ title: "Enter a valid year (e.g. 2025)", status: "warning" });
                   return;
                 }
                 seedBracket.mutate(y);
               }}
-              isLoading={seedBracket.isPending}
+              loading={seedBracket.isPending}
             >
               Seed Bracket
             </Button>
           </HStack>
         </Stack>
 
-        <Stack spacing={3}>
+        <Stack gap={3}>
           <Box>
             <Text fontSize="sm" fontWeight="medium">Sync Series Outcomes (from games)</Text>
             <Text fontSize="xs" color="gray.500" mt={1}>
@@ -396,12 +399,12 @@ export default function AdminSeasonBracket() {
               onClick={() => {
                 const y = parseInt(syncYear, 10);
                 if (isNaN(y) || y < 2000 || y > 2100) {
-                  toast({ title: "Enter a valid year (e.g. 2025)", status: "warning" });
+                  toaster.create({ title: "Enter a valid year (e.g. 2025)", status: "warning" });
                   return;
                 }
                 syncOutcomes.mutate(y);
               }}
-              isLoading={syncOutcomes.isPending}
+              loading={syncOutcomes.isPending}
             >
               Sync Outcomes
             </Button>

@@ -4,19 +4,16 @@ import { useState, useMemo, useEffect } from 'react';
 import {
     Box,
     Button,
-    FormControl,
-    FormLabel,
-    Select,
+    FieldRoot,
+    FieldLabel,
+    FieldErrorText,
+    NativeSelectRoot,
+    NativeSelectField,
     Input,
-    Stack,
-    useToast,
-    Spinner,
     Text,
-    FormErrorMessage,
     VStack,
-    HStack,
     SimpleGrid,
-    Divider
+    Separator,
 } from '@chakra-ui/react';
 import {
     useAdminGetAllGroups,
@@ -25,6 +22,7 @@ import {
     useAdminUpsertSubmission
 } from '@/react-query/queries';
 import { formatInTimeZone } from 'date-fns-tz';
+import { toaster } from '@/lib/toaster';
 import { TypeaheadInput, type TypeaheadOption } from '@/components/shared/TypeaheadInput';
 
 // Define types for fetched data (adjust if needed based on actual API response)
@@ -47,7 +45,6 @@ interface PlayerForSelection {
 }
 
 const AdminInterface = () => {
-    const toast = useToast();
     const TIMEZONE = 'America/New_York';
 
     // Form State
@@ -95,7 +92,7 @@ const AdminInterface = () => {
         e.preventDefault();
 
         if (!selectedGroupId || !selectedUserId || !selectedDate || !selectedPlayer?.id) {
-            toast({
+            toaster.create({
                 title: 'Missing Information',
                 description: 'Please fill out all fields.',
                 status: 'warning',
@@ -109,7 +106,7 @@ const AdminInterface = () => {
             { groupId: selectedGroupId, userId: selectedUserId, date: selectedDate, playerId: selectedPlayer.id },
             {
                 onSuccess: () => {
-                    toast({
+                    toaster.create({
                         title: 'Submission Successful',
                         description: 'The submission has been created or updated.',
                         status: 'success',
@@ -119,7 +116,7 @@ const AdminInterface = () => {
                     setSelectedPlayer(null);
                 },
                 onError: (error: any) => {
-                    toast({
+                    toaster.create({
                         title: 'Submission Failed',
                         description: error.message || 'An unexpected error occurred.',
                         status: 'error',
@@ -147,55 +144,56 @@ const AdminInterface = () => {
 
     return (
         <Box as="form" onSubmit={handleSubmit} borderWidth="1px" borderRadius="lg" p={6} shadow="sm">
-            <VStack spacing={4} align="stretch">
+            <VStack gap={4} align="stretch">
                 <Box>
                     <Text fontSize="md" fontWeight="semibold" mb={1}>Upsert Submission</Text>
                     <Text fontSize="sm" color="gray.600">
                         Create or update a daily pick for a user in a group: choose group, user, date, and player. Use this to fix missing picks or correct mistakes (e.g. wrong player entered).
                     </Text>
                 </Box>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
                     {/* Group Selection */}
-                    <FormControl isRequired>
-                        <FormLabel>Group</FormLabel>
-                        <Select
-                            placeholder="Select group"
-                            value={selectedGroupId}
-                            onChange={(e) => setSelectedGroupId(e.target.value)}
-                            isDisabled={isLoadingGroups}
-                        >
-                            {isLoadingGroups && <option>Loading...</option>}
-                            {(groups as AdminGroup[])?.map((group) => (
-                                <option key={group.id} value={group.id}>{group.name}</option>
-                            ))}
-                        </Select>
-                    </FormControl>
+                    <FieldRoot required>
+                        <FieldLabel>Group</FieldLabel>
+                        <NativeSelectRoot disabled={isLoadingGroups}>
+                            <NativeSelectField
+                                placeholder="Select group"
+                                value={selectedGroupId}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedGroupId(e.target.value)}
+                            >
+                                {isLoadingGroups && <option>Loading...</option>}
+                                {(groups as AdminGroup[])?.map((group) => (
+                                    <option key={group.id} value={group.id}>{group.name}</option>
+                                ))}
+                            </NativeSelectField>
+                        </NativeSelectRoot>
+                    </FieldRoot>
 
                     {/* User Selection */}
-                    <FormControl isRequired>
-                        <FormLabel>User</FormLabel>
-                        <Select
-                            placeholder={selectedGroupId ? "Select user" : "Select group first"}
-                            value={selectedUserId}
-                            onChange={(e) => setSelectedUserId(e.target.value)}
-                            isDisabled={isLoadingUsers || !selectedGroupId} // Disable if no group selected or loading
-                        >
-                            {/* Show loading state specifically when group is selected but users are loading */}
-                            {selectedGroupId && isLoadingUsers && <option>Loading users...</option>}
-                            {selectedGroupId && usersError && <option disabled>Error loading users</option>}
-                            {(usersForSelectedGroup as AdminUser[])?.map((user) => (
-                                <option key={user.id} value={user.id}>{user.username}</option>
-                            ))}
-                            {selectedGroupId && !isLoadingUsers && !usersError && usersForSelectedGroup.length === 0 && (
-                                <option disabled>No users found in this group</option>
-                            )}
-                        </Select>
-                    </FormControl>
+                    <FieldRoot required>
+                        <FieldLabel>User</FieldLabel>
+                        <NativeSelectRoot disabled={isLoadingUsers || !selectedGroupId}>
+                            <NativeSelectField
+                                placeholder={selectedGroupId ? "Select user" : "Select group first"}
+                                value={selectedUserId}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedUserId(e.target.value)}
+                            >
+                                {selectedGroupId && isLoadingUsers && <option>Loading users...</option>}
+                                {selectedGroupId && usersError && <option disabled>Error loading users</option>}
+                                {(usersForSelectedGroup as AdminUser[])?.map((user) => (
+                                    <option key={user.id} value={user.id}>{user.username}</option>
+                                ))}
+                                {selectedGroupId && !isLoadingUsers && !usersError && usersForSelectedGroup.length === 0 && (
+                                    <option disabled>No users found in this group</option>
+                                )}
+                            </NativeSelectField>
+                        </NativeSelectRoot>
+                    </FieldRoot>
                 </SimpleGrid>
 
                 {/* Date Selection */}
-                <FormControl isRequired>
-                    <FormLabel>Date</FormLabel>
+                <FieldRoot required>
+                    <FieldLabel>Date</FieldLabel>
                     <Input
                         type="date"
                         value={selectedDate}
@@ -204,15 +202,15 @@ const AdminInterface = () => {
                         // min={PLAYOFF_START_DATE}
                         // max={PLAYOFF_END_DATE}
                     />
-                </FormControl>
+                </FieldRoot>
 
-                <Divider my={2} />
+                <Separator my={2} />
 
                 {/* Player Selection - Use TypeaheadInput */}
-                <FormControl isRequired isInvalid={!!playersError}>
-                    <FormLabel>Player</FormLabel>
+                <FieldRoot required invalid={!!playersError}>
+                    <FieldLabel>Player</FieldLabel>
                     {playersError ? (
-                        <FormErrorMessage>Error loading players: {playersError.message}</FormErrorMessage>
+                        <FieldErrorText>Error loading players: {playersError.message}</FieldErrorText>
                     ) : (
                         <TypeaheadInput
                             placeholder="Search & select player..."
@@ -224,13 +222,13 @@ const AdminInterface = () => {
                         />
                     )}
                     {!selectedDate && <Text fontSize="xs" color="gray.500" mt={1}>Select a date first</Text>}
-                </FormControl>
+                </FieldRoot>
 
                 {/* Submission Error Display */}
                 {submissionError && (
-                    <FormControl isInvalid>
-                        <FormErrorMessage>{submissionError.message}</FormErrorMessage>
-                    </FormControl>
+                    <FieldRoot invalid>
+                        <FieldErrorText>{submissionError.message}</FieldErrorText>
+                    </FieldRoot>
                 )}
 
                 {/* Submit Button */}
@@ -238,8 +236,8 @@ const AdminInterface = () => {
                     mt={4}
                     type="submit"
                     colorScheme="orange"
-                    isLoading={isSubmitting}
-                    isDisabled={isSubmitting || !selectedGroupId || !selectedUserId || !selectedDate || !selectedPlayer?.id || isLoadingPlayers}
+                    loading={isSubmitting}
+                    disabled={isSubmitting || !selectedGroupId || !selectedUserId || !selectedDate || !selectedPlayer?.id || isLoadingPlayers}
                 >
                     Upsert Submission
                 </Button>

@@ -35,7 +35,7 @@ const PublicContent = () => {
       <Box
         position="absolute"
         inset={0}
-        sx={{
+        css={{
           "&::before": {
             content: '""',
             position: "absolute",
@@ -51,7 +51,7 @@ const PublicContent = () => {
       />
       <Container maxW="container.xl" centerContent position="relative" zIndex={2} px={{ base: 4, md: 6 }}>
         <VStack
-          spacing={{ base: 6, md: 8 }}
+          gap={{ base: 6, md: 8 }}
           textAlign="center"
           p={{ base: 4, sm: 6, md: 12 }}
           borderRadius="xl"
@@ -61,7 +61,7 @@ const PublicContent = () => {
           w="full"
           position="relative"
           boxShadow="0 0 40px rgba(0, 0, 0, 0.05)"
-          sx={{
+          css={{
             position: 'relative',
             border: '2px solid transparent',
             backgroundClip: 'padding-box',

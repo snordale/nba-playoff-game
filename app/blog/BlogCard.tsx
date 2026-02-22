@@ -1,5 +1,5 @@
 import CustomLink from "@/components/CustomLink";
-import { Card, CardBody, Heading, Text } from "@chakra-ui/react";
+import { CardRoot, CardBody, Heading, Text } from "@chakra-ui/react";
 import type { BlogPost } from "@prisma/client";
 
 interface BlogCardProps {
@@ -9,7 +9,7 @@ interface BlogCardProps {
 export const BlogCard = ({ post }: BlogCardProps) => {
     return (
         <CustomLink href={`/blog/${post.slug}`} _hover={{ textDecoration: 'none' }}>
-            <Card
+            <CardRoot
                 variant="outline"
                 _hover={{
                     borderColor: "orange.400",
@@ -28,9 +28,9 @@ export const BlogCard = ({ post }: BlogCardProps) => {
                         })}
                     </Text>
                     <Heading size="md" mb={2}>{post.title}</Heading>
-                    <Text color="gray.600" noOfLines={3}>{post.excerpt}</Text>
+                    <Text color="gray.600" lineClamp={3}>{post.excerpt}</Text>
                 </CardBody>
-            </Card>
+            </CardRoot>
         </CustomLink>
     );
 }; 

@@ -1,38 +1,25 @@
-// app/providers.tsx
 "use client";
 
+import { ChakraProvider } from "@chakra-ui/react";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { queryClient } from "@/react-query/queries";
-import { ChakraProvider, extendTheme } from "@chakra-ui/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
+import { ToasterProvider } from "@/lib/toaster";
+import { system } from "./theme";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const theme = extendTheme({
-    fonts: {
-      heading: `'Courier', monospace`,
-      body: `'Courier', monospace`,
-    },
-    fontWeights: {
-      normal: 500,
-      medium: 600,
-      bold: 700,
-    },
-    components: {
-      Text: {
-        baseStyle: {
-          fontWeight: 'medium',
-        },
-      },
-    },
-  });
-
   return (
-    <ChakraProvider theme={theme}>
-      <SessionProvider>
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
-      </SessionProvider>
+    <ChakraProvider value={system}>
+      <NextThemesProvider attribute="class">
+        <ToasterProvider>
+          <SessionProvider>
+            <QueryClientProvider client={queryClient}>
+              {children}
+            </QueryClientProvider>
+          </SessionProvider>
+        </ToasterProvider>
+      </NextThemesProvider>
     </ChakraProvider>
   );
 }

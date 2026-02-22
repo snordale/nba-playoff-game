@@ -1,7 +1,7 @@
 import React from 'react';
 import { Body1 } from '../../Body1';
 import { useGetGroup } from '../../../react-query/queries';
-import { Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
+import { Stack, TableRoot, TableHeader, TableBody, TableRow, TableCell, TableColumnHeader, Box } from '@chakra-ui/react';
 
 export const SubmissionsTable = ({ groupId }: { groupId: string }) => {
   const { data: groupData } = useGetGroup({ groupId });
@@ -18,47 +18,47 @@ export const SubmissionsTable = ({ groupId }: { groupId: string }) => {
   return (
     <Stack>
       <Body1 fontWeight={600} pt={4}>Past Submissions</Body1>
-      <TableContainer border='1px solid #ddd' borderRadius={4} overflow='scroll' flex={1} py={2}>
-        <Table variant='simple' size='sm'>
-          <Thead>
-            <Tr>
-              <Th>Date</Th>
-              <Th>User</Th>
-              <Th>Player</Th>
-              <Th>Score</Th>
-              <Th isNumeric>P</Th>
-              <Th isNumeric>A</Th>
-              <Th isNumeric>R</Th>
-              <Th isNumeric>S</Th>
-              <Th isNumeric>B</Th>
-              <Th isNumeric>T</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
+      <Box border='1px solid #ddd' borderRadius={4} overflow='auto' flex={1} py={2}>
+        <TableRoot variant='outline' size='sm'>
+          <TableHeader>
+            <TableRow>
+              <TableColumnHeader>Date</TableColumnHeader>
+              <TableColumnHeader>User</TableColumnHeader>
+              <TableColumnHeader>Player</TableColumnHeader>
+              <TableColumnHeader>Score</TableColumnHeader>
+              <TableColumnHeader textAlign="end">P</TableColumnHeader>
+              <TableColumnHeader textAlign="end">A</TableColumnHeader>
+              <TableColumnHeader textAlign="end">R</TableColumnHeader>
+              <TableColumnHeader textAlign="end">S</TableColumnHeader>
+              <TableColumnHeader textAlign="end">B</TableColumnHeader>
+              <TableColumnHeader textAlign="end">T</TableColumnHeader>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {oldSubmissions?.length === 0 && (
-              <Tr>
-                <Td colSpan={10} py={4}>No submissions yet</Td>
-              </Tr>
+              <TableRow>
+                <TableCell colSpan={10} py={4}>No submissions yet</TableCell>
+              </TableRow>
             )}
             {oldSubmissions?.map((submission: any) => {
               return (
-                <Tr key={submission.id}>
-                  <Td>{new Date(submission.createdAt).toLocaleDateString()}</Td>
-                  <Td>{submission.username}</Td>
-                  <Td>{submission.playerName}</Td>
-                  <Td isNumeric>{submission.score}</Td>
-                  <Td isNumeric>{submission.points}</Td>
-                  <Td isNumeric>{submission.assists}</Td>
-                  <Td isNumeric>{submission.rebounds}</Td>
-                  <Td isNumeric>{submission.steals}</Td>
-                  <Td isNumeric>{submission.blocks}</Td>
-                  <Td isNumeric>{submission.turnovers}</Td>
-                </Tr>
+                <TableRow key={submission.id}>
+                  <TableCell>{new Date(submission.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{submission.username}</TableCell>
+                  <TableCell>{submission.playerName}</TableCell>
+                  <TableCell textAlign="end">{submission.score}</TableCell>
+                  <TableCell textAlign="end">{submission.points}</TableCell>
+                  <TableCell textAlign="end">{submission.assists}</TableCell>
+                  <TableCell textAlign="end">{submission.rebounds}</TableCell>
+                  <TableCell textAlign="end">{submission.steals}</TableCell>
+                  <TableCell textAlign="end">{submission.blocks}</TableCell>
+                  <TableCell textAlign="end">{submission.turnovers}</TableCell>
+                </TableRow>
               )
             })}
-          </Tbody>
-        </Table>
-      </TableContainer>
+          </TableBody>
+        </TableRoot>
+      </Box>
     </Stack>
   )
 }
