@@ -116,19 +116,23 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{
   const startStr = toDateString(season.startDate);
   const endStr = toDateString(season.endDate);
 
-  // Fix season_id by season window: only games within [startDate, endDate] belong to this season.
-  // Fall/winter games (after endDate) belong to next season.
+  // Fix season_id: games after previous season's end and <= this season's end belong here; after this end -> next season.
   let gamesSeasonCorrected = 0;
 
-  // Any game whose date falls in this season's window gets this season_id (fixes misassigned games in 2026 etc).
-  const moveIntoThisSeason = await prisma.game.updateMany({
-    where: {
-      date: { gte: season.startDate, lte: season.endDate },
-      seasonId: { not: seasonId },
-    },
-    data: { seasonId },
+  const prevSeason = await prisma.season.findUnique({
+    where: { year: season.year - 1 },
+    select: { endDate: true },
   });
-  gamesSeasonCorrected += moveIntoThisSeason.count;
+  const prevEndStr = prevSeason ? toDateString(prevSeason.endDate) : `${season.year - 1}-06-30`;
+
+  // Use raw SQL so we compare DATE to DATE (games.date is DATE); avoids Prisma timestamp vs date quirks.
+  const moveIntoThisSeasonCount = (await prisma.$executeRawUnsafe(
+    `UPDATE games SET season_id = $1::uuid WHERE date > $2::date AND date <= $3::date AND (season_id IS NULL OR season_id != $1::uuid)`,
+    seasonId,
+    prevEndStr,
+    endStr
+  )) as number;
+  gamesSeasonCorrected += moveIntoThisSeasonCount;
 
   const nextSeason = await prisma.season.findUnique({
     where: { year: season.year + 1 },
