@@ -11,7 +11,7 @@ import { system } from "./theme";
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ChakraProvider value={system}>
-      <NextThemesProvider attribute="class">
+      <NextThemesProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <ToasterProvider>
           <SessionProvider>
             <QueryClientProvider client={queryClient}>
