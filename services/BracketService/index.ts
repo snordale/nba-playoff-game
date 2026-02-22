@@ -116,23 +116,24 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{
   const startStr = toDateString(season.startDate);
   const endStr = toDateString(season.endDate);
 
-  // Fix season_id using endDate: game date <= season.endDate -> this year; date > endDate -> next year.
+  // Fix season_id by season window: only games within [startDate, endDate] belong to this season.
+  // Fall/winter games (after endDate) belong to next season; games in that window wrongly in next bucket move here.
   let gamesSeasonCorrected = 0;
   const nextSeason = await prisma.season.findUnique({
     where: { year: season.year + 1 },
     select: { id: true },
   });
   if (nextSeason) {
-    // Games in next season's bucket but date <= this endDate -> move to this season (e.g. May 2025 wrongly in 2026).
+    // Games in next season's bucket but date is within this season's playoff window -> move to this season.
     const moveToThisSeason = await prisma.game.updateMany({
       where: {
         seasonId: nextSeason.id,
-        date: { lte: season.endDate },
+        date: { gte: season.startDate, lte: season.endDate },
       },
       data: { seasonId },
     });
-    if (moveToThisSeason.count > 0) gamesSeasonCorrected += moveToThisSeason.count;
-    // Games in this season but date > endDate -> move to next season (e.g. Oct 2025 in 2025 bucket).
+    gamesSeasonCorrected += moveToThisSeason.count;
+    // Games in this season but date is after this season's end (fall/winter) -> move to next season.
     const moveToNextSeason = await prisma.game.updateMany({
       where: {
         seasonId,
@@ -140,7 +141,7 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{
       },
       data: { seasonId: nextSeason.id },
     });
-    if (moveToNextSeason.count > 0) gamesSeasonCorrected += moveToNextSeason.count;
+    gamesSeasonCorrected += moveToNextSeason.count;
   }
 
   // Re-fetch games for this season so we include any we just moved in (otherwise we'd undercount).
