@@ -185,7 +185,7 @@ Important constraints:
 **Cron (Bearer CRON_SECRET):**
 
 - `GET /api/cron/load-games?date=YYYY-MM-DD` – Load games for date (creates/finds Season from ESPN `season.year`). Scheduled 3am and 6am daily.
-- `GET /api/cron/sync-bracket` – Sync series outcomes and `firstGameStartsAt` from games, then advance bracket in a loop until full bracket exists (SF → CF → Finals). Idempotent. Scheduled 8am daily.
+- `GET /api/cron/sync-bracket` – Sync series outcomes and `firstGameStartsAt` from games, then advance bracket in a loop until full bracket exists (SF → CF → Finals). Only games on or after the season’s `startDate` (playoff start) are counted, so regular-season games do not affect series records; games after `endDate` are not excluded, so late rounds (Conference Finals, Finals) are never cut off. Idempotent. Scheduled 8am daily.
 - `GET /api/cron/load-teams` – Load teams/rosters.
 - `GET /api/cron/load-blog-posts` – Load blog.
 

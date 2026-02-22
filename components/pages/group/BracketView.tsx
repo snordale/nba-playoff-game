@@ -18,6 +18,8 @@ import { toaster } from "@/lib/toaster";
 import { useGroup } from "./GroupContext";
 import { Leaderboard } from "./Leaderboard";
 
+const ROUND_ORDER = ["FIRST_ROUND", "SEMIFINALS", "CONFERENCE_FINALS", "FINALS"] as const;
+
 const ROUND_LABELS: Record<string, string> = {
   FIRST_ROUND: "First Round",
   SEMIFINALS: "Semifinals",
@@ -252,7 +254,7 @@ export function BracketView() {
         emptyText="No picks yet. Make your picks below to appear here."
       />
 
-      {/* Series pick grid */}
+      {/* Series pick grid — grouped by round */}
       <Box>
         <Text fontWeight="semibold" fontSize="md" mb={3}>
           Make Your Picks
@@ -264,17 +266,37 @@ export function BracketView() {
             </Text>
           </Box>
         ) : (
-          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-            {playoffSeries.map((series) => (
-              <SeriesCard
-                key={series.id}
-                series={series}
-                currentPick={picksBySeries.get(series.id)}
-                groupId={groupId}
-                currentGroupUserId={currentGroupUserId}
-              />
-            ))}
-          </SimpleGrid>
+          <VStack align="stretch" gap={6}>
+            {ROUND_ORDER.map((round) => {
+              const seriesInRound = playoffSeries.filter((s) => s.round === round);
+              if (seriesInRound.length === 0) return null;
+              return (
+                <Box key={round}>
+                  <Text
+                    fontWeight="semibold"
+                    fontSize="sm"
+                    color="gray.600"
+                    textTransform="uppercase"
+                    letterSpacing="wider"
+                    mb={3}
+                  >
+                    {ROUND_LABELS[round]}
+                  </Text>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                    {seriesInRound.map((series) => (
+                      <SeriesCard
+                        key={series.id}
+                        series={series}
+                        currentPick={picksBySeries.get(series.id)}
+                        groupId={groupId}
+                        currentGroupUserId={currentGroupUserId}
+                      />
+                    ))}
+                  </SimpleGrid>
+                </Box>
+              );
+            })}
+          </VStack>
         )}
       </Box>
     </VStack>

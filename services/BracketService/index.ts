@@ -16,9 +16,14 @@ function gameMatchesSeries(
 
 /**
  * Sets firstGameStartsAt on each series from the earliest matching game (by startsAt or date).
+ * Only considers games on or after the season's startDate (playoff start).
  */
 export async function setSeriesFirstGameStartsAt(seasonId: string): Promise<number> {
-  const [seriesList, games] = await Promise.all([
+  const [season, seriesList, games] = await Promise.all([
+    prisma.season.findUnique({
+      where: { id: seasonId },
+      select: { startDate: true },
+    }),
     prisma.playoffSeries.findMany({ where: { seasonId } }),
     prisma.game.findMany({
       where: { seasonId },
@@ -27,9 +32,17 @@ export async function setSeriesFirstGameStartsAt(seasonId: string): Promise<numb
     }),
   ]);
 
+  if (!season) return 0;
+
+  const playoffStart = season.startDate;
+
   let updated = 0;
   for (const series of seriesList) {
-    const matchingGames = games.filter((g) => gameMatchesSeries(g, series));
+    const matchingGames = games.filter((g) => {
+      const gameDate = new Date(g.date);
+      if (gameDate < playoffStart) return false;
+      return gameMatchesSeries(g, series);
+    });
     if (matchingGames.length === 0) continue;
 
     const earliest = matchingGames.reduce((best, g) => {
@@ -50,29 +63,44 @@ export async function setSeriesFirstGameStartsAt(seasonId: string): Promise<numb
 
 /**
  * Syncs series outcomes (winner, wins) from completed games and sets firstGameStartsAt.
+ * Only counts games on or after the season's startDate (playoff start) so regular-season
+ * games with the same team pair are not counted. We do not exclude games after endDate,
+ * so late rounds (Conference Finals, Finals) are never cut off if endDate is conservative.
  */
 export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUpdated: number; firstGameUpdated: number; gamesLinked: number }> {
-  const games = await prisma.game.findMany({
-    where: {
-      seasonId,
-      status: "STATUS_FINAL",
-      homeScore: { not: null },
-      awayScore: { not: null },
-    },
-    orderBy: { date: "asc" },
-  });
+  const [season, games, series] = await Promise.all([
+    prisma.season.findUnique({
+      where: { id: seasonId },
+      select: { startDate: true },
+    }),
+    prisma.game.findMany({
+      where: {
+        seasonId,
+        status: "STATUS_FINAL",
+        homeScore: { not: null },
+        awayScore: { not: null },
+      },
+      orderBy: { date: "asc" },
+    }),
+    prisma.playoffSeries.findMany({
+      where: { seasonId },
+      include: { highSeedTeam: true, lowSeedTeam: true },
+    }),
+  ]);
 
-  const series = await prisma.playoffSeries.findMany({
-    where: { seasonId },
-    include: { highSeedTeam: true, lowSeedTeam: true },
-  });
+  if (!season) return { outcomesUpdated: 0, firstGameUpdated: 0, gamesLinked: 0 };
 
-  // Count wins per series across all completed games
+  const playoffStart = season.startDate;
+
+  // Count wins per series; only games on or after playoff start (exclude regular-season)
   const winsBySeries = new Map<string, { [teamId: string]: number }>();
   // Track which games need their playoffSeriesId backfilled
   const gamesToLink: { gameId: string; seriesId: string }[] = [];
 
   for (const game of games) {
+    const gameDate = new Date(game.date);
+    if (gameDate < playoffStart) continue;
+
     const s = series.find((s) => gameMatchesSeries(game, s));
     if (!s) continue;
 
