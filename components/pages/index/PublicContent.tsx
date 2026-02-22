@@ -82,8 +82,10 @@ const PublicContent = () => {
           <Heading
             as="h1"
             size={{ base: 'xl', md: '2xl' }}
-            bgGradient="linear(to-r, orange.400, orange.500, orange.600)"
-            bgClip="text"
+            backgroundImage="linear-gradient(to right, var(--chakra-colors-orange-400), var(--chakra-colors-orange-500), var(--chakra-colors-orange-600))"
+            backgroundClip="text"
+            color="transparent"
+            css={{ WebkitTextFillColor: "transparent" }}
             letterSpacing="-0.02em"
             fontWeight="bold"
           >
@@ -93,7 +95,7 @@ const PublicContent = () => {
             Pick one player each day during the NBA Playoffs. Maximize your points based on real game stats (Points, Rebounds, Assists, Steals, Blocks, Turnovers) and compete against your friends!
           </Text>
           <Text fontSize="md" color="gray.600">
-            Create or join a group now—you can invite friends before the playoffs start. Once the season begins, make daily player picks and series bracket picks to compete for the top spot.
+            Create or join a group now — you can invite friends before the playoffs start. Once the season begins, make daily player picks and series bracket picks to compete for the top spot.
           </Text>
         </VStack>
       </Container>
