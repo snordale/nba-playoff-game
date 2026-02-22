@@ -4,9 +4,10 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Container, Heading, Text } from '@chakra-ui/react';
+import { Container, Heading, Separator, Text, VStack } from '@chakra-ui/react';
 import AdminInterface from "@/components/pages/admin/AdminInterface";
 import AdminSeasonBracket from "@/components/pages/admin/AdminSeasonBracket";
+import AdminSeriesPick from "@/components/pages/admin/AdminSeriesPick";
 
 type AdminAccess = 'pending' | 'admin' | 'denied';
 
@@ -52,8 +53,13 @@ export default function AdminPage() {
   return (
     <Container maxW="container.lg" py={10}>
       <Heading mb={6}>Admin Panel</Heading>
-      <AdminInterface />
-      <AdminSeasonBracket />
+      <VStack align="stretch" gap={8}>
+        <AdminInterface />
+        <Separator />
+        <AdminSeriesPick />
+        <Separator />
+        <AdminSeasonBracket />
+      </VStack>
     </Container>
   );
 }

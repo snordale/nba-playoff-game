@@ -162,3 +162,32 @@ export const adminUpsertSubmission = async (
     body: JSON.stringify({ userId, groupId, date, playerId }),
   });
 };
+
+export const getSeriesByYear = async (year: number) => {
+  return fetchAPI(`/api/seasons/${year}/series`);
+};
+
+export const adminUpsertSeriesPick = async ({
+  groupId,
+  userId,
+  seriesId,
+  winnerTeamId,
+  gamesCount,
+}: {
+  groupId: string;
+  userId: string;
+  seriesId: string;
+  winnerTeamId: string;
+  gamesCount: number;
+}) => {
+  return fetchAPI("/api/admin/series-pick", {
+    method: "POST",
+    body: JSON.stringify({
+      groupId,
+      userId,
+      seriesId,
+      winnerTeamId,
+      gamesCount,
+    }),
+  });
+};

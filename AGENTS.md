@@ -198,6 +198,7 @@ Important constraints:
 - `POST /api/admin/seed-bracket` – Body `{ year }` – create **first-round only** PlayoffSeries from existing PlayoffSeeds. Idempotent (skips if any series exist). Use sync-series-outcomes to complete the bracket.
 - `POST /api/admin/sync-series-outcomes` – Body `{ year, advance?: boolean }` (default `advance: true`). Syncs winner/wins from completed games; when advance is true, runs advance in a loop until full bracket exists (SF → CF → Finals). Idempotent.
 - `GET /api/admin/users`, `POST /api/admin/submission` – User list, upsert submission.
+- `POST /api/admin/series-pick` – Body `{ groupId, userId, seriesId, winnerTeamId, gamesCount }`. Admin upsert of a user’s series pick; lock is not enforced. Validates user in group, series exists, winner is one of the series teams, gamesCount in [4, 5, 6, 7].
 - `GET /api/teams` – List teams (for admin seeding).
 
 **Blog:** `GET /api/blog/posts`, `GET /api/blog/posts/[slug]`
@@ -221,6 +222,7 @@ Important constraints:
 | Season selector       | `components/pages/group/SeasonSelector.tsx` |
 | Invite flow           | `app/invite/page.tsx`, `components/pages/invite/InviteClientPage.tsx` |
 | Admin bracket/season  | `components/pages/admin/AdminSeasonBracket.tsx` |
+| Admin series pick     | `components/pages/admin/AdminSeriesPick.tsx` |
 | React Query           | `react-query/queries.ts` |
 | API client            | `services/ApiService/index.ts` |
 
@@ -270,7 +272,7 @@ No public ESPN bracket API; bracket (PlayoffSeries) is built from PlayoffSeeds (
 - **DailySubmissionCard:** "Open" (orange solid badge) / "Final" (gray subtle badge) status indicator.
 - **Leaderboard component** (`components/pages/group/Leaderboard.tsx`): accepts optional `users`, `title`, and `emptyText` props; defaults to daily-picks context data. Used in both Daily tab and Bracket tab (series leaderboard).
 - **Bracket display:** Favorite (high seed) labeled "Favorite" on right for all rounds; **Bold + orange** for Finals only (UI).
-- **Admin:** Submission upsert (group, user, date, player); Season & Bracket section: create season, add playoff seeds, seed bracket, sync series outcomes. Admin identity enforced via `lib/admin.ts` (`ADMIN_EMAIL`/`ADMIN_EMAILS` env).
+- **Admin:** Submission upsert (group, user, date, player); **Upsert Series Pick** (year, round, series list, group, user, winner, games 4–7); Season & Bracket section: create season, add playoff seeds, seed bracket, sync series outcomes. Admin identity enforced via `lib/admin.ts` (`ADMIN_EMAIL`/`ADMIN_EMAILS` env).
 
 Use this file as the single source of truth for product behavior, data model, APIs, and scripts when implementing or refactoring features. Keep README.md, AGENTS.md, and DATA.md updated whenever you change or add anything they describe (see Documentation (markdown) and Conventions above).
 

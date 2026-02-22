@@ -12,6 +12,8 @@ import {
   adminGetAllGroups,
   adminGetAllUsers,
   adminUpsertSubmission,
+  getSeriesByYear,
+  adminUpsertSeriesPick,
 } from "@/services/ApiService";
 import type { Season } from "@prisma/client";
 import type { BlogPost } from "@prisma/client";
@@ -36,6 +38,13 @@ interface AdminUpsertSubmissionVariables {
   groupId: string;
   date: string; // YYYY-MM-DD
   playerId: string;
+}
+interface AdminUpsertSeriesPickVariables {
+  groupId: string;
+  userId: string;
+  seriesId: string;
+  winnerTeamId: string;
+  gamesCount: number;
 }
 
 export const useCreateGroup = () =>
@@ -177,5 +186,22 @@ export const useAdminUpsertSubmission = () => {
     onError: (error) => {
         console.error("Admin submission failed:", error);
     }
+  });
+};
+
+export const useGetSeriesByYear = (year: number | null) => {
+  return useQuery({
+    queryKey: ["getSeriesByYear", year],
+    queryFn: () => getSeriesByYear(year!),
+    enabled: year != null && year >= 2000 && year <= 2100,
+  });
+};
+
+export const useAdminUpsertSeriesPick = () => {
+  return useMutation<unknown, Error, AdminUpsertSeriesPickVariables>({
+    mutationFn: adminUpsertSeriesPick,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["getGroup", variables.groupId] });
+    },
   });
 };

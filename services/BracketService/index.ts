@@ -76,6 +76,11 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
     const s = series.find((s) => gameMatchesSeries(game, s));
     if (!s) continue;
 
+    // Only count a game for this series if it's already linked here or not yet linked.
+    // (Once linked to another series, don't count it here — avoids double-counting if
+    // the same team pair ever appears in more than one series.)
+    if (game.playoffSeriesId != null && game.playoffSeriesId !== s.id) continue;
+
     // Backfill playoffSeriesId if not yet set on this game
     if (!game.playoffSeriesId) {
       gamesToLink.push({ gameId: game.id, seriesId: s.id });
@@ -113,18 +118,19 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
 
     if (winnerId && winnerW !== undefined && winnerW >= 4) {
       const loserId = s.highSeedTeamId === winnerId ? s.lowSeedTeamId : s.highSeedTeamId;
-      const loserWins = wins[loserId] ?? 0;
-      // Always write win counts; only set winnerTeamId once (idempotent)
+      // Cap to valid best-of-7: at most 7 games, winner has 4, loser has 0–3
+      const totalGames = Math.min(highWins + lowWins, 7);
+      const winnerWinsCapped = 4;
+      const loserWinsCapped = totalGames - 4;
+      // Always write win counts (and capped winner/loser so display is valid); set winnerTeamId only once (idempotent)
       await prisma.playoffSeries.update({
         where: { id: s.id },
         data: {
           highSeedWins: highWins,
           lowSeedWins: lowWins,
-          ...(!s.winnerTeamId && {
-            winnerTeamId: winnerId,
-            winnerWins: winnerW,
-            loserWins,
-          }),
+          winnerWins: winnerWinsCapped,
+          loserWins: loserWinsCapped,
+          ...(!s.winnerTeamId && { winnerTeamId: winnerId }),
         },
       });
       if (!s.winnerTeamId) outcomesUpdated++;
