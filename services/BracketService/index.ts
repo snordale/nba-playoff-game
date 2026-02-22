@@ -127,7 +127,7 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{
 
   // Use raw SQL so we compare DATE to DATE (games.date is DATE); avoids Prisma timestamp vs date quirks.
   const moveIntoThisSeasonCount = (await prisma.$executeRawUnsafe(
-    `UPDATE games SET season_id = $1::uuid WHERE date > $2::date AND date <= $3::date AND (season_id IS NULL OR season_id != $1::uuid)`,
+    `UPDATE games SET season_id = $1::uuid WHERE date > $2::date AND date <= $3::date AND (season_id IS NULL OR season_id::text != $1)`,
     seasonId,
     prevEndStr,
     endStr
