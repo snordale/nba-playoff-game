@@ -362,10 +362,13 @@ export const loadGamesForDate = async (
         }
 
         // Only link to a PlayoffSeries when the game is inside the playoff window
-        // (on or after season.startDate). Otherwise we'd link regular-season games
-        // with the same team pair (e.g. Oct, Jan) to a playoff series.
+        // [season.startDate, season.endDate]. Otherwise we'd link regular-season games
+        // with the same team pair (e.g. Oct, Nov, Jan, Feb) to a playoff series.
         let playoffSeriesId: string | null = null;
-        const inPlayoffWindow = isPostseason && dbDateForNY >= season.startDate;
+        const inPlayoffWindow =
+          isPostseason &&
+          dbDateForNY >= season.startDate &&
+          dbDateForNY <= season.endDate;
         if (inPlayoffWindow) {
           const matchingSeries = await prisma.playoffSeries.findFirst({
             where: {

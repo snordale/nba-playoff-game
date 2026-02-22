@@ -31,22 +31,31 @@ export async function POST(req: NextRequest) {
 
   if (advance) {
     const result = await syncAndAdvanceUntilComplete(season.id);
+    const unlinkMsg =
+      result.gamesUnlinkedFromSeries > 0
+        ? ` ${result.gamesUnlinkedFromSeries} games unlinked from series (before playoff window).`
+        : "";
     return NextResponse.json({
-      message: `Synced ${season.displayName}: ${result.outcomesUpdated} outcomes, ${result.firstGameUpdated} firstGameStartsAt, ${result.gamesLinked} games linked, ${result.advanceCreated} new series created (full bracket).`,
+      message: `Synced ${season.displayName}: ${result.outcomesUpdated} outcomes, ${result.firstGameUpdated} firstGameStartsAt, ${result.gamesLinked} games linked, ${result.advanceCreated} new series created (full bracket).${unlinkMsg}`,
       outcomesUpdated: result.outcomesUpdated,
       firstGameUpdated: result.firstGameUpdated,
       gamesLinked: result.gamesLinked,
+      gamesUnlinkedFromSeries: result.gamesUnlinkedFromSeries,
       advanceCreated: result.advanceCreated,
     });
   }
 
-  const { outcomesUpdated, firstGameUpdated, gamesLinked } =
-    await syncSeriesOutcomes(season.id);
+  const syncResult = await syncSeriesOutcomes(season.id);
+  const unlinkMsg =
+    syncResult.gamesUnlinkedFromSeries > 0
+      ? ` ${syncResult.gamesUnlinkedFromSeries} games unlinked from series (before playoff window).`
+      : "";
   return NextResponse.json({
-    message: `Synced ${season.displayName}: ${outcomesUpdated} outcomes, ${firstGameUpdated} firstGameStartsAt, ${gamesLinked} games linked (no advance).`,
-    outcomesUpdated,
-    firstGameUpdated,
-    gamesLinked,
+    message: `Synced ${season.displayName}: ${syncResult.outcomesUpdated} outcomes, ${syncResult.firstGameUpdated} firstGameStartsAt, ${syncResult.gamesLinked} games linked (no advance).${unlinkMsg}`,
+    outcomesUpdated: syncResult.outcomesUpdated,
+    firstGameUpdated: syncResult.firstGameUpdated,
+    gamesLinked: syncResult.gamesLinked,
+    gamesUnlinkedFromSeries: syncResult.gamesUnlinkedFromSeries,
     advanceCreated: 0,
   });
 }

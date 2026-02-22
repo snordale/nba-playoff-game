@@ -28,6 +28,11 @@ async function main() {
   console.log(
     `Outcomes updated: ${result.outcomesUpdated}, firstGameStartsAt set: ${result.firstGameUpdated}, games linked: ${result.gamesLinked}`
   );
+  if (result.gamesUnlinkedFromSeries > 0) {
+    console.log(
+      `Unlinked ${result.gamesUnlinkedFromSeries} game(s) from series (before playoff window).`
+    );
+  }
   if (result.advanceCreated > 0) {
     console.log(
       `Advance bracket: created ${result.advanceCreated} new series (${result.advanceRounds.map((r) => r.round).join(", ")})`

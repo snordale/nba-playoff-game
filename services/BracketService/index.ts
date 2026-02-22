@@ -16,13 +16,13 @@ function gameMatchesSeries(
 
 /**
  * Sets firstGameStartsAt on each series from the earliest matching game (by startsAt or date).
- * Only considers games on or after the season's startDate (playoff start).
+ * Only considers games inside the season's playoff window [startDate, endDate].
  */
 export async function setSeriesFirstGameStartsAt(seasonId: string): Promise<number> {
   const [season, seriesList, games] = await Promise.all([
     prisma.season.findUnique({
       where: { id: seasonId },
-      select: { startDate: true },
+      select: { startDate: true, endDate: true },
     }),
     prisma.playoffSeries.findMany({ where: { seasonId } }),
     prisma.game.findMany({
@@ -35,12 +35,13 @@ export async function setSeriesFirstGameStartsAt(seasonId: string): Promise<numb
   if (!season) return 0;
 
   const playoffStart = season.startDate;
+  const playoffEnd = season.endDate;
 
   let updated = 0;
   for (const series of seriesList) {
     const matchingGames = games.filter((g) => {
       const gameDate = new Date(g.date);
-      if (gameDate < playoffStart) return false;
+      if (gameDate < playoffStart || gameDate > playoffEnd) return false;
       return gameMatchesSeries(g, series);
     });
     if (matchingGames.length === 0) continue;
@@ -67,11 +68,16 @@ export async function setSeriesFirstGameStartsAt(seasonId: string): Promise<numb
  * games with the same team pair are not counted. We do not exclude games after endDate,
  * so late rounds (Conference Finals, Finals) are never cut off if endDate is conservative.
  */
-export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUpdated: number; firstGameUpdated: number; gamesLinked: number }> {
+export async function syncSeriesOutcomes(seasonId: string): Promise<{
+  outcomesUpdated: number;
+  firstGameUpdated: number;
+  gamesLinked: number;
+  gamesUnlinkedFromSeries: number;
+}> {
   const [season, games, series] = await Promise.all([
     prisma.season.findUnique({
       where: { id: seasonId },
-      select: { startDate: true },
+      select: { startDate: true, endDate: true },
     }),
     prisma.game.findMany({
       where: {
@@ -79,6 +85,15 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
         status: "STATUS_FINAL",
         homeScore: { not: null },
         awayScore: { not: null },
+      },
+      select: {
+        id: true,
+        date: true,
+        homeTeamId: true,
+        awayTeamId: true,
+        homeScore: true,
+        awayScore: true,
+        playoffSeriesId: true,
       },
       orderBy: { date: "asc" },
     }),
@@ -88,17 +103,28 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
     }),
   ]);
 
-  if (!season) return { outcomesUpdated: 0, firstGameUpdated: 0, gamesLinked: 0 };
+  if (!season) {
+    return { outcomesUpdated: 0, firstGameUpdated: 0, gamesLinked: 0, gamesUnlinkedFromSeries: 0 };
+  }
 
   const playoffStart = season.startDate;
+  const playoffEnd = season.endDate;
 
-  // Unlink games that are before the playoff window (wrongly linked e.g. by date-agnostic loader)
-  const beforeWindow = games.filter((g) => new Date(g.date) < playoffStart && g.playoffSeriesId != null);
-  if (beforeWindow.length > 0) {
+  // Unlink games outside the playoff window [startDate, endDate] (e.g. regular season Oct/Nov/Jan/Feb with same team pair)
+  const outsideWindow = games.filter(
+    (g) => {
+      if (g.playoffSeriesId == null) return false;
+      const d = new Date(g.date);
+      return d < playoffStart || d > playoffEnd;
+    }
+  );
+  let gamesUnlinkedFromSeries = 0;
+  if (outsideWindow.length > 0) {
     await prisma.game.updateMany({
-      where: { id: { in: beforeWindow.map((g) => g.id) } },
+      where: { id: { in: outsideWindow.map((g) => g.id) } },
       data: { playoffSeriesId: null },
     });
+    gamesUnlinkedFromSeries = outsideWindow.length;
   }
 
   // Count wins per series; only games on or after playoff start (exclude regular-season)
@@ -108,7 +134,7 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
 
   for (const game of games) {
     const gameDate = new Date(game.date);
-    if (gameDate < playoffStart) continue;
+    if (gameDate < playoffStart || gameDate > playoffEnd) continue;
 
     const s = series.find((s) => gameMatchesSeries(game, s));
     if (!s) continue;
@@ -181,7 +207,12 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
   }
 
   const firstGameUpdated = await setSeriesFirstGameStartsAt(seasonId);
-  return { outcomesUpdated, firstGameUpdated, gamesLinked: gamesToLink.length };
+  return {
+    outcomesUpdated,
+    firstGameUpdated,
+    gamesLinked: gamesToLink.length,
+    gamesUnlinkedFromSeries,
+  };
 }
 
 /** Bracket slots: 0=1v8, 1=2v7, 2=3v6, 3=4v5. SF: slot 0 vs 3, slot 1 vs 2 (by index). */
@@ -317,6 +348,7 @@ export async function syncAndAdvanceUntilComplete(seasonId: string): Promise<{
   outcomesUpdated: number;
   firstGameUpdated: number;
   gamesLinked: number;
+  gamesUnlinkedFromSeries: number;
   advanceCreated: number;
   advanceRounds: { created: number; round: string }[];
 }> {
