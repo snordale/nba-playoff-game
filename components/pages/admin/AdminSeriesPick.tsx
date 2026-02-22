@@ -175,7 +175,6 @@ export default function AdminSeriesPick() {
                   setYear(v ? parseInt(v, 10) : null);
                 }}
               >
-                <option value="">Select year</option>
                 {years.map((y) => (
                   <option key={y} value={y}>
                     {y}
