@@ -27,13 +27,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: React.PropsWithChildren) {
   return (
     <html lang="en">
-      <Box as="body">
+      <body>
         <Providers>
           <ErrorBoundary>
             <Flex
               flexDir="column"
               minHeight="100vh"
-              w='100%'
+              w="100%"
               mx="auto"
             >
               <Flex
@@ -41,15 +41,15 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
                 w="100%"
                 px={{ base: 4, md: 6 }}
                 py={3}
-                h='60px'
-                bg='white'
-                backdropFilter='blur(12px)'
-                position='sticky'
+                h="60px"
+                bg="white"
+                backdropFilter="blur(12px)"
+                position="sticky"
                 top={0}
                 zIndex={10}
-                borderBottom='1px solid'
-                borderColor='orange.600'
-                alignItems='center'
+                borderBottom="1px solid"
+                borderColor="orange.600"
+                alignItems="center"
               >
                 <CustomLink href="/">
                   <Body1 fontWeight={600}>NBA Playoff Game</Body1>
@@ -57,7 +57,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
                 <AuthButton />
               </Flex>
               <Box as="main" flex={1} w="100%">
-                <Box minH='calc(100vh - 60px - 57px)'>
+                <Box minH="calc(100vh - 60px - 57px)">
                   {children}
                 </Box>
                 <Footer />
@@ -65,7 +65,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
             </Flex>
           </ErrorBoundary>
         </Providers>
-      </Box>
+      </body>
     </html>
   );
 }
