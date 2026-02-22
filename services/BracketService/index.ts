@@ -92,6 +92,15 @@ export async function syncSeriesOutcomes(seasonId: string): Promise<{ outcomesUp
 
   const playoffStart = season.startDate;
 
+  // Unlink games that are before the playoff window (wrongly linked e.g. by date-agnostic loader)
+  const beforeWindow = games.filter((g) => new Date(g.date) < playoffStart && g.playoffSeriesId != null);
+  if (beforeWindow.length > 0) {
+    await prisma.game.updateMany({
+      where: { id: { in: beforeWindow.map((g) => g.id) } },
+      data: { playoffSeriesId: null },
+    });
+  }
+
   // Count wins per series; only games on or after playoff start (exclude regular-season)
   const winsBySeries = new Map<string, { [teamId: string]: number }>();
   // Track which games need their playoffSeriesId backfilled
