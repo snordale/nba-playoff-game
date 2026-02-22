@@ -11,6 +11,26 @@ export async function getSeasonByYear(year: number) {
 }
 
 /**
+ * Finds the season whose playoff window [startDate, endDate] contains the given date.
+ * Used for postseason games so we attach by "which season's window is this game in" rather than
+ * by year (which can be ambiguous or inconsistent from the API). Returns null if none match.
+ */
+export async function getSeasonByDate(date: Date) {
+  const d = date.getTime();
+  const seasons = await prisma.season.findMany({
+    where: {
+      startDate: { lte: date },
+      endDate: { gte: date },
+    },
+  });
+  if (seasons.length === 0) return null;
+  if (seasons.length === 1) return seasons[0];
+  // Overlapping windows: pick the one whose year matches the date's year
+  const year = date.getUTCFullYear();
+  return seasons.find((s) => s.year === year) ?? seasons[0]!;
+}
+
+/**
  * Gets or creates a season for the given year.
  *
  * Start date is initially April 1 — a conservative stub that gets narrowed to

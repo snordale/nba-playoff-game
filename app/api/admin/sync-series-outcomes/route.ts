@@ -31,31 +31,33 @@ export async function POST(req: NextRequest) {
 
   if (advance) {
     const result = await syncAndAdvanceUntilComplete(season.id);
-    const unlinkMsg =
-      result.gamesUnlinkedFromSeries > 0
-        ? ` ${result.gamesUnlinkedFromSeries} games unlinked from series (before playoff window).`
-        : "";
+    const extra: string[] = [];
+    if (result.gamesUnlinkedFromSeries > 0) extra.push(`${result.gamesUnlinkedFromSeries} unlinked from series`);
+    if (result.gamesSeasonCorrected > 0) extra.push(`${result.gamesSeasonCorrected} season_id corrected`);
+    const extraMsg = extra.length ? ` ${extra.join(", ")}.` : "";
     return NextResponse.json({
-      message: `Synced ${season.displayName}: ${result.outcomesUpdated} outcomes, ${result.firstGameUpdated} firstGameStartsAt, ${result.gamesLinked} games linked, ${result.advanceCreated} new series created (full bracket).${unlinkMsg}`,
+      message: `Synced ${season.displayName}: ${result.outcomesUpdated} outcomes, ${result.firstGameUpdated} firstGameStartsAt, ${result.gamesLinked} games linked, ${result.advanceCreated} new series created (full bracket).${extraMsg}`,
       outcomesUpdated: result.outcomesUpdated,
       firstGameUpdated: result.firstGameUpdated,
       gamesLinked: result.gamesLinked,
       gamesUnlinkedFromSeries: result.gamesUnlinkedFromSeries,
+      gamesSeasonCorrected: result.gamesSeasonCorrected,
       advanceCreated: result.advanceCreated,
     });
   }
 
   const syncResult = await syncSeriesOutcomes(season.id);
-  const unlinkMsg =
-    syncResult.gamesUnlinkedFromSeries > 0
-      ? ` ${syncResult.gamesUnlinkedFromSeries} games unlinked from series (before playoff window).`
-      : "";
+  const extra: string[] = [];
+  if (syncResult.gamesUnlinkedFromSeries > 0) extra.push(`${syncResult.gamesUnlinkedFromSeries} unlinked from series`);
+  if (syncResult.gamesSeasonCorrected > 0) extra.push(`${syncResult.gamesSeasonCorrected} season_id corrected`);
+  const extraMsg = extra.length ? ` ${extra.join(", ")}.` : "";
   return NextResponse.json({
-    message: `Synced ${season.displayName}: ${syncResult.outcomesUpdated} outcomes, ${syncResult.firstGameUpdated} firstGameStartsAt, ${syncResult.gamesLinked} games linked (no advance).${unlinkMsg}`,
+    message: `Synced ${season.displayName}: ${syncResult.outcomesUpdated} outcomes, ${syncResult.firstGameUpdated} firstGameStartsAt, ${syncResult.gamesLinked} games linked (no advance).${extraMsg}`,
     outcomesUpdated: syncResult.outcomesUpdated,
     firstGameUpdated: syncResult.firstGameUpdated,
     gamesLinked: syncResult.gamesLinked,
     gamesUnlinkedFromSeries: syncResult.gamesUnlinkedFromSeries,
+    gamesSeasonCorrected: syncResult.gamesSeasonCorrected,
     advanceCreated: 0,
   });
 }

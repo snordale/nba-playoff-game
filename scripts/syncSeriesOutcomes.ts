@@ -29,9 +29,10 @@ async function main() {
     `Outcomes updated: ${result.outcomesUpdated}, firstGameStartsAt set: ${result.firstGameUpdated}, games linked: ${result.gamesLinked}`
   );
   if (result.gamesUnlinkedFromSeries > 0) {
-    console.log(
-      `Unlinked ${result.gamesUnlinkedFromSeries} game(s) from series (before playoff window).`
-    );
+    console.log(`Unlinked ${result.gamesUnlinkedFromSeries} game(s) from series (before playoff window).`);
+  }
+  if (result.gamesSeasonCorrected > 0) {
+    console.log(`Corrected season_id for ${result.gamesSeasonCorrected} game(s) (by season endDate).`);
   }
   if (result.advanceCreated > 0) {
     console.log(

@@ -1,5 +1,5 @@
 import { prisma } from "../../prisma/client";
-import { getOrCreateSeason, updateSeasonStartIfEarlier } from "../SeasonService";
+import { getOrCreateSeason, getSeasonByDate, updateSeasonStartIfEarlier } from "../SeasonService";
 import { getGamesByDate, getEventBoxScore, getAllTeams, getTeamRoster, ESPNApiTeam } from "../EspnService";
 import { Game, Player, PlayerGameStats, PrismaClient, Team } from '@prisma/client';
 import { Prisma } from '@prisma/client';
@@ -348,10 +348,14 @@ export const loadGamesForDate = async (
 
         const startsAtValue = isTBD ? null : gameDate;
 
-        const seasonYear = (event as any).season?.year ?? new Date(event.date).getFullYear();
-        const season = await getOrCreateSeason(seasonYear);
-
         const isPostseason = (event as any).season?.type === 3;
+        // For postseason, resolve season by which season's window [startDate, endDate] contains
+        // this game date. That way we don't rely on API year and a single series can't split
+        // across two seasons. Fall back to year-based lookup if no window contains the date.
+        const season = isPostseason
+          ? (await getSeasonByDate(dbDateForNY)) ?? (await getOrCreateSeason(dbDateForNY.getUTCFullYear()))
+          : await getOrCreateSeason((event as any).season?.year ?? new Date(event.date).getFullYear());
+        const seasonYear = season.year;
 
         // If this is a postseason event, track the earliest date so we can
         // narrow season.startDate from its Apr 1 stub to the real playoff start.
